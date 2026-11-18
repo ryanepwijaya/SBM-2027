@@ -2,6 +2,7 @@ import { ENTRIES, GROUPS, SHORTCUTS, SIFAT, KEL_ORDER, DOC_NOTES } from './catal
 import { S, loadData, entry, entriesOf, esc, norm, ref, lampShort, fmt, valueCols, unitCol, shortCol, UNIT, rowsOfProv, rapatTiers, pdfLink, store } from './store.js';
 import { search, buildIndex, SEARCH_HINTS } from './search.js';
 import { ic } from './icons.js';
+import { loadWilayah, suggest, resolve, routeHtml, placeLabel, routeHints, W } from './rute.js';
 
 const $ = (s, el = document) => el.querySelector(s);
 const $$ = (s, el = document) => [...el.querySelectorAll(s)];
@@ -9,7 +10,7 @@ const NAV = [
   { k: 'beranda', h: '#/', t: 'Beranda', i: 'home' },
   { k: 'jelajah', h: '#/jelajah', t: 'Jelajah', i: 'compass' },
   { k: 'cari', h: '#/cari', t: 'Cari', i: 'search' },
-  { k: 'daerah', h: '#/daerah', t: 'Daerah', i: 'map' },
+  { k: 'daerah', h: '#/rute', t: 'Daerah', i: 'map' },
   { k: 'lainnya', h: '#/lainnya', t: 'Lainnya', i: 'menu' },
 ];
 
@@ -139,6 +140,7 @@ function route() {
         if (parts[1] === 'p') ({ html, after } = viewProv(parts[2]));
         else ({ html, after } = viewDaerah(parts[1] === 'ln' ? 'ln' : 'dn', params));
         break;
+      case 'rute': setNav('daerah'); ({ html, after } = viewRute(params)); break;
       case 'bandingkan': setNav('bandingkan'); ({ html, after } = viewCompare(params)); break;
       case 'tersimpan': setNav('tersimpan'); html = viewSaved(); break;
       case 'lainnya': setNav('lainnya'); ({ html, after } = viewMore(parts[1])); break;
@@ -175,6 +177,10 @@ function viewHome() {
     <label class="hero-search" for="hq">${ic('search')}<input id="hq" type="search" placeholder="Ketik: uang harian jatim, penginapan, jakarta surabaya…" autocomplete="off" enterkeyhint="search"></label>
     <div class="hero-tags">${['perjadin', 'uang harian jatim', 'jakarta surabaya', 'fullboard', 'taksi bali'].map((h) => `<a href="#/cari?q=${encodeURIComponent(h)}">${esc(h)}</a>`).join('')}</div>
   </section>
+  <section class="card card-pad home-route">
+    <div class="row" style="justify-content:space-between;margin-bottom:10px"><div><b>${ic('route')} Rute perjadin</b><div class="muted small">Dari kota asal ke kota tujuan, langsung muncul semua SBM-nya.</div></div></div>
+    ${routeForm('jakarta', '', true)}
+  </section>
   <h2 class="sec">Pintasan <small>Perjalanan dinas</small></h2>
   <div class="shortcuts">${sc}</div>
   ${recent.length ? `<h2 class="sec">${ic('clock')} Terakhir dilihat</h2>${list(recent)}` : ''}
@@ -189,6 +195,11 @@ function viewHome() {
   </div>`;
 }
 function afterHome() {
+  let dari = 'jakarta';
+  attachAC('rDari', (it) => { dari = it.id; });
+  attachAC('rKe', (it) => { location.hash = `#/rute?dari=${encodeURIComponent(dari)}&ke=${encodeURIComponent(it.id)}`; });
+  $('#rSwap').style.visibility = 'hidden';
+  $$('[data-clear]').forEach((b) => b.onclick = () => { const i = $('#' + b.dataset.clear); i.value = ''; i.focus(); });
   const hq = $('#hq');
   hq.addEventListener('input', () => { location.hash = '#/cari?q=' + encodeURIComponent(hq.value); });
 }
@@ -507,8 +518,69 @@ function updateResults(q) {
 }
 
 /* ---------------- Daerah ---------------- */
+function daerahSeg(mode) {
+  return `<div class="seg"><a href="#/rute" class="${mode === 'rute' ? 'on' : ''}">Rute</a><a href="#/daerah" class="${mode === 'dn' ? 'on' : ''}">Per Provinsi</a><a href="#/daerah/ln" class="${mode === 'ln' ? 'on' : ''}">Luar Negeri</a></div>`;
+}
+
+/* ---------------- Rute ---------------- */
+function placeField(id, label, value, placeholder) {
+  return `<div class="pf"><label for="${id}">${label}</label><div class="pf-box">${ic('pin')}<input id="${id}" type="text" autocomplete="off" spellcheck="false" placeholder="${esc(placeholder)}" value="${esc(value)}"><button class="pf-clear" data-clear="${id}" aria-label="Hapus">${ic('x')}</button></div><div class="ac" id="${id}-ac" role="listbox"></div></div>`;
+}
+function routeForm(dari, ke, compact = false) {
+  return `<div class="route-form${compact ? ' compact' : ''}">
+    ${placeField('rDari', 'Dari', placeLabel(dari), 'Kota/kabupaten/provinsi asal')}
+    <button class="icon-btn swap" id="rSwap" aria-label="Tukar asal dan tujuan" title="Tukar">${ic('compare')}</button>
+    ${placeField('rKe', 'Ke', ke ? placeLabel(ke) : '', 'Ketik kota tujuan, mis. Surabaya, Bojonegoro, Jawa Timur…')}
+  </div>`;
+}
+function attachAC(inputId, onPick) {
+  const inp = $('#' + inputId);
+  const box = $('#' + inputId + '-ac');
+  let items = [], idx = -1;
+  const render = () => {
+    if (!items.length) { box.innerHTML = inp.value.trim() ? '<div class="ac-empty">Tidak ditemukan</div>' : ''; box.classList.toggle('open', !!inp.value.trim()); return; }
+    box.innerHTML = items.map((it, i) => `<button type="button" class="ac-it${i === idx ? ' on' : ''}" data-i="${i}"><span class="ac-t">${esc(it.n)}${it.air ? ' <span class="ac-air" title="Ada di tabel tiket pesawat KMK">' + ic('plane') + '</span>' : ''}</span><span class="ac-s">${esc(it.sub)}</span><span class="ac-b">${esc(it.t)}</span></button>`).join('');
+    box.classList.add('open');
+  };
+  inp.addEventListener('input', () => { items = suggest(inp.value); idx = items.length ? 0 : -1; render(); });
+  inp.addEventListener('focus', () => { inp.select(); if (inp.value.trim()) { items = suggest(inp.value); idx = 0; render(); } });
+  inp.addEventListener('keydown', (e) => {
+    if (!box.classList.contains('open')) return;
+    if (e.key === 'ArrowDown') { idx = Math.min(items.length - 1, idx + 1); render(); e.preventDefault(); }
+    else if (e.key === 'ArrowUp') { idx = Math.max(0, idx - 1); render(); e.preventDefault(); }
+    else if (e.key === 'Enter' && items[idx]) { e.preventDefault(); pick(items[idx]); }
+    else if (e.key === 'Escape') { box.classList.remove('open'); }
+  });
+  inp.addEventListener('blur', () => setTimeout(() => box.classList.remove('open'), 160));
+  box.addEventListener('mousedown', (e) => e.preventDefault());
+  box.addEventListener('click', (e) => { const b = e.target.closest('[data-i]'); if (b) pick(items[Number(b.dataset.i)]); });
+  const pick = (it) => { inp.value = it.n; box.classList.remove('open'); inp.blur(); onPick(it); };
+}
+function viewRute(params) {
+  const dari = params.dari || 'jakarta';
+  const ke = params.ke || '';
+  const O = resolve(dari), D = ke ? resolve(ke) : null;
+  const go = (d, k) => { location.hash = `#/rute?dari=${encodeURIComponent(d)}${k ? '&ke=' + encodeURIComponent(k) : ''}`; };
+  const hints = routeHints();
+  const html = `
+  <div class="page-head"><h1 class="title">Rute Perjalanan Dinas</h1><p class="subtitle">Pilih kota asal dan tujuan. Semua satuan biaya yang relevan muncul berurutan: taksi, tiket, transport darat, uang harian, penginapan.</p></div>
+  ${daerahSeg('rute')}
+  <div class="card card-pad">${routeForm(dari, ke)}
+    ${!D ? `<div class="hint-list">${hints.map((h) => `<a href="#/rute?dari=${encodeURIComponent(dari)}&ke=${encodeURIComponent(h.id)}">${esc(h.n.replace(/^Kota /, ''))}</a>`).join('')}</div>` : ''}
+  </div>
+  <div id="routeHost" style="margin-top:16px">${O && D ? routeHtml(O, D) : `<div class="empty">Pilih tujuan untuk melihat satuan biayanya.<br><span class="small">Rekomendasi mencakup 514 kabupaten/kota dan 38 provinsi.</span></div>`}</div>`;
+  const after = () => {
+    attachAC('rDari', (it) => go(it.id, ke));
+    attachAC('rKe', (it) => go(dari, it.id));
+    $('#rSwap').onclick = () => { if (ke) go(ke, dari); };
+    $$('[data-clear]').forEach((b) => b.onclick = () => { const i = $('#' + b.dataset.clear); i.value = ''; i.focus(); i.dispatchEvent(new Event('input')); });
+    if (!ke) setTimeout(() => $('#rKe').focus(), 50);
+  };
+  return { html, after };
+}
+
 function viewDaerah(mode, params) {
-  const seg = `<div class="seg"><a href="#/daerah" class="${mode === 'dn' ? 'on' : ''}">Dalam Negeri</a><a href="#/daerah/ln" class="${mode === 'ln' ? 'on' : ''}">Luar Negeri</a></div>`;
+  const seg = daerahSeg(mode);
   if (mode === 'dn') {
     const html = `
     <div class="page-head"><h1 class="title">Daerah</h1><p class="subtitle">Pilih provinsi untuk melihat semua satuan biaya perjalanan dinasnya dalam satu halaman.</p></div>
@@ -687,6 +759,7 @@ function viewMore(sub) {
         <tr><td>Berlaku</td><td>${esc(M.kmk.berlaku)} (Diktum KEEMPAT); digunakan dalam penyusunan RKA-K/L TA 2027 (Diktum KETIGA)</td></tr>
         <tr><td>Isi</td><td>Lampiran I (batas tertinggi) beserta Penjelasan, Lampiran II (dapat dilampaui) beserta Penjelasan. ${M.kmk.halaman} halaman.</td></tr>
       </tbody></table><div class="actions"><a class="btn" href="docs/kmk-296-2026.pdf" target="_blank" rel="noopener">${ic('download')} PDF KMK 296/2026</a></div></div>
+      <div class="card card-pad"><table class="plain"><tbody><tr><th colspan="2">Data wilayah (fitur Rute)</th></tr><tr><td>Sumber</td><td>idn-area-data v4.0.1 oleh Fityan Nugroho, dari data wilayah administrasi Kemendagri. Dilisensikan dengan Open Database License (ODbL).</td></tr><tr><td>Isi</td><td>38 provinsi dan 514 kabupaten/kota, dipetakan ke baris KMK (transport darat, Bodetabek) dan kota tiket. Pemetaan nama yang berbeda dicatat di Catatan atas dokumen.</td></tr></tbody></table></div>
       <div class="callout">${ic('info')}<div>Seluruh angka diambil langsung dari tabel PDF KMK 296/2026 dan dicek silang dengan ekstraksi teks kedua (3.168 baris bernomor cocok). Aplikasi ini alat bantu baca; untuk keperluan formal, rujuk dokumen aslinya.</div></div>
     </div>` };
   }
@@ -751,6 +824,7 @@ async function start() {
   $('#main').innerHTML = `<div class="empty">Memuat data…</div>`;
   try {
     await loadData();
+    await loadWilayah();
   } catch (e) {
     $('#main').innerHTML = `<div class="empty">Gagal memuat data. Periksa koneksi lalu muat ulang.</div>`;
     return;

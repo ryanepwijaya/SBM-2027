@@ -1,6 +1,7 @@
 // Mesin pencarian dalam aplikasi
 import { ENTRIES, SOON_SYN, CITY_ALIAS, GROUPS } from './catalog.js';
 import { S, norm, esc, fmt, valueCols, shortCol, entriesOf, rapatTiers } from './store.js';
+import { matchPlace, suggest } from './rute.js';
 
 const STOP = new Set(['di', 'ke', 'dari', 'untuk', 'yang', 'dan', 'atau', 'berapa', 'sbm', 'biaya', 'satuan', 'besaran',
   'kmk', 'pmk', 'tahun', '2027', '2026', 'standar', 'masukan', 'nya', 'apa', 'cara', 'aturan', 'ketentuan', 'tarif', 'harga',
@@ -158,6 +159,18 @@ export function search(qRaw) {
   const cr = correct(q.split(' '));
   if (cr.changed) { out.corrected = cr.tokens.join(' '); q = out.corrected; }
 
+  // Rute: "dari X ke Y" / "X ke Y"
+  const m = q.match(/^(?:dari\s+)?(.*?)\s*\bke\s+(.+)$/);
+  if (m && m[2]) {
+    const to = matchPlace(m[2]);
+    const from = m[1] ? matchPlace(m[1]) : null;
+    if (to) {
+      const fromId = from ? from.id : 'jakarta';
+      out.best.push({ t: `Rute perjadin ${from ? from.n : 'Jakarta'} → ${to.n}`, d: 'Taksi, tiket, transport darat, uang harian, penginapan, dan paket rapat untuk rute ini.', href: `#/rute?dari=${encodeURIComponent(fromId)}&ke=${encodeURIComponent(to.id)}`, kind: 'Rute' });
+      return { ...out, tokens: [] };
+    }
+  }
+
   const pr = takePhrases(q, IDX.provPhrases);
   const er = takePhrases(pr.rest, IDX.entryPhrases);
   const cityR = takePhrases(q, IDX.cityPhrases.map((c) => [c, c]));
@@ -311,6 +324,14 @@ export function search(qRaw) {
     }
   }
   out.soon = [...new Set(soonHits)].slice(0, 8);
+
+  // Saran rute untuk nama kabupaten/kota (bila bukan pencarian jenis biaya)
+  if (!ents.length && !soonKel.size && !out.soon.length) {
+    const pl = suggest(qRaw, 2).filter((x) => x.id !== 'jakarta');
+    for (const x of pl.slice(0, provs.length ? 1 : 2)) {
+      out.best.push({ t: `Rute perjadin Jakarta → ${x.n}`, d: `${x.sub}. Semua satuan biaya perjalanan dinas untuk rute ini.`, href: `#/rute?dari=jakarta&ke=${encodeURIComponent(x.id)}`, kind: 'Rute' });
+    }
+  }
   out.prov = provs;
   out.tokens = allTokens;
   return out;
