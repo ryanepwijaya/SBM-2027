@@ -1,5 +1,5 @@
 // Fitur Rute Perjadin: dari kota X ke kota Y → satuan biaya yang relevan
-import { S, norm, esc, fmt, valueCols, shortCol, rapatTiers } from './store.js';
+import { S, norm, esc, fmt, valueCols, shortCol, rapatTiers, tip } from './store.js';
 
 export const W = { data: null, byId: {}, list: [], ticketByReg: {} };
 
@@ -241,25 +241,25 @@ function compHtml(c) {
   const vals = c.missing
     ? `<div class="callout warn" style="margin-top:8px"><div>${esc(c.missing)}</div></div>`
     : `<div class="kv" style="margin-top:10px">${c.vals.map((v) => `<div${v.hl ? ' class="hlv"' : ''}><div class="k">${esc(v.k)}</div><div class="v ${c.vals.length > 2 ? 'sm' : ''}">${v.v}</div></div>`).join('')}</div>`;
-  return `<div class="rcomp"><div class="rhead"><div><div class="t">${esc(c.title)}</div>${c.sub ? `<div class="d">${esc(c.sub)}</div>` : ''}</div></div>
-    <div class="chips" style="margin-top:6px">${sif}${ref}</div>${vals}${c.note ? `<div class="note small muted" style="margin-top:6px">${esc(c.note)}</div>` : ''}</div>`;
+  const info = [c.sub, c.note].filter(Boolean).map(esc).join('<br><br>');
+  return `<div class="rcomp"><div class="rhead"><div class="t">${esc(c.title)} ${tip(info)}</div><div class="chips">${sif}${ref}</div></div>${vals}</div>`;
 }
 
 export function routeHtml(O, D) {
   const r = computeRoute(O, D);
-  const head = `<div class="route-sum card card-pad"><div class="route-line"><span class="rp">${esc(O.label)}</span><span class="ra">→</span><span class="rp">${esc(D.label)}</span></div>
-    <div class="muted small">${esc(S.prov[O.prov].nama)} → ${esc(S.prov[D.prov].nama)} · ${esc(r.kind)}</div>
-    ${r.notes.length ? `<div class="callout" style="margin-top:10px"><div>${r.notes.map(esc).join('<br>')}</div></div>` : ''}</div>`;
+  const foot = 'Angka per satuan sesuai KMK 296/2026. Jumlah hari, malam, dan frekuensi perjalanan mengikuti surat tugas dan PMK Perjalanan Dinas. Kota tiket ditentukan dari kota bandara yang ada di tabel KMK pada provinsi yang sama (ibu kota didahulukan).';
+  const head = `<div class="route-sum card card-pad"><div class="route-line"><span class="rp">${esc(O.label)}</span><span class="ra">→</span><span class="rp">${esc(D.label)}</span>${tip([...r.notes.map(esc), foot].join('<br><br>'))}</div>
+    <div class="muted small">${esc(S.prov[O.prov].nama)} → ${esc(S.prov[D.prov].nama)} · ${esc(r.kind)}</div></div>`;
   let n = 0;
   const secs = r.sec.filter((s) => (s.items && s.items.length) || s.table).map((s) => {
     n++;
     if (s.table) {
-      return `<section class="rsec"><h2 class="sec"><span class="step">${n}</span>${esc(s.h)}</h2><div class="card card-pad"><div style="overflow:auto"><table class="mini"><thead><tr>${s.table.cols.map((c, i) => `<th${i ? ' class="n"' : ''}>${esc(c)}</th>`).join('')}</tr></thead><tbody>${s.table.rows.map((row) => `<tr>${row.map((c, i) => `<td${i ? ' class="n"' : ''}>${esc(c)}</td>`).join('')}</tr>`).join('')}</tbody></table></div>
-        <div class="chips" style="margin-top:10px"><span class="chip bt">Batas Tertinggi</span><a class="chip ref" href="#/b/L1-29?t=0${s.table.code ? '&r=' + encodeURIComponent(s.table.code) : ''}">Lamp. I angka 29</a></div><div class="note small muted" style="margin-top:8px">${esc(s.table.note)}</div></div></section>`;
+      return `<section class="rsec"><h2 class="sec"><span class="step">${n}</span>${esc(s.h)} ${tip(esc(s.table.note))}</h2><div class="card card-pad"><div style="overflow:auto"><table class="mini"><thead><tr>${s.table.cols.map((c, i) => `<th${i ? ' class="n"' : ''}>${esc(c)}</th>`).join('')}</tr></thead><tbody>${s.table.rows.map((row) => `<tr>${row.map((c, i) => `<td${i ? ' class="n"' : ''}>${esc(c)}</td>`).join('')}</tr>`).join('')}</tbody></table></div>
+        <div class="chips" style="margin-top:10px"><span class="chip bt">Batas Tertinggi</span><a class="chip ref" href="#/b/L1-29?t=0${s.table.code ? '&r=' + encodeURIComponent(s.table.code) : ''}">Lamp. I angka 29</a></div></div></section>`;
     }
     return `<section class="rsec"><h2 class="sec"><span class="step">${n}</span>${esc(s.h)}</h2><div class="card rlist">${s.items.map(compHtml).join('')}</div></section>`;
   }).join('');
-  return head + secs + `<p class="muted small" style="margin-top:16px">Angka per satuan sesuai KMK 296/2026. Jumlah hari, malam, dan frekuensi perjalanan mengikuti surat tugas dan PMK Perjalanan Dinas. Kota tiket ditentukan dari kota bandara terdekat yang ada di tabel KMK pada provinsi yang sama.</p>`;
+  return head + secs;
 }
 
 const HINT_NAMES = ['Jawa Timur', 'Kota Surabaya', 'Kota Makassar', 'Kota Medan', 'Kota Denpasar', 'Kota Bandung', 'Kota Bekasi', 'Kab. Mimika'];

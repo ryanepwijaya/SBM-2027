@@ -1,5 +1,5 @@
 import { ENTRIES, GROUPS, SHORTCUTS, SIFAT, KEL_ORDER, DOC_NOTES } from './catalog.js';
-import { S, loadData, entry, entriesOf, esc, norm, ref, lampShort, fmt, valueCols, unitCol, shortCol, UNIT, rowsOfProv, rapatTiers, pdfLink, store } from './store.js';
+import { S, loadData, entry, entriesOf, esc, norm, ref, lampShort, fmt, valueCols, unitCol, shortCol, UNIT, rowsOfProv, rapatTiers, pdfLink, store, tip, fold } from './store.js';
 import { search, buildIndex, SEARCH_HINTS } from './search.js';
 import { ic } from './icons.js';
 import { loadWilayah, suggest, resolve, routeHtml, placeLabel, routeHints, W } from './rute.js';
@@ -44,6 +44,7 @@ async function copy(text, msg = 'Disalin') {
   catch { const ta = document.createElement('textarea'); ta.value = text; document.body.appendChild(ta); ta.select(); try { document.execCommand('copy'); toast(msg); } catch { toast('Gagal menyalin'); } ta.remove(); }
 }
 const sifatChip = (b) => `<span class="chip ${SIFAT[b.sifat].cls}" title="${esc(SIFAT[b.sifat].text)}">${SIFAT[b.sifat].label}</span>`;
+const sifatChipTip = (b) => `<span class="tip"><button type="button" class="tip-btn chip ${SIFAT[b.sifat].cls}">${SIFAT[b.sifat].label} ${ic('info')}</button><span class="tip-body" role="tooltip"><b>${SIFAT[b.sifat].label}.</b> ${esc(SIFAT[b.sifat].text)}</span></span>`;
 const refChip = (b) => `<span class="chip ref">${lampShort(b)}</span>`;
 const pageRange = (b) => (b.pages.length > 1 ? `hal. ${b.pages[0]}–${b.pages[b.pages.length - 1]}` : `hal. ${b.pages[0]}`);
 const groupOf = (gid) => GROUPS.find((g) => g.id === gid);
@@ -74,7 +75,7 @@ function shell() {
   <aside class="sidebar">
     ${brand}
     <nav class="side-nav">${nav}<div class="sep"></div><a href="#/tersimpan" data-nav="tersimpan">${ic('star')}<span>Tersimpan</span></a><a href="#/bandingkan" data-nav="bandingkan">${ic('compare')}<span>Bandingkan Provinsi</span></a></nav>
-    <div class="side-foot"><b>Tahap 1: Perjalanan Dinas</b><br>Standar Biaya Masukan TA 2027.<br>Kelompok lain menyusul.</div>
+    <div class="side-foot"><b>Tahap 1</b> · Perjalanan Dinas</div>
   </aside>
   <div class="content">
     <header class="topbar">
@@ -150,6 +151,7 @@ function route() {
     console.error(err);
     html = `<div class="empty">Terjadi kesalahan saat menampilkan halaman. <a href="#/">Kembali ke Beranda</a></div>`;
   }
+  html = html.replace(/<\/h1>\s*<p class="subtitle">([\s\S]*?)<\/p>/g, (m, t) => ` ${tip(t)}</h1>`);
   main.innerHTML = html + footer();
   if (pathKey !== lastPath) window.scrollTo(0, 0);
   lastPath = key === 'cari' ? 'cari' : pathKey;
@@ -158,41 +160,32 @@ function route() {
 }
 
 function footer() {
-  return `<div class="foot">Sumber: PMK Nomor 54 Tahun 2026 tentang Standar Biaya Masukan dan KMK Nomor 296 Tahun 2026 tentang Rincian Besaran Standar Biaya Masukan (TA 2027).<br>Aplikasi bantu baca, bukan dokumen resmi. Untuk keperluan formal, rujuk dokumen aslinya.</div>`;
+  return `<div class="foot">Sumber: PMK 54/2026 · KMK 296/2026 ${tip('PMK Nomor 54 Tahun 2026 tentang Standar Biaya Masukan dan KMK Nomor 296 Tahun 2026 tentang Rincian Besaran Standar Biaya Masukan (TA 2027). Aplikasi bantu baca, bukan dokumen resmi. Untuk keperluan formal, rujuk dokumen aslinya.')}</div>`;
 }
 
 /* ---------------- Beranda ---------------- */
 function viewHome() {
   const sc = SHORTCUTS.map((k) => {
     const e = entry(k); const b = S.butir[e.butir];
-    return `<a class="sc" href="#/b/${e.butir}?t=${e.table}"><span class="ico">${ic(e.icon)}</span><b>${esc(e.name)}</b><small>${esc(e.desc)}</small></a>`;
+    return `<a class="sc" href="#/b/${e.butir}?t=${e.table}" title="${esc(e.desc)}"><span class="ico">${ic(e.icon)}</span><b>${esc(e.name)}</b></a>`;
   }).join('');
   const recent = store.get('recent', []).map(entry).filter(Boolean);
   const sv = saved().map(entry).filter(Boolean);
   const list = (arr) => `<div class="card list">${arr.map(entryRow).join('')}</div>`;
   return `
   <section class="hero">
-    <h1>Standar Biaya Masukan TA 2027</h1>
-    <p>Baca PMK 54/2026 dan KMK 296/2026 tanpa membuka PDF berhalaman-halaman.</p>
-    <label class="hero-search" for="hq">${ic('search')}<input id="hq" type="search" placeholder="Ketik: uang harian jatim, penginapan, jakarta surabaya…" autocomplete="off" enterkeyhint="search"></label>
-    <div class="hero-tags">${['perjadin', 'uang harian jatim', 'jakarta surabaya', 'fullboard', 'taksi bali'].map((h) => `<a href="#/cari?q=${encodeURIComponent(h)}">${esc(h)}</a>`).join('')}</div>
+    <h1>Standar Biaya Masukan TA 2027 ${tip('Baca PMK 54/2026 dan KMK 296/2026 tanpa membuka PDF. Tahap 1: perjalanan dinas. Contoh pencarian: <i>uang harian jatim</i>, <i>jakarta surabaya</i>, <i>fullboard</i>, <i>taksi bali</i>.')}</h1>
+    <label class="hero-search" for="hq">${ic('search')}<input id="hq" type="search" placeholder="Cari satuan biaya, provinsi, atau kota…" autocomplete="off" enterkeyhint="search"></label>
   </section>
   <section class="card card-pad home-route">
-    <div class="row" style="justify-content:space-between;margin-bottom:10px"><div><b>${ic('route')} Rute perjadin</b><div class="muted small">Dari kota asal ke kota tujuan, langsung muncul semua SBM-nya.</div></div></div>
+    <div class="row" style="margin-bottom:10px"><b>${ic('route')} Rute perjadin</b>${tip('Pilih kota asal dan tujuan; semua satuan biaya yang relevan langsung muncul. Mencakup 514 kabupaten/kota dan 38 provinsi.')}</div>
     ${routeForm('jakarta', '', true)}
   </section>
-  <h2 class="sec">Pintasan <small>Perjalanan dinas</small></h2>
+  <h2 class="sec">Pintasan</h2>
   <div class="shortcuts">${sc}</div>
   ${recent.length ? `<h2 class="sec">${ic('clock')} Terakhir dilihat</h2>${list(recent)}` : ''}
   ${sv.length ? `<h2 class="sec">${ic('star')} Tersimpan</h2>${list(sv)}` : ''}
-  <h2 class="sec">Cakupan aplikasi</h2>
-  <div class="card card-pad">
-    <div class="row" style="justify-content:space-between">
-      <div><b>Tahap 1: Perjalanan Dinas</b><div class="muted small">13 jenis satuan biaya dari 12 butir KMK: dalam negeri, luar negeri, dan pindah.</div></div>
-      <a class="btn" href="#/jelajah">${ic('compass')} Jelajah</a>
-    </div>
-    <div class="chips">${KEL_ORDER.filter((k) => k !== 'C').map((k) => `<a class="chip soon" href="#/segera/${k}">${esc(S.data.kelompok[k])} · segera hadir</a>`).join('')}</div>
-  </div>`;
+`;
 }
 function afterHome() {
   let dari = 'jakarta';
@@ -205,7 +198,7 @@ function afterHome() {
 }
 function entryRow(e) {
   const b = S.butir[e.butir];
-  return `<a class="li" href="#/b/${e.butir}?t=${e.table}"><div class="grow"><div class="t">${esc(e.name)}</div><div class="d">${esc(e.desc)}</div><div class="chips" style="margin-top:6px">${sifatChip(b)}${refChip(b)}</div></div>${ic('chev', 'chev')}</a>`;
+  return `<a class="li" href="#/b/${e.butir}?t=${e.table}" title="${esc(e.desc)}"><div class="grow"><div class="t">${esc(e.name)}</div></div><span class="chip ${SIFAT[b.sifat].cls} hide-sm">${SIFAT[b.sifat].label}</span><span class="li-ref hide-sm">${lampShort(b)}</span>${ic('chev', 'chev')}</a>`;
 }
 
 /* ---------------- Jelajah ---------------- */
@@ -390,12 +383,15 @@ function viewButir(id, params, anchor) {
     });
   };
 
-  const tierNote = id === 'L1-29' ? `<div class="callout" style="margin-bottom:12px">${ic('info')}<div>Tarif fullboard dihitung untuk 1 kamar berdua. Untuk eselon II/JF utama ke atas (1 kamar sendiri), indeks paling tinggi 1,5 kali tarif fullboard.</div></div>` : '';
-  const points = e.points ? `<div class="card card-pad"><div class="reg"><h3>Poin penting</h3></div><ul class="points">${(id === 'L1-25' ? ents.flatMap((x) => x.points) : e.points).map((p) => `<li>${esc(p)}</li>`).join('')}</ul>${e.appNote ? `<div class="callout warn" style="margin-top:12px">${ic('alert')}<div>${esc(e.appNote)}</div></div>` : ''}<div class="points-note">Diringkas dari Penjelasan KMK 296/2026. Teks lengkap ada di bawah.</div></div>` : '';
-  const pen = `<div class="card card-pad reg" id="pen"><h3>Penjelasan · KMK 296/2026</h3>${renderReg(b.pen, hlTokens)}<div class="src">${ref(b)} (Penjelasan atas Lampiran ${b.lamp === 1 ? 'I' : 'II'})</div></div>`;
-  const def = `<div class="card card-pad" id="def"><div class="reg"><h3>Definisi · PMK 54/2026</h3></div><div class="def">${renderReg([{ t: 'p', x: b.def }], hlTokens)}</div><div class="src">Lampiran ${b.lamp === 1 ? 'I' : 'II'} PMK 54/2026 angka ${b.no}: ${esc(b.title)}</div></div>`;
+  const tierNote = '';
+  if (id === 'L1-29') tabs = tabs.replace(/<\/div>$/, `<span class="tabs-tip">${tip('Tarif fullboard dihitung untuk 1 kamar berdua. Untuk eselon II/JF utama ke atas (1 kamar sendiri), indeks paling tinggi 1,5 kali tarif fullboard.')}</span></div>`);
+  const pts = e.points ? (id === 'L1-25' ? ents.flatMap((x) => x.points) : e.points) : [];
+  const points = pts.length ? fold('Poin penting', `<ul class="points">${pts.map((p) => `<li>${esc(p)}</li>`).join('')}</ul>${e.appNote ? `<div class="callout warn" style="margin-top:12px">${ic('alert')}<div>${esc(e.appNote)}</div></div>` : ''}<div class="points-note">Diringkas dari Penjelasan KMK 296/2026.</div>`, { meta: pts.length + ' poin' }) : '';
+  const openText = !!(params.hl || anchor);
+  const pen = fold('Penjelasan · KMK 296/2026', `<div class="reg">${renderReg(b.pen, hlTokens)}</div><div class="src">${ref(b)} (Penjelasan atas Lampiran ${b.lamp === 1 ? 'I' : 'II'})</div>`, { id: 'pen', open: openText && anchor !== 'def' });
+  const def = fold('Definisi · PMK 54/2026', `<div class="def">${renderReg([{ t: 'p', x: b.def }], hlTokens)}</div><div class="src">Lampiran ${b.lamp === 1 ? 'I' : 'II'} PMK 54/2026 angka ${b.no}: ${esc(b.title)}</div>`, { id: 'def', open: openText && anchor === 'def' });
   const others = ENTRIES.filter((x) => x.group === e.group && x.butir !== id);
-  const related = others.length ? `<div class="card list"><div class="li" style="border:0"><div class="grow"><div class="t">Lainnya di ${esc(g.short)}</div></div></div>${others.map((x) => `<a class="li" href="#/b/${x.butir}?t=${x.table}"><div class="grow"><div class="t">${esc(x.name)}</div><div class="d">${esc(x.desc)}</div></div>${ic('chev', 'chev')}</a>`).join('')}</div>` : '';
+  const related = others.length ? fold(`Lainnya di ${esc(g.short)}`, `<div class="list">${others.map((x) => `<a class="li" href="#/b/${x.butir}?t=${x.table}"><div class="grow"><div class="t">${esc(x.name)}</div></div>${ic('chev', 'chev')}</a>`).join('')}</div>`, { meta: others.length }) : '';
 
   const title = id === 'L1-25' ? e.name : e.name;
   const html = `
@@ -403,28 +399,27 @@ function viewButir(id, params, anchor) {
     <div class="crumb"><a href="#/jelajah">Jelajah</a><span class="sep">›</span>${esc(g.name)}</div>
     <h1 class="title">${esc(title)}</h1>
     <p class="subtitle">${esc(b.title)}</p>
-    <div class="chips">${sifatChip(b)}${refChip(b)}<a class="chip" href="${pdfLink(b)}" target="_blank" rel="noopener">${ic('file')} PDF ${pageRange(b)}</a></div>
+    <div class="chips">${sifatChipTip(b)}${refChip(b)}<a class="chip" href="${pdfLink(b)}" target="_blank" rel="noopener">${ic('file')} PDF ${pageRange(b)}</a></div>
     <div class="actions">
-      <button class="btn${isSaved(e.key) ? ' on' : ''}" id="saveBtn">${ic('star')} <span>${isSaved(e.key) ? 'Tersimpan' : 'Simpan'}</span></button>
-      <button class="btn" id="refBtn">${ic('copy')} Salin rujukan</button>
-      ${navigator.share ? `<button class="btn" id="shareBtn">${ic('share')} Bagikan</button>` : ''}
+      <button class="btn sm${isSaved(e.key) ? ' on' : ''}" id="saveBtn">${ic('star')} <span>${isSaved(e.key) ? 'Tersimpan' : 'Simpan'}</span></button>
+      <button class="btn sm" id="refBtn">${ic('copy')} Salin rujukan</button>
+      ${navigator.share ? `<button class="btn sm" id="shareBtn">${ic('share')} Bagikan</button>` : ''}
     </div>
   </div>
-  <div class="callout" style="margin-bottom:14px">${ic('info')}<div><b>${SIFAT[b.sifat].label}.</b> ${esc(SIFAT[b.sifat].text)}</div></div>
   <div class="butir-layout">
     <div class="butir-main">
       ${tabs}${tierNote}${tools}
       <div id="tblHost"></div>
-      <div class="grid" style="margin-top:18px">${points}</div>
-      <div class="grid hide-wide" style="margin-top:12px">${pen}${def}</div>
-      <div style="margin-top:12px">${related}</div>
+      <div class="grid" style="margin-top:16px">${points}</div>
+      <div class="grid hide-wide" style="margin-top:10px">${pen}${def}</div>
+      <div class="grid" style="margin-top:10px">${related}</div>
     </div>
     <aside class="butir-aside grid">${''}</aside>
   </div>`;
 
   const after = () => {
     // Di layar lebar, pindahkan poin penting & penjelasan ke kolom kanan
-    const wide = window.matchMedia('(min-width: 1280px)').matches;
+    const wide = false;
     if (wide) {
       const aside = $('.butir-aside');
       const main = $('.butir-main');
@@ -459,7 +454,7 @@ function viewButir(id, params, anchor) {
 /* ---------------- Cari ---------------- */
 function viewCari(q) {
   return `
-  <div class="page-head"><h1 class="title">Cari</h1><p class="subtitle">Ketik jenis biaya, provinsi, kota, atau kata dalam aturan. Contoh: <i>penginapan jatim</i>, <i>jakarta surabaya</i>, <i>60%</i>.</p></div>
+  <div class="page-head"><h1 class="title">Cari</h1><p class="subtitle">Ketik jenis biaya, provinsi, kota, atau kata dalam aturan.<br>Contoh: ${SEARCH_HINTS.map((h) => `<i>${esc(h)}</i>`).join(', ')}.</p></div>
   <div class="search-box">${ic('search')}<input id="q" type="search" value="${esc(q)}" placeholder="Cari di SBM 2027…" autocomplete="off" enterkeyhint="search" aria-label="Cari"><button id="qClear" aria-label="Hapus">${ic('x')}</button></div>
   <div id="results"></div>`;
 }
@@ -498,8 +493,7 @@ function updateResults(q) {
     const hist = store.get('qhist', []);
     host.innerHTML = `
       ${hist.length ? `<div class="res-group"><div class="res-title">Pencarian terakhir</div><div class="hint-list">${hist.map((h) => `<a href="#/cari?q=${encodeURIComponent(h)}">${esc(h)}</a>`).join('')}</div></div>` : ''}
-      <div class="res-group"><div class="res-title">Coba cari</div><div class="hint-list">${SEARCH_HINTS.map((h) => `<a href="#/cari?q=${encodeURIComponent(h)}">${esc(h)}</a>`).join('')}</div></div>
-      <div class="res-group"><div class="res-title">Atau buka langsung</div><div class="card list">${SHORTCUTS.slice(0, 6).map((k) => entryRow(entry(k))).join('')}</div></div>`;
+      ${hist.length ? '' : '<div class="empty small">Ketik untuk mulai mencari.</div>'}`;
     return;
   }
   const r = search(q);
@@ -563,12 +557,11 @@ function viewRute(params) {
   const go = (d, k) => { location.hash = `#/rute?dari=${encodeURIComponent(d)}${k ? '&ke=' + encodeURIComponent(k) : ''}`; };
   const hints = routeHints();
   const html = `
-  <div class="page-head"><h1 class="title">Rute Perjalanan Dinas</h1><p class="subtitle">Pilih kota asal dan tujuan. Semua satuan biaya yang relevan muncul berurutan: taksi, tiket, transport darat, uang harian, penginapan.</p></div>
+  <div class="page-head"><h1 class="title">Rute Perjalanan Dinas</h1><p class="subtitle">Pilih kota asal dan tujuan. Semua satuan biaya yang relevan muncul berurutan: taksi, tiket, transport darat, uang harian, penginapan. Rekomendasi mencakup 514 kabupaten/kota dan 38 provinsi. Contoh tujuan: ${hints.map((h) => esc(h.n)).join(', ')}.</p></div>
   ${daerahSeg('rute')}
   <div class="card card-pad">${routeForm(dari, ke)}
-    ${!D ? `<div class="hint-list">${hints.map((h) => `<a href="#/rute?dari=${encodeURIComponent(dari)}&ke=${encodeURIComponent(h.id)}">${esc(h.n.replace(/^Kota /, ''))}</a>`).join('')}</div>` : ''}
   </div>
-  <div id="routeHost" style="margin-top:16px">${O && D ? routeHtml(O, D) : `<div class="empty">Pilih tujuan untuk melihat satuan biayanya.<br><span class="small">Rekomendasi mencakup 514 kabupaten/kota dan 38 provinsi.</span></div>`}</div>`;
+  <div id="routeHost" style="margin-top:16px">${O && D ? routeHtml(O, D) : `<div class="empty small">Pilih tujuan untuk melihat satuan biayanya.</div>`}</div>`;
   const after = () => {
     attachAC('rDari', (it) => go(it.id, ke));
     attachAC('rKe', (it) => go(dari, it.id));
@@ -619,7 +612,7 @@ function viewProv(pid) {
   if (!p) return { html: `<div class="empty">Provinsi tidak ditemukan.</div>` };
   const B = S.butir;
   const link = (bid, t, code) => `#/b/${bid}?t=${t}${code ? '&r=' + encodeURIComponent(code) : ''}`;
-  const card = (title, b, inner, more, note) => `<section class="card card-pad dcard"><div class="head"><h3>${esc(title)} ${sifatChip(b)}</h3><a class="more" href="${more}">${lampShort(b)} ›</a></div>${inner}${note ? `<div class="note">${note}</div>` : ''}</section>`;
+  const card = (title, b, inner, more, note) => `<section class="card card-pad dcard"><div class="head"><h3>${esc(title)} ${note ? tip(note) : ''}</h3><a class="more" href="${more}">${lampShort(b)} ›</a></div>${inner}</section>`;
   const kv = (t, r, idxs) => `<div class="kv">${idxs.map((i) => `<div><div class="k">${esc(shortCol(t.cols[i]))}</div><div class="v">${fmt(r.n[i], t.cur)}</div></div>`).join('')}</div>`;
 
   // Uang harian
@@ -658,24 +651,26 @@ function viewProv(pid) {
   }
   // Tiket
   const tK = B['L2-6'].tables[0];
-  const rK = tK.rows.filter((r) => r.v && (r.pa === pid || r.pt === pid));
+  const capU = p.kota[0].toUpperCase();
+  const rK = tK.rows.filter((r) => r.v && (r.pa === pid || r.pt === pid))
+    .sort((a, b) => ([b.v[1], b.v[2]].some((c) => c.toUpperCase() === capU) - [a.v[1], a.v[2]].some((c) => c.toUpperCase() === capU)));
   const cK = card('Tiket Pesawat (PP)', B['L2-6'], rK.length
     ? `<div class="scroll-list"><table class="mini"><thead><tr><th>Rute</th><th class="n">Bisnis</th><th class="n">Ekonomi</th></tr></thead><tbody>${rK.map((r) => `<tr><td><a href="${link('L2-6', 0, r.c)}">${esc(r.v[1])} ⇄ ${esc(r.v[2])}</a></td><td class="n">${fmt(r.n[3])}</td><td class="n">${fmt(r.n[4])}</td></tr>`).join('')}</tbody></table></div>`
     : `<div class="callout">${ic('info')}<div>Tidak ada rute yang menyentuh kota di provinsi ini dalam tabel tiket KMK.</div></div>`,
     `#/b/L2-6?q=${encodeURIComponent(p.kota[0])}`, rK.length ? `${rK.length} rute yang asal atau tujuannya kota di provinsi ini. Dibayar riil.` : '');
   // Nasional
   const tR2 = B['L1-25'].tables[1];
-  const cN = `<section class="card card-pad dcard"><div class="head"><h3>Berlaku nasional</h3></div><table class="mini"><tbody>
-    <tr><td><a href="#/b/L2-4">Transpor kegiatan dalam kota (PP)</a> ${sifatChip(B['L2-4'])}</td><td class="n">${fmt(B['L2-4'].tables[0].rows[0].n[2])}</td></tr>
-    <tr><td><a href="#/b/L1-29?t=1">Uang harian rapat fullboard</a> ${sifatChip(B['L1-29'])}</td><td class="n">${fmt(B['L1-29'].tables[1].rows.find((r) => r.v).n[3])}</td></tr>
-    ${tR2.rows.filter((r) => r.v).map((r) => `<tr><td><a href="#/b/L1-25?t=1">Representasi ${esc(r.v[1])}</a> <span class="muted small">luar kota / dalam kota >8 jam</span></td><td class="n">${fmt(r.n[3])} / ${fmt(r.n[4])}</td></tr>`).join('')}
-  </tbody></table>${pid === 'dki' ? '<div class="note">Untuk transpor kegiatan dalam kota, DKI Jakarta dihitung satu kabupaten/kota (Jakarta Pusat, Timur, Utara, Barat, Selatan).</div>' : ''}</section>`;
+  const cN = `<section class="card card-pad dcard"><div class="head"><h3>Berlaku nasional ${pid === 'dki' ? tip('Untuk transpor kegiatan dalam kota, DKI Jakarta dihitung satu kabupaten/kota (Jakarta Pusat, Timur, Utara, Barat, Selatan).') : ''}</h3></div><table class="mini"><tbody>
+    <tr><td><a href="#/b/L2-4">Transpor kegiatan dalam kota (PP)</a></td><td class="n">${fmt(B['L2-4'].tables[0].rows[0].n[2])}</td></tr>
+    <tr><td><a href="#/b/L1-29?t=1">Uang harian rapat fullboard</a></td><td class="n">${fmt(B['L1-29'].tables[1].rows.find((r) => r.v).n[3])}</td></tr>
+    ${tR2.rows.filter((r) => r.v).map((r) => `<tr><td><a href="#/b/L1-25?t=1">Representasi ${esc(r.v[1])}</a> ${tip('Luar kota / dalam kota lebih dari 8 jam')}</td><td class="n">${fmt(r.n[3])} / ${fmt(r.n[4])}</td></tr>`).join('')}
+  </tbody></table></section>`;
 
   const html = `
   <div class="page-head">
     <div class="crumb"><a href="#/daerah">Daerah</a><span class="sep">›</span>Dalam Negeri</div>
     <h1 class="title">${esc(p.nama)}</h1>
-    <p class="subtitle">Ibu kota: ${esc(p.kota[0])}. Semua angka sesuai KMK 296/2026; ketuk tautan untuk melihat tabel lengkap dan penjelasannya.</p>
+    <p class="subtitle">Ibu kota: ${esc(p.kota[0])}. Semua angka sesuai KMK 296/2026; ketuk tautan Lamp. untuk melihat tabel lengkap dan penjelasannya.</p>
     <div class="actions"><a class="btn" href="#/bandingkan?p=${pid}">${ic('compare')} Bandingkan dengan provinsi lain</a></div>
   </div>
   <div class="grid grid-2">${cUH}${cH}${cR}${cT}${cK}${cD}${cB}${cN}</div>`;
@@ -699,7 +694,7 @@ function viewCompare(params) {
   let sel = (params.p || '').split(',').filter((x) => S.prov[x]).slice(0, 3);
   const html = `
   <div class="page-head"><div class="crumb"><a href="#/daerah">Daerah</a><span class="sep">›</span>Bandingkan</div>
-  <h1 class="title">Bandingkan Provinsi</h1><p class="subtitle">Pilih sampai 3 provinsi untuk membandingkan uang harian, penginapan, taksi, dan paket rapat.</p></div>
+  <h1 class="title">Bandingkan Provinsi</h1><p class="subtitle">Pilih sampai 3 provinsi untuk membandingkan uang harian, penginapan, taksi, dan paket rapat. Uang harian, penginapan, dan paket rapat bersifat batas tertinggi; taksi dapat dilampaui.</p></div>
   <div class="tbl-tools">
     ${[0, 1, 2].map((k) => `<select class="sel" data-slot="${k}"><option value="">— Pilih provinsi ${k + 1} —</option>${S.provList.map((p) => `<option value="${p.id}"${sel[k] === p.id ? ' selected' : ''}>${esc(p.nama)}</option>`).join('')}</select>`).join('')}
   </div>
@@ -714,8 +709,7 @@ function viewCompare(params) {
         g = m.g;
         return head + `<tr><td class="lbl">${esc(m.l)}</td>${ps.map((p) => { const v = m.f(p); return `<td class="n">${v != null ? fmt(v) : '<span class="na">Tidak tercantum</span>'}</td>`; }).join('')}</tr>`;
       }).join('');
-      $('#cmpHost').innerHTML = `<div class="tbl-wrap"><table class="t"><thead><tr><th>Komponen</th>${ps.map((p) => `<th class="n"><a href="#/daerah/p/${p}">${esc(S.prov[p].nama)}</a></th>`).join('')}</tr></thead><tbody>${rows}</tbody></table></div>
-      <p class="muted small" style="margin-top:10px">Angka sesuai KMK 296/2026. Uang harian, penginapan, dan paket rapat bersifat batas tertinggi; taksi dapat dilampaui.</p>`;
+      $('#cmpHost').innerHTML = `<div class="tbl-wrap"><table class="t"><thead><tr><th>Komponen</th>${ps.map((p) => `<th class="n"><a href="#/daerah/p/${p}">${esc(S.prov[p].nama)}</a></th>`).join('')}</tr></thead><tbody>${rows}</tbody></table></div>`;
     };
     $$('[data-slot]').forEach((s) => s.onchange = () => {
       sel[Number(s.dataset.slot)] = s.value;
@@ -794,16 +788,16 @@ function viewMore(sub) {
   </div></div>
   <div class="group-title">Menu</div>
   <div class="card list">
-    <a class="li" href="#/tersimpan">${ic('star', 'chev')}<div class="grow"><div class="t">Tersimpan</div><div class="d">${saved().length} jenis satuan biaya</div></div>${ic('chev', 'chev')}</a>
-    <a class="li" href="#/bandingkan">${ic('compare', 'chev')}<div class="grow"><div class="t">Bandingkan provinsi</div><div class="d">Uang harian, penginapan, taksi, paket rapat</div></div>${ic('chev', 'chev')}</a>
-    <a class="li" href="#/lainnya/catatan">${ic('list', 'chev')}<div class="grow"><div class="t">Catatan Umum KMK</div><div class="d">Efisiensi, mekanisme perjalanan dinas, toleransi kabupaten</div></div>${ic('chev', 'chev')}</a>
-    <a class="li" href="#/lainnya/singkatan">${ic('book', 'chev')}<div class="grow"><div class="t">Daftar singkatan</div><div class="d">OH, OB, OJ, OP, OK, dan lainnya</div></div>${ic('chev', 'chev')}</a>
-    <a class="li" href="#/lainnya/dokumen">${ic('alert', 'chev')}<div class="grow"><div class="t">Catatan atas dokumen</div><div class="d">Data tidak tercantum, salah cetak, dan penyeragaman ejaan</div></div>${ic('chev', 'chev')}</a>
-    <a class="li" href="#/lainnya/tentang">${ic('info', 'chev')}<div class="grow"><div class="t">Tentang PMK 54/2026 & KMK 296/2026</div><div class="d">Dasar hukum, tanggal, dan unduh PDF asli</div></div>${ic('chev', 'chev')}</a>
+    <a class="li" href="#/tersimpan">${ic('star', 'chev')}<div class="grow"><div class="t">Tersimpan</div></div>${ic('chev', 'chev')}</a>
+    <a class="li" href="#/bandingkan">${ic('compare', 'chev')}<div class="grow"><div class="t">Bandingkan provinsi</div></div>${ic('chev', 'chev')}</a>
+    <a class="li" href="#/lainnya/catatan">${ic('list', 'chev')}<div class="grow"><div class="t">Catatan Umum KMK</div></div>${ic('chev', 'chev')}</a>
+    <a class="li" href="#/lainnya/singkatan">${ic('book', 'chev')}<div class="grow"><div class="t">Daftar singkatan</div></div>${ic('chev', 'chev')}</a>
+    <a class="li" href="#/lainnya/dokumen">${ic('alert', 'chev')}<div class="grow"><div class="t">Catatan atas dokumen</div></div>${ic('chev', 'chev')}</a>
+    <a class="li" href="#/lainnya/tentang">${ic('info', 'chev')}<div class="grow"><div class="t">Tentang PMK 54/2026 & KMK 296/2026</div></div>${ic('chev', 'chev')}</a>
   </div>
   <div class="group-title">Aplikasi</div>
   <div class="card card-pad">
-    ${isStandalone ? '<div class="muted">Aplikasi sudah terpasang di perangkat ini.</div>' : `<div class="row" style="justify-content:space-between"><div><b>Pasang di perangkat</b><div class="muted small">Buka lebih cepat dan tetap bisa dipakai tanpa internet.</div></div><button class="btn primary" id="installBtn">${ic('phone')} Pasang</button></div><div class="muted small" id="installHelp" style="margin-top:10px;display:none">Di Chrome HP: ketuk menu ⋮ lalu pilih <b>Tambahkan ke layar utama</b> / <b>Instal aplikasi</b>. Di PC: klik ikon pasang di kolom alamat.</div>`}
+    ${isStandalone ? '<div class="muted">Aplikasi sudah terpasang di perangkat ini.</div>' : `<div class="row" style="justify-content:space-between"><div class="row"><b>Pasang di perangkat</b>${tip('Buka lebih cepat dan tetap bisa dipakai tanpa internet.')}</div><button class="btn primary" id="installBtn">${ic('phone')} Pasang</button></div><div class="muted small" id="installHelp" style="margin-top:10px;display:none">Di Chrome HP: ketuk menu ⋮ lalu pilih <b>Tambahkan ke layar utama</b> / <b>Instal aplikasi</b>. Di PC: klik ikon pasang di kolom alamat.</div>`}
   </div>
   <div class="group-title">Cakupan</div>
   <div class="card list">${KEL_ORDER.map((k) => `<a class="li${k === 'C' ? '' : ' soon'}" href="${k === 'C' ? '#/jelajah' : '#/segera/' + k}"><div class="grow"><div class="t">${esc(S.data.kelompok[k])}</div><div class="d">${S.data.butir.filter((b) => b.kel === k).length} butir</div></div>${k === 'C' ? '<span class="chip dl">Tersedia</span>' : '<span class="chip soon">Segera</span>'}</a>`).join('')}</div>`;
@@ -818,9 +812,50 @@ function viewMore(sub) {
   return { html, after };
 }
 
+/* ---------------- Keterangan (i) ---------------- */
+function placeTip(t) {
+  const body = t.querySelector('.tip-body');
+  if (!body) return;
+  body.style.left = ''; body.style.right = ''; body.style.transform = '';
+  const r = body.getBoundingClientRect();
+  const pad = 10;
+  const vw = document.documentElement.clientWidth;
+  if (r.right > vw - pad) body.style.left = `${parseFloat(getComputedStyle(body).left) - (r.right - vw + pad)}px`;
+  const r2 = body.getBoundingClientRect();
+  if (r2.left < pad) body.style.left = `${parseFloat(getComputedStyle(body).left) + (pad - r2.left)}px`;
+}
+function initTips() {
+  const closeAll = (except) => $$('.tip.open').forEach((t) => t !== except && t.classList.remove('open'));
+  document.addEventListener('click', (e) => {
+    const btn = e.target.closest('.tip-btn');
+    if (btn) {
+      e.preventDefault(); e.stopPropagation();
+      const t = btn.closest('.tip');
+      const on = !t.classList.contains('open');
+      closeAll(t);
+      t.classList.toggle('open', on);
+      if (on) placeTip(t);
+      return;
+    }
+    if (!e.target.closest('.tip-body')) closeAll();
+  }, true);
+  if (window.matchMedia('(hover: hover)').matches) {
+    document.addEventListener('mouseover', (e) => {
+      const t = e.target.closest('.tip');
+      if (t && !t.classList.contains('hover')) { t.classList.add('hover'); placeTip(t); }
+    });
+    document.addEventListener('mouseout', (e) => {
+      const t = e.target.closest('.tip');
+      if (t && !t.contains(e.relatedTarget)) t.classList.remove('hover');
+    });
+  }
+  window.addEventListener('hashchange', () => closeAll());
+}
+
 /* ---------------- Mulai ---------------- */
 async function start() {
   shell();
+  initTips();
   $('#main').innerHTML = `<div class="empty">Memuat data…</div>`;
   try {
     await loadData();

@@ -1,5 +1,6 @@
 // Akses data & utilitas bersama
 import { ENTRIES } from './catalog.js';
+import { ic } from './icons.js';
 
 export const S = { data: null, butir: {}, prov: {}, provList: [] };
 
@@ -102,3 +103,13 @@ export const store = {
   get(k, d) { try { const v = localStorage.getItem('sbm27:' + k); return v ? JSON.parse(v) : d; } catch { return d; } },
   set(k, v) { try { localStorage.setItem('sbm27:' + k, JSON.stringify(v)); } catch { /* abaikan */ } },
 };
+
+// Keterangan kecil: ikon (i), muncul saat hover (PC) atau diketuk (HP)
+export function tip(html, label = 'Keterangan') {
+  if (!html) return '';
+  return `<span class="tip"><button type="button" class="tip-btn" aria-label="${label}">${ic('info')}</button><span class="tip-body" role="tooltip">${html}</span></span>`;
+}
+// Menu lipat untuk teks penjelasan
+export function fold(title, body, opt = {}) {
+  return `<details class="fold"${opt.id ? ` id="${opt.id}"` : ''}${opt.open ? ' open' : ''}><summary><span>${title}</span>${opt.meta ? `<small>${opt.meta}</small>` : ''}</summary><div class="fold-body">${body}</div></details>`;
+}
