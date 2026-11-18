@@ -581,3 +581,13 @@ details.fold > summary:hover { background: var(--surface-2); }
 .empty.small { padding: 22px 12px; }
 @media (min-width: 1280px) { .butir-layout { grid-template-columns: minmax(0, 1fr); } .butir-aside { display: none; } }
 .butir-main > .grid { max-width: 920px; }
+
+/* Perbaikan: baris kelompok tidak lagi menempel (bertabrakan dengan kolom kiri yang menempel) */
+table.t tr.grp td { position: static !important; top: auto !important; z-index: auto; }
+table.t tr.grp td .grp-in { position: sticky; left: 12px; display: inline-block; }
+table.t tbody td.sticky-col { z-index: 1; }
+table.t thead th.sticky-col { position: sticky; left: 0; top: 0; z-index: 4; background: var(--surface-2); }
+table.t tbody td.sticky-col { position: sticky; left: 0; background: var(--surface); z-index: 1; }
+table.t tbody tr:hover td.sticky-col { background: var(--surface-2); }
+table.t tbody tr.hl td.sticky-col { background: var(--hl); }
+table.t td.sticky-col, table.t th.sticky-col { box-shadow: 1px 0 0 var(--border-2); }

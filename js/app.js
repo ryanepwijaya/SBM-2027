@@ -272,7 +272,7 @@ function renderTable(t, opt = {}) {
   }).join('');
   const nCols = cols.length;
   const body = rows.length ? rows.map((r) => {
-    if (r.g) return `<tr class="grp"><td colspan="${nCols}"><span class="gc">${esc(r.c)}</span>${esc(r.g)}</td></tr>`;
+    if (r.g) return `<tr class="grp"><td colspan="${nCols}"><span class="grp-in"><span class="gc">${esc(r.c)}</span>${esc(r.g)}</span></td></tr>`;
     const hl = opt.hl && r.c === opt.hl ? ' class="hl" id="hlrow"' : '';
     return `<tr${hl} data-code="${esc(r.c)}">${cols.map((x, k) => {
       if (x.i === 0 && hasCode) return `<td class="code">${esc(r.v[0] || '–')}</td>`;
