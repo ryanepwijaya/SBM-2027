@@ -1,4 +1,4 @@
-// Katalog tampilan tahap 1: Perjalanan Dinas.
+// Katalog tampilan: entri Perjalanan Dinas di sini; bab lain di entries-more.js.
 // Isi angka & teks regulasi berasal dari data/sbm.json (hasil ekstraksi KMK 296/2026 & PMK 54/2026).
 // "Poin penting" di bawah adalah ringkasan dari Penjelasan KMK pada butir terkait.
 
@@ -9,7 +9,9 @@ export const GROUPS = [
 ];
 
 // Setiap entri = satu "menu" yang dibuka pengguna. Satu butir KMK bisa punya >1 entri (mis. 25.1 dan 25.2).
-export const ENTRIES = [
+import { MORE_ENTRIES } from './entries-more.js';
+
+const PERJADIN_ENTRIES = [
   {
     key: 'uh-dn', group: 'dn', butir: 'L1-25', table: 0, icon: 'wallet',
     name: 'Uang Harian Dalam Negeri', desc: 'Per provinsi: luar kota, dalam kota lebih dari 8 jam, dan diklat',
@@ -148,6 +150,8 @@ export const ENTRIES = [
   },
 ];
 
+export const ENTRIES = [...PERJADIN_ENTRIES, ...MORE_ENTRIES];
+
 export const SHORTCUTS = ['uh-dn', 'penginapan', 'tiket-dn', 'taksi', 'rapat', 'darat', 'bodetabek', 'uh-ln'];
 
 export const SIFAT = {
@@ -158,13 +162,11 @@ export const SIFAT = {
 export const KEL_ORDER = ['C', 'A', 'B', 'D', 'P', 'E'];
 
 // Kata yang mengarah ke kelompok yang belum aktif (untuk pesan "belum tersedia")
-export const SOON_SYN = {
-  A: ['honor', 'honorarium', 'narasumber', 'narsum', 'moderator', 'panitia', 'pembawa acara', 'mc', 'tim pelaksana', 'honor tim', 'sekretariat', 'kpa', 'ppk', 'bendahara', 'pengelola keuangan', 'pengadaan', 'pokja', 'ukpbj', 'pnbp', 'sai', 'bmn', 'penelitian', 'rohaniwan', 'jurnal', 'artikel', 'ujian', 'vakasi', 'seleksi', 'pengajar', 'penceramah', 'modul', 'satpam', 'pengemudi', 'sopir', 'pramubakti', 'cleaning service', 'saksi ahli', 'penyuluh'],
-  B: ['uang makan', 'lauk pauk', 'lembur', 'uang lembur', 'makan lembur', 'pakaian dinas', 'seragam', 'pdh', 'pdl', 'pdu'],
-  D: ['konsumsi', 'konsumsi rapat', 'snack', 'kudapan', 'mamin', 'makan minum', 'sewa kendaraan', 'sewa mobil', 'rental', 'kendaraan dinas', 'mobil dinas', 'pengadaan kendaraan', 'daya tahan tubuh', 'extra fooding', 'operasional penyuluh', 'atk', 'kebutuhan dasar perkantoran', 'inventaris', 'meja kursi', 'sewa gedung', 'gedung pertemuan', 'fotokopi', 'fotocopy', 'penerjemahan', 'terjemah', 'pengetikan', 'bahan makanan', 'tahanan', 'perwakilan ri'],
-  P: ['pemeliharaan', 'perawatan', 'servis', 'service', 'pemeliharaan gedung', 'pemeliharaan kendaraan', 'genset', 'ac', 'komputer', 'printer'],
-  E: ['beasiswa', 'tugas belajar', 'magang', 'bbpa', 'pendidikan anak'],
-};
+// Semua bab sudah aktif; dipertahankan kosong agar logika "belum tersedia" tetap aman.
+export const SOON_SYN = {};
+
+// Butir/tabel yang mendapat toleransi kabupaten tertentu (Catatan Umum Lampiran I butir 5, Lampiran II butir 3)
+export const TOL = { 'L1-23': null, 'L1-33': [1, 2, 3], 'L1-34': null, 'L1-36': null, 'L2-8': null, 'L2-9': null, 'L2-10': null, 'L2-12': null, 'L2-13': null, 'L2-16': null };
 
 export const DOC_NOTES = [
   { t: 'Taksi hanya 34 provinsi', x: 'Tabel satuan biaya transportasi dari/ke terminal bus/stasiun/bandara/pelabuhan (Lampiran II angka 5) tidak memuat Papua Barat Daya, Papua Tengah, Papua Selatan, dan Papua Pegunungan. Aplikasi menampilkan "Tidak tercantum", bukan Rp0.' },
@@ -174,7 +176,9 @@ export const DOC_NOTES = [
   { t: 'Nama kabupaten/kota sesuai teks KMK', x: 'Beberapa nama ditulis apa adanya sesuai KMK, misalnya "Kab. Luwuk" dan "Kab. Tojouna-Una" (Sulawesi Tengah) serta "Memberamo". Aplikasi menampilkan teks sesuai KMK karena itu yang dikutip.' },
   { t: 'Baris "Kota Bojonegoro"', x: 'Lampiran II angka 2.15.32 mencantumkan "Kota Bojonegoro" (Rp225.000), padahal yang ada hanya Kabupaten Bojonegoro (tercantum di angka 2.15.4 dengan besaran yang sama). Fitur Rute memakai baris Kab. Bojonegoro.' },
   { t: 'Nama kabupaten di tabel transport darat yang berbeda dengan nama resmi', x: 'Untuk fitur Rute, aplikasi memetakan: Kab. Toba Samosir → Kab. Toba; Kab. Pali → Kab. Penukal Abab Lematang Ilir; Kab. Pangadaran → Kab. Pangandaran; Kab. Pulau Pisau → Kab. Pulang Pisau; Kab. Pahuwato → Kab. Pohuwato; Kab. Mamuju Utara → Kab. Pasangkayu; Kab. Luwuk → Kab. Banggai (Luwuk adalah ibu kota Kab. Banggai). Teks KMK tetap ditampilkan apa adanya di tabel.' },
-  { t: 'Salah cetak di butir non-perjadin', x: 'Lampiran I angka 31: sub-butir tertulis 32.1–32.3. Angka 18.2: sub-butir tertulis 18.1.1 dan 18.2.1. Angka 18.3: judul tabel tertulis "Penyusunan Butir Soal", sedangkan Penjelasan menyebut honorarium Pelaksana Ujian Tingkat Nasional. Butir-butir ini akan ditandai saat kelompoknya diaktifkan.' },
+  { t: 'Salah cetak di butir non-perjadin', x: 'Lampiran I angka 31: sub-butir tertulis 32.1–32.3. Angka 18.2: sub-butir tertulis 18.1.1 dan 18.2.1. Angka 18.3: judul tabel tertulis "Penyusunan Butir Soal", sedangkan Penjelasan menyebut honorarium Pelaksana Ujian Tingkat Nasional. Aplikasi menampilkan nomor sesuai cetakan dan memberi catatan di halaman butirnya.' },
+  { t: 'Koma tercetak sebagai titik di beberapa label tabel', x: 'Pada tabel KMK, beberapa label memakai titik sebagai pemisah, misalnya "Satpam. Pengemudi. Petugas Kebersihan. dan Pramubakti" (angka 30.2), "Program Diploma. Sarjana. dan Profesi" (11.2.1), serta label unit akuntansi 5.3 dan 5.4. Aplikasi menampilkannya dengan koma. Angka tidak diubah.' },
+  { t: 'Judul kelompok berulang', x: 'Tabel Lampiran II angka 18.2 (Penyelenggaraan Perwakilan RI) mencetak ulang judul kelompok di setiap halaman. Aplikasi menampilkannya sekali.' },
 ];
 
 // Alias tambahan kota tiket/ibu kota → bentuk di KMK

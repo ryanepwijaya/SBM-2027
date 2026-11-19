@@ -1,5 +1,5 @@
 // Struktur navigasi per bab (kelompok satuan biaya) untuk sidebar, beranda, dan halaman bab.
-// Bab aktif merujuk ke ENTRIES (catalog.js); bab yang belum aktif merujuk langsung ke butir KMK.
+// Item merujuk ke ENTRIES (catalog.js): E(key) untuk entri tertentu, B(butir) untuk entri utama butir tersebut.
 import { ENTRIES } from './catalog.js';
 
 const E = (key, n) => ({ e: key, n });
@@ -7,7 +7,7 @@ const B = (id, n, icon, extra = {}) => ({ id, n, icon, ...extra });
 
 export const BABS = [
   {
-    key: 'perjadin', kel: 'C', name: 'Perjalanan Dinas', short: 'Perjadin', icon: 'plane', active: true,
+    key: 'perjadin', syn: ['perjadin', 'perjalanan dinas', 'spd', 'sppd'], kel: 'C', name: 'Perjalanan Dinas', short: 'Perjadin', icon: 'plane',
     desc: 'Uang harian, penginapan, tiket, transport, dan rapat di luar kantor',
     popular: ['uh-dn', 'penginapan', 'tiket-dn'],
     groups: [
@@ -17,7 +17,7 @@ export const BABS = [
     ],
   },
   {
-    key: 'honorarium', kel: 'A', name: 'Honorarium', short: 'Honorarium', icon: 'hand-coins',
+    key: 'honorarium', syn: ['honorarium', 'honor'], kel: 'A', name: 'Honorarium', short: 'Honorarium', icon: 'hand-coins',
     desc: 'Pengelola keuangan, pengadaan, narasumber, tim pelaksana, ujian, dan lainnya',
     popular: ['L1-9', 'L2-1', 'L1-14'],
     groups: [
@@ -30,7 +30,7 @@ export const BABS = [
     ],
   },
   {
-    key: 'fasilitas', kel: 'B', name: 'Fasilitas Pegawai', short: 'Fasilitas', icon: 'utensils',
+    key: 'fasilitas', syn: ['fasilitas pegawai', 'fasilitas'], kel: 'B', name: 'Fasilitas Pegawai', short: 'Fasilitas', icon: 'utensils',
     desc: 'Uang makan, lembur ASN, dan pakaian dinas',
     popular: ['L1-21', 'L1-22', 'L1-23'],
     groups: [
@@ -39,7 +39,7 @@ export const BABS = [
     ],
   },
   {
-    key: 'barjas', kel: 'D', name: 'Barang & Jasa', short: 'Barang & Jasa', icon: 'package',
+    key: 'barjas', syn: ['barang dan jasa', 'barang jasa', 'barjas', 'belanja barang'], kel: 'D', name: 'Barang & Jasa', short: 'Barang & Jasa', icon: 'package',
     desc: 'Konsumsi, kendaraan, sewa, perkantoran, dan operasional',
     popular: ['L1-36', 'L1-34', 'L2-15'],
     groups: [
@@ -51,13 +51,13 @@ export const BABS = [
     ],
   },
   {
-    key: 'pemeliharaan', kel: 'P', name: 'Pemeliharaan', short: 'Pemeliharaan', icon: 'wrench',
+    key: 'pemeliharaan', syn: ['pemeliharaan', 'perawatan', 'belanja pemeliharaan'], kel: 'P', name: 'Pemeliharaan', short: 'Pemeliharaan', icon: 'wrench',
     desc: 'Sarana kantor, kendaraan dinas, dan gedung/bangunan',
     popular: ['L2-8', 'L2-9', 'L2-10'],
     groups: [{ t: '', items: [B('L2-8', 'Sarana Kantor', 'monitor'), B('L2-9', 'Kendaraan Dinas', 'car'), B('L2-10', 'Gedung/Bangunan', 'building')] }],
   },
   {
-    key: 'bantuan', kel: 'E', name: 'Bantuan', short: 'Bantuan', icon: 'graduation-cap',
+    key: 'bantuan', syn: ['bantuan'], kel: 'E', name: 'Bantuan', short: 'Bantuan', icon: 'graduation-cap',
     desc: 'Magang mahasiswa, BBPA, dan beasiswa',
     popular: ['L1-38', 'L1-39', 'L2-19'],
     groups: [{ t: '', items: [B('L1-38', 'Magang Mahasiswa', 'id-card'), B('L1-39', 'Bantuan Biaya Pendidikan Anak', 'backpack'), B('L2-19', 'Beasiswa Dalam Negeri', 'graduation-cap')] }],
@@ -74,18 +74,24 @@ export const REF_LINKS = [
 
 // Normalisasi: setiap item punya k (kunci unik), n, icon, href, butir, table, active
 const entryMap = Object.fromEntries(ENTRIES.map((e) => [e.key, e]));
+const primaryOf = (id) => ENTRIES.filter((e) => e.butir === id).sort((a, b) => a.table - b.table)[0];
 for (const bab of BABS) {
   for (const g of bab.groups) {
     g.items = g.items.map((it) => {
-      if (it.e) {
-        const e = entryMap[it.e];
-        return { k: e.key, n: it.n, full: e.name, desc: e.desc, icon: e.icon, butir: e.butir, table: e.table, href: `#/b/${e.butir}?t=${e.table}`, active: true };
-      }
-      return { k: it.id, n: it.n, icon: it.icon, butir: it.id, table: 0, href: `#/b/${it.id}`, active: false, also: !!it.also };
+      const e = it.e ? entryMap[it.e] : primaryOf(it.id);
+      if (!e) return { k: it.id, n: it.n, icon: it.icon, butir: it.id, table: 0, href: `#/b/${it.id}`, active: false, also: !!it.also };
+      const multi = ENTRIES.filter((x) => x.butir === e.butir).length;
+      return {
+        k: it.also ? 'also:' + e.key : e.key, e: e.key, n: it.n, full: it.e ? e.name : (multi > 1 && !it.e ? it.n : e.name),
+        desc: multi > 1 && !it.e ? `${multi} tabel: ${ENTRIES.filter((x) => x.butir === e.butir).sort((a, b) => a.table - b.table).map((x) => x.tab || x.name).join(', ')}` : e.desc,
+        icon: it.icon || e.icon,
+        butir: e.butir, table: e.table, href: `#/b/${e.butir}?t=${e.table}`, active: true, also: !!it.also, tables: it.e ? 1 : multi,
+      };
     });
   }
   bab.items = bab.groups.flatMap((g) => g.items.filter((x) => !x.also));
   bab.count = bab.items.length;
+  bab.active = bab.items.every((x) => x.active);
 }
 
 export const babByKey = (k) => BABS.find((b) => b.key === k);

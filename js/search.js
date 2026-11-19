@@ -2,6 +2,7 @@
 import { ENTRIES, SOON_SYN, CITY_ALIAS, GROUPS } from './catalog.js';
 import { S, norm, esc, fmt, valueCols, shortCol, entriesOf, rapatTiers } from './store.js';
 import { matchPlace, suggest } from './rute.js';
+import { BABS } from './bab.js';
 
 const STOP = new Set(['di', 'ke', 'dari', 'untuk', 'yang', 'dan', 'atau', 'berapa', 'sbm', 'biaya', 'satuan', 'besaran',
   'kmk', 'pmk', 'tahun', '2027', '2026', 'standar', 'masukan', 'nya', 'apa', 'cara', 'aturan', 'ketentuan', 'tarif', 'harga',
@@ -46,11 +47,16 @@ export function buildIndex() {
   const cityPhrases = [...cities.keys()].sort((a, b) => b.length - a.length);
 
   // Entri menu
-  const entryPhrases = [];
+  const phMap = new Map();
   for (const e of ENTRIES) {
-    for (const s of [e.name, ...e.syn]) { entryPhrases.push([norm(s), e.key]); addVocab(s); }
+    for (const s of [e.name, ...e.syn]) {
+      const k = norm(s);
+      if (!phMap.has(k)) phMap.set(k, []);
+      if (!phMap.get(k).includes(e.key)) phMap.get(k).push(e.key);
+      addVocab(s);
+    }
   }
-  entryPhrases.sort((a, b) => b[0].length - a[0].length);
+  const entryPhrases = [...phMap.entries()].sort((a, b) => b[0].length - a[0].length);
 
   // Baris data pada butir aktif (label = sel teks selain nomor/satuan)
   const rows = [];
@@ -61,7 +67,7 @@ export function buildIndex() {
       let grp = '';
       for (const r of t.rows) {
         if (r.g) { grp = r.g; continue; }
-        const labels = r.v.filter((x, i) => i > 0 && !vc.has(i) && !/^(O[A-Z]{1,2}|Orang\/Kali|Setel|m3|km\/m3)$/i.test(x) && !/^Sesuai tarif/.test(x));
+        const labels = r.v.filter((x, i) => i > 0 && !vc.has(i) && !/satuan/i.test(t.cols[i]) && !/^(O[A-Z]{1,2}|Orang\/Kali|Setel|m3|km\/m3)$/i.test(x) && !/^Sesuai tarif/.test(x));
         const text = norm(labels.join(' ') + ' ' + grp);
         labels.forEach(addVocab);
         rows.push({ b, ti, r, labels, grp, text });
@@ -112,7 +118,7 @@ function takePhrases(q, phrases) {
     const re = wordRe(ph);
     if (re.test(rest.trim()) || rest.includes(' ' + ph + ' ')) {
       if (rest.includes(' ' + ph + ' ')) {
-        found.push(id);
+        if (Array.isArray(id)) found.push(...id); else found.push(id);
         rest = rest.replace(' ' + ph + ' ', '  ');
       }
     }
@@ -147,7 +153,13 @@ function snippet(text, tokens, len = 170) {
   return mark(s, tokens);
 }
 
-const PROV_ENTRIES = ['uh-dn', 'penginapan', 'taksi', 'rapat'];
+// Entri yang tabelnya berisi baris per provinsi (bisa dijawab langsung untuk "jenis + provinsi")
+const provCapable = (k) => {
+  if (k === 'rapat' || k === 'darat') return true;
+  const e = ENTRIES.find((x) => x.key === k);
+  const t = e && S.butir[e.butir].tables[e.table];
+  return !!t && t.rows.some((r) => r.v && r.p) && k !== 'tiket-dn';
+};
 
 export function search(qRaw) {
   if (!IDX) buildIndex();
@@ -207,18 +219,24 @@ export function search(qRaw) {
     if (!ents.some((k) => ['uh-ln', 'tiket-ln', 'tiket-pindah-ln'].includes(k))) ents.unshift('uh-ln', 'tiket-ln');
   }
   ents = [...new Set(ents)];
-  if (/(^| )perjadin|perjalanan dinas( |$)/.test(q) && !ents.length && !provs.length) {
-    out.best.push({ t: 'Perjalanan Dinas', d: 'Semua jenis satuan biaya perjalanan dinas: dalam negeri, luar negeri, dan pindah.', href: '#/bab/perjadin', kind: 'Bab' });
-    ents = ENTRIES.map((e) => e.key);
+  // Nama bab ("honorarium", "perjadin", "pemeliharaan", ...): tampilkan bab + semua jenisnya
+  if (!ents.length) {
+    for (const bab of BABS) {
+      if (!(bab.syn || []).some((sy) => wordRe(norm(sy)).test(q))) continue;
+      out.best.push({ t: bab.name, d: bab.desc, href: `#/bab/${bab.key}`, kind: 'Bab' });
+      if (!provs.length) ents = bab.items.map((x) => x.e).filter(Boolean);
+      else ents = bab.items.map((x) => x.e).filter((k) => k && provCapable(k));
+      break;
+    }
   }
 
   // 1) Provinsi + jenis biaya
   const routeMode = cityNames.length >= 2;
   for (const pid of (routeMode ? [] : provs)) {
     const p = S.prov[pid];
-    const targets = ents.length ? ents.filter((k) => PROV_ENTRIES.includes(k) || k === 'darat') : [];
+    const targets = ents.length ? ents.filter(provCapable) : [];
     if (!targets.length) {
-      out.best.push({ t: p.nama, d: 'Semua satuan biaya perjalanan dinas untuk provinsi ini dalam satu halaman', href: `#/daerah/p/${pid}`, kind: 'Daerah' });
+      out.best.push({ t: p.nama, d: 'Semua satuan biaya per provinsi (perjalanan dinas, honorarium, konsumsi, kendaraan, gedung, dan lainnya) dalam satu halaman', href: `#/daerah/p/${pid}`, kind: 'Daerah' });
     }
     for (const k of targets) {
       const e = ENTRIES.find((x) => x.key === k);
@@ -274,9 +292,12 @@ export function search(qRaw) {
   // 4) Baris data (kab/kota, negara, kota LN, perwakilan, dll.)
   const fallbackTokens = pr.rest.split(' ').filter((t) => t && !STOP.has(t) && t.length >= 3);
   const rowTokens = routeMode ? [] : (restTokens.length ? restTokens : fallbackTokens);
+  // Bila jenis biaya sudah dikenali tanpa sisa kata, cari baris hanya di butir jenis tersebut
+  const onlyButir = ents.length && !restTokens.length ? new Set(ents.map((k) => ENTRIES.find((e) => e.key === k)?.butir)) : null;
   if (rowTokens.length) {
     let hits = [];
     for (const it of IDX.rows) {
+      if (onlyButir && !onlyButir.has(it.b.id)) continue;
       const words = it.text.split(' ');
       if (rowTokens.every((t) => words.some((w) => w.startsWith(t)))) hits.push(it);
     }

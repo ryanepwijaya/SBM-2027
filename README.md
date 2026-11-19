@@ -2,7 +2,7 @@
 
 Aplikasi bantu baca **Standar Biaya Masukan TA 2027**: PMK Nomor 54 Tahun 2026 (norma) dan KMK Nomor 296 Tahun 2026 (rincian besaran). PWA yang bisa dipasang lewat Chrome HP, dengan tampilan utama untuk PC.
 
-**Tahap 1:** perjalanan dinas (12 butir KMK: Lampiran I angka 24–29, Lampiran II angka 2–7). Data 58 butir sudah ada di `data/sbm.json`; kelompok lain tinggal diaktifkan.
+Seluruh 58 butir KMK aktif dalam 6 bab: Perjalanan Dinas, Honorarium, Fasilitas Pegawai, Barang & Jasa, Pemeliharaan, dan Bantuan.
 
 ## Struktur
 
@@ -27,8 +27,8 @@ python3 scripts/validate.py data/sbm.json /tmp/kmk.txt   # cek silang dengan eks
 python3 scripts/build_wilayah.py <folder data idn-area-data>/ data/sbm.json data/wilayah.json
 ```
 
-## Mengaktifkan kelompok lain
+## Menambah atau mengubah entri
 
-1. Tambahkan ID butir ke `ACTIVE` di `scripts/build_data.py` lalu bangun ulang data.
-2. Tambahkan entri menu, sinonim, dan poin penting di `js/catalog.js`.
+1. Entri Perjalanan Dinas ada di `js/catalog.js`; bab lain di `js/entries-more.js` (nama, sinonim pencarian, poin penting dari Penjelasan).
+2. Struktur sidebar dan halaman bab ada di `js/bab.js`.
 3. Naikkan `VERSION` di `sw.js`.

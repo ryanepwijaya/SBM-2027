@@ -58,6 +58,10 @@ export function unitCol(t) {
 }
 
 const SHORT = [
+  [/^Memiliki Sampai Dengan 40 Pegawai: Satuan$/i, 'Satuan (≤ 40 pegawai)'],
+  [/^Memiliki Sampai Dengan 40 Pegawai: Besaran$/i, 'Sampai 40 pegawai'],
+  [/^Memiliki lebih dari 40 Pegawai: Satuan$/i, 'Satuan (> 40 pegawai)'],
+  [/^Memiliki lebih dari 40 Pegawai: Besaran$/i, 'Lebih dari 40 pegawai'],
   [/^Pejabat Negara\/Wakil Menteri\/Pejabat Eselon I$/i, 'Pejabat Negara/Wamen/Eselon I'],
   [/^Pejabat Negara Lainnya\/Pejabat Eselon II$/i, 'Pejabat Negara Lainnya/Eselon II'],
   [/^Pejabat Eselon III\/Golongan IV$/i, 'Eselon III/Gol. IV'],

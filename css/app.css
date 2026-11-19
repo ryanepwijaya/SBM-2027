@@ -910,3 +910,19 @@ table.t td.sticky-col, table.t th.sticky-col { box-shadow: 1px 0 0 var(--border-
   .acc-h { gap: 10px; font-size: 14px; }
   .acc-n.soon { font-size: 10px; padding: 0 6px; }
 }
+
+/* Kelompok berjenjang & satuan */
+table.t tr.grp.g1 td { background: color-mix(in srgb, var(--surface-2) 55%, var(--surface)); font-weight: 650; }
+table.t tr.grp.g1 td .grp-in { padding-left: 14px; }
+table.t tr.grp.g2 td, table.t tr.grp.g3 td { background: var(--surface); font-weight: 600; color: var(--muted); font-size: 13px; }
+table.t tr.grp.g2 td .grp-in { padding-left: 28px; }
+table.t tr.grp.g3 td .grp-in { padding-left: 40px; }
+table.t td.unit { color: var(--muted); font-size: 12.5px; white-space: nowrap; }
+table.t td.unit abbr { text-decoration: none; border-bottom: 1px dotted var(--faint); cursor: help; }
+.fold-p { margin: 0 0 10px; color: var(--muted); font-size: 13.5px; }
+.kv-unit { margin-top: 8px; font-size: 12px; color: var(--faint); }
+.dcard .head h3 svg { width: 16px; height: 16px; vertical-align: -3px; color: var(--navy-700); margin-right: 2px; }
+[data-theme="dark"] .dcard .head h3 svg { color: var(--gold-2); }
+.fold > summary > span svg { width: 17px; height: 17px; vertical-align: -3px; margin-right: 6px; }
+.dcard h3 { flex-wrap: nowrap; align-items: flex-start; }
+.dcard h3 > svg { flex: none; margin-top: 3px; }

@@ -104,7 +104,21 @@ def kel_of(lamp, n):
         return 'A' if n <= 20 else 'B' if n <= 23 else 'C' if n <= 29 else 'D' if n <= 37 else 'E'
     return 'A' if n == 1 else 'C' if n <= 7 else 'P' if n <= 10 else 'D' if n <= 18 else 'E'
 
-ACTIVE = {'L1-24', 'L1-25', 'L1-26', 'L1-27', 'L1-28', 'L1-29', 'L2-2', 'L2-3', 'L2-4', 'L2-5', 'L2-6', 'L2-7'}
+ACTIVE = None  # None = semua butir aktif (tahap 2: seluruh bab dibuka)
+
+SINGKATAN = [['OJ', 'Orang/Jam'], ['OH', 'Orang/Hari'], ['OB', 'Orang/Bulan'], ['OT', 'Orang/Tahun'], ['OP', 'Orang/Paket'],
+              ['OK', 'Orang/Kegiatan'], ['OR', 'Orang/Responden'], ['Oter', 'Orang/Terbitan'], ['OJP', 'Orang/Jam Pelajaran']]
+UNIT_CANON = {k.upper(): k for k, _ in SINGKATAN}
+
+def unit_fix(x):
+    x = re.sub(r'\s*/\s*', '/', x.strip())
+    return UNIT_CANON.get(x.upper(), x)
+
+# Penjelasan: judul subbutir yang terpotong ke baris berikutnya (gabung blok j dan j+1)
+MERGE_NEXT = {'L2-13': [6, 15, 19, 26, 32], 'L2-18': [1]}
+
+# Di tabel KMK, tanda koma tercetak sebagai titik pada beberapa label
+COMMA_FIX = {('L1-30', '30.2'), ('L1-11', '11.2.1'), ('L1-5', '5.3'), ('L1-5', '5.4')}
 
 FIXES = {  # perbaikan pemformatan teks (bukan isi)
     'L1-29': [('Paket Fullboard Satuan', 'Paket Fullboard — Satuan'), ('Paket Fullday Satuan', 'Paket Fullday — Satuan'),
@@ -120,9 +134,15 @@ for key, tb in tables.items():
         cols = [re.sub(r'/ ', '/', tcase(c)) for c in t['cols']]
         rows = []
         cur_prov = None
+        seen_g = set()
         for r in t['rows']:
             if 'g' in r:
+                if r['c'] in seen_g and key not in ('L2-2',):
+                    continue  # judul kelompok yang terulang di halaman berikutnya
+                seen_g.add(r['c'])
                 g = r['g']
+                if (key, r['c']) in COMMA_FIX:
+                    g = g.replace('. ', ', ')
                 gp = prov_of(g)
                 if gp:
                     cur_prov = gp
@@ -144,8 +164,13 @@ for key, tb in tables.items():
             if p is None and key == 'L2-2':
                 p = cur_prov
             v = [tcase(x) if i > 0 and not num(x) else x for i, x in enumerate(v)]
+            if (key, r['c']) in COMMA_FIX:
+                v[1] = v[1].replace('. ', ', ')
+            v = [unit_fix(x) if i > 0 and re.search(r'satuan', cols[i], re.I) else x for i, x in enumerate(v)]
             nums = [num(x) if i > 0 else None for i, x in enumerate(v)]
             row = {'c': r['c'], 'v': v, 'n': nums}
+            if t['cur'] == 'IDR' and any('$' in x for x in v):
+                row['cu'] = 'USD'
             if p:
                 row['p'] = p
             rows.append(row)
@@ -154,11 +179,32 @@ for key, tb in tables.items():
     for a, b in FIXES.get(key, []):
         for bl in pen:
             bl['x'] = bl['x'].replace(a, b)
+    for bl in pen:
+        bl['x'] = re.sub(r'(Rp[\d.]+)\.00\b', r'\1,00', bl['x'])
+    for j in sorted(MERGE_NEXT.get(key, []), reverse=True):
+        assert pen[j]['t'] == 'h' and pen[j + 1]['t'] == 'p', (key, j)
+        pen[j]['x'] = pen[j]['x'].rstrip() + ' ' + pen[j + 1]['x'].strip()
+        del pen[j + 1]
+    if key == 'L1-16':
+        j = next(i for i, bl in enumerate(pen) if bl.get('m') == '16.2')
+        assert pen[j + 1]['x'].startswith('Internasional ')
+        pen[j]['x'] += ' Internasional'
+        pen[j + 1]['x'] = pen[j + 1]['x'][len('Internasional '):]
+    if key == 'L1-18':
+        j = next(i for i, bl in enumerate(pen) if bl.get('m') == '18.3')
+        full = pen[j]['x']
+        pen[j]['x'] = 'Honorarium Pelaksana Ujian Tingkat Nasional'
+        pen.insert(j + 1, {'t': 'p', 'lvl': 0, 'x': full})
+    if key == 'L1-14':
+        j = next(i for i, bl in enumerate(pen) if bl['x'].startswith('Klasifikasi Jabatan I II III'))
+        pen[j]['x'] = ('[Tabel] Jabatan: Pejabat Negara, Pejabat Eselon I, Pejabat Eselon II, Pejabat Eselon III, '
+                       'Pejabat Eselon IV, pelaksana, dan pejabat fungsional. Batas jumlah tim: Klasifikasi I = 1, '
+                       'Klasifikasi II = 2, Klasifikasi III = 4.')
     butir.append({
         'id': key, 'lamp': lamp, 'no': n, 'kel': kel_of(lamp, n),
         'sifat': 'BT' if lamp == 1 else 'DL',
         'title': tx['pmk_title'], 'def': tx['pmk_def'], 'pen': pen,
-        'pages': tb['pages'], 'active': key in ACTIVE, 'tables': out_tables,
+        'pages': tb['pages'], 'active': ACTIVE is None or key in ACTIVE, 'tables': out_tables,
     })
 
 # kota tiket DN -> provinsi
@@ -192,8 +238,7 @@ data = {
     'butir': butir,
     'catatan_umum': text['_catatan_umum'],
     'toleransi': TOLERANSI,
-    'singkatan': [['OJ', 'Orang/Jam'], ['OH', 'Orang/Hari'], ['OB', 'Orang/Bulan'], ['OT', 'Orang/Tahun'], ['OP', 'Orang/Paket'],
-                  ['OK', 'Orang/Kegiatan'], ['OR', 'Orang/Responden'], ['Oter', 'Orang/Terbitan'], ['OJP', 'Orang/Jam Pelajaran']],
+    'singkatan': SINGKATAN,
 }
 json.dump(data, open(OUT, 'w'), ensure_ascii=False, separators=(',', ':'))
 import os
