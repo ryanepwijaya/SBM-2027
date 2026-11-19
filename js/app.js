@@ -454,7 +454,11 @@ function route() {
   }
   html = html.replace(/<\/h1>\s*<p class="subtitle">([\s\S]*?)<\/p>/g, (m, t) => ` ${tip(t)}</h1>`);
   main.innerHTML = html + footer();
-  if (pathKey !== lastPath) { window.scrollTo(0, 0); main.classList.remove('enter'); void main.offsetWidth; main.classList.add('enter'); }
+  if (pathKey !== lastPath) {
+    window.scrollTo(0, 0); main.classList.remove('enter'); void main.offsetWidth; main.classList.add('enter');
+    // Lepas kelas animasi setelah selesai agar tidak ada lapisan (stacking context) yang menimpa keterangan (i)
+    clearTimeout(main._enterT); main._enterT = setTimeout(() => main.classList.remove('enter'), 1100);
+  }
   lastPath = key === 'cari' ? 'cari' : pathKey;
   setCrumbs(cr);
   sideActive(side[0], side[1], side[2]);
@@ -944,7 +948,7 @@ function viewDaerah(mode, params) {
   const seg = daerahSeg(mode);
   if (mode === 'dn') {
     const html = `
-    <div class="page-head"><h1 class="title">Daerah</h1><p class="subtitle">Pilih provinsi untuk melihat semua satuan biaya perjalanan dinasnya dalam satu halaman.</p></div>
+    <div class="page-head"><h1 class="title">Daerah</h1><p class="subtitle">Pilih provinsi untuk melihat semua satuan biaya yang ditetapkan per provinsi (perjalanan dinas dan bab lain) dalam satu halaman.</p></div>
     ${seg}
     <div class="tbl-tools"><label class="field">${ic('search')}<input id="pq" type="search" placeholder="Cari provinsi atau kota, mis. jatim, surabaya…"></label><a class="btn" href="#/bandingkan">${ic('compare')} Bandingkan provinsi</a></div>
     <div class="prov-grid" id="provGrid">${S.provList.map((p) => `<a class="prov" href="#/daerah/p/${p.id}" data-s="${esc(norm([p.nama, ...p.alias, ...p.kota].join(' ')))}"><b>${esc(p.nama)}</b><small>${esc(p.kota[0])}</small></a>`).join('')}</div>`;
@@ -1208,15 +1212,21 @@ function viewMore(sub) {
 
 /* ---------------- Keterangan (i) ---------------- */
 function placeTip(t) {
+  // Keterangan (i) memakai posisi fixed agar tidak terpotong kartu/hero/lipatan dan tidak tertimpa elemen lain
   const body = t.querySelector('.tip-body');
+  const btn = t.querySelector('.tip-btn') || t;
   if (!body) return;
-  body.style.left = ''; body.style.right = ''; body.style.transform = '';
-  const r = body.getBoundingClientRect();
   const pad = 10;
   const vw = document.documentElement.clientWidth;
-  if (r.right > vw - pad) body.style.left = `${parseFloat(getComputedStyle(body).left) - (r.right - vw + pad)}px`;
-  const r2 = body.getBoundingClientRect();
-  if (r2.left < pad) body.style.left = `${parseFloat(getComputedStyle(body).left) + (pad - r2.left)}px`;
+  const vh = window.innerHeight;
+  const r = btn.getBoundingClientRect();
+  body.style.left = '0px'; body.style.top = '0px';
+  const w = body.offsetWidth, h = body.offsetHeight;
+  let left = Math.min(Math.max(pad, r.left - 8), vw - w - pad);
+  let top = r.bottom + 8;
+  if (top + h > vh - pad && r.top - h - 8 > pad) top = r.top - h - 8;
+  body.style.left = `${Math.round(left)}px`;
+  body.style.top = `${Math.round(top)}px`;
 }
 function initTips() {
   const closeAll = (except) => $$('.tip.open').forEach((t) => t !== except && t.classList.remove('open'));
@@ -1244,6 +1254,9 @@ function initTips() {
     });
   }
   window.addEventListener('hashchange', () => closeAll());
+  // posisi fixed tidak ikut tergulir: tutup saat halaman/area digulir, atur ulang saat ukuran berubah
+  window.addEventListener('scroll', () => { closeAll(); $$('.tip.hover').forEach((t) => t.classList.remove('hover')); }, { capture: true, passive: true });
+  window.addEventListener('resize', () => $$('.tip.open, .tip.hover').forEach(placeTip));
 }
 
 /* ---------------- Mulai ---------------- */

@@ -316,7 +316,7 @@ button { font: inherit; color: inherit; }
 }
 
 /* Animasi masuk halaman */
-.main.enter > * { animation: pageIn .38s var(--ease, ease) both; }
+.main.enter > * { animation: pageIn .38s var(--ease, ease) backwards; }
 .main.enter > *:nth-child(2) { animation-delay: 30ms; }
 .main.enter > *:nth-child(3) { animation-delay: 60ms; }
 .main.enter > *:nth-child(4) { animation-delay: 90ms; }
@@ -713,7 +713,7 @@ h2.sec svg { width: 18px; height: 18px; flex: none; color: var(--muted); }
 .tip-btn.chip { width: auto; height: 26px; border-radius: 999px; padding: 0 8px 0 10px; gap: 4px; display: inline-flex; margin: 0; }
 .tip-btn.chip svg { width: 14px; height: 14px; opacity: .8; }
 .tip-body {
-  display: none; position: absolute; z-index: 70; top: calc(100% + 8px); left: -8px;
+  display: none; position: fixed; z-index: 95; top: 0; left: 0;
   width: max-content; max-width: min(320px, 84vw);
   background: var(--navy-900); color: #fff; padding: 10px 12px; border-radius: 10px;
   font-size: 13px; line-height: 1.5; font-weight: 400; text-transform: none; letter-spacing: 0; text-align: left;
@@ -817,7 +817,7 @@ table.t td.sticky-col, table.t th.sticky-col { box-shadow: 1px 0 0 var(--border-
 .bab-card.soon .bc-foot { color: var(--muted); }
 .bc-foot svg { width: 16px; height: 16px; transition: transform .25s var(--ease, ease); }
 .bab-card:hover .bc-foot svg { transform: translateX(4px); }
-.main.enter .bab-card { animation: pageIn .45s var(--ease, ease) both; animation-delay: calc(var(--i, 0) * 40ms + 80ms); }
+.main.enter .bab-card { animation: pageIn .45s var(--ease, ease) backwards; animation-delay: calc(var(--i, 0) * 40ms + 80ms); }
 
 .tools { display: grid; grid-template-columns: 1fr; gap: 12px; }
 @media (min-width: 1024px) { .tools { grid-template-columns: minmax(0, 1.7fr) minmax(0, 1fr); } }
@@ -882,7 +882,7 @@ table.t td.sticky-col, table.t th.sticky-col { box-shadow: 1px 0 0 var(--border-
 .ent-meta .chip { height: 22px; font-size: 11px; padding: 0 8px; }
 .ent.off { background: var(--surface-2); }
 .ent.off .ent-ico { opacity: .75; }
-.main.enter .ent { animation: pageIn .4s var(--ease, ease) both; animation-delay: calc(min(var(--i, 0), 16) * 22ms + 60ms); }
+.main.enter .ent { animation: pageIn .4s var(--ease, ease) backwards; animation-delay: calc(min(var(--i, 0), 16) * 22ms + 60ms); }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .01ms !important; animation-delay: 0s !important; transition-duration: .01ms !important; transition-delay: 0s !important; }
@@ -937,3 +937,6 @@ table.t td.unit abbr { text-decoration: none; border-bottom: 1px dotted var(--fa
 [data-theme="dark"] .btn.pdf-btn { background: var(--gold-2); color: var(--navy-900); border-color: var(--gold-2); box-shadow: none; }
 [data-theme="dark"] .btn.pdf-btn:hover { background: #ffe14d; color: var(--navy-900); }
 [data-theme="dark"] .btn.pdf-btn b { color: var(--navy-900); }
+/* Judul hero di atas kotak cari agar keterangan (i) tidak tertimpa */
+.hero h1 { z-index: 3; }
+*:has(> .tip.open), *:has(> .tip.hover) { z-index: 6; }
