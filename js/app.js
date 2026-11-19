@@ -204,7 +204,7 @@ function sideHtml() {
   const babs = BABS.map((b) => {
     const parts = [`<div class="fly-h">${ic(b.icon)}${esc(b.name)}</div>`];
     parts.push(`<a class="acc-it acc-all" href="#/bab/${b.key}" data-item="bab:${b.key}">${ic('layout-grid')}<span>Ringkasan bab</span></a>`);
-    if (!b.active) parts.push(`<div class="acc-soon">${ic('sparkles')}<span>Segera hadir. Daftar butirnya sudah bisa dilihat.</span></div>`);
+    if (!b.active) parts.push(`<div class="acc-soon">${ic('clock')}<span>Segera hadir. Daftar butirnya sudah bisa dilihat.</span></div>`);
     for (const g of b.groups) {
       if (g.t) parts.push(`<div class="acc-g">${esc(g.t)}</div>`);
       for (const it of g.items) parts.push(`<a class="acc-it${it.active ? '' : ' off'}" href="${it.href}" data-item="${it.k}" title="${esc(it.full || it.n)}">${ic(it.icon)}<span>${esc(it.n)}</span>${it.active ? '' : ic('lock-keyhole', 'lk')}</a>`);
@@ -541,8 +541,20 @@ function babCard(b, i) {
     <b class="bc-name">${esc(b.name)}</b>
     <p class="bc-desc">${esc(b.desc)}</p>
     <div class="bc-pop">${pops.map((x) => `<span>${ic(x.icon)}${esc(x.n)}</span>`).join('')}</div>
-    <div class="bc-foot"><span>${b.count} ${b.active ? 'jenis satuan biaya' : 'butir'}</span>${ic('arrow-right')}</div>
+    <div class="bc-foot"><span>${b.count} ${b.active ? 'jenis satuan biaya' : 'butir'}</span></div>
   </a>`;
+}
+// Bab yang paling sering dibuka: kartu lebih besar dengan tautan langsung ke tabel yang paling dicari
+function babFeature(b, i) {
+  const links = SHORTCUTS.map((k) => b.items.find((x) => x.k === k)).filter(Boolean);
+  return `<div class="bab-card feat" style="--i:${i}">
+    <a class="feat-head" href="#/bab/${b.key}">
+      <span class="bc-ico">${ic(b.icon)}</span>
+      <span class="feat-tx"><b class="bc-name">${esc(b.name)}</b><span class="bc-desc">${esc(b.desc)}</span></span>
+    </a>
+    <div class="feat-links">${links.map((x) => `<a href="${x.href}">${ic(x.icon)}<span class="fl-tx"><b>${esc(x.n)}</b>${x.desc ? `<small>${esc(x.desc)}</small>` : ''}</span></a>`).join('')}</div>
+    <a class="bc-foot feat-all" href="#/bab/${b.key}">Semua ${b.count} jenis satuan biaya perjalanan dinas</a>
+  </div>`;
 }
 function viewHome() {
   const recent = store.get('recent', []).map(entry).filter(Boolean).slice(0, 5);
@@ -552,8 +564,7 @@ function viewHome() {
   const tool = (h, i, t, d) => `<a class="tool" href="${h}"><span class="tool-ico">${ic(i)}</span><span class="tool-tx"><b>${t}</b><small>${d}</small></span>${ic('chevron-right', 'chev')}</a>`;
   return `
   <section class="hero hero-u">
-    <div class="hero-eyebrow">${ic('sparkles')} Standar Biaya Masukan</div>
-    <h1>Tahun Anggaran ${Y.y} ${tip(`Baca ${Y.y === 2026 ? 'PMK 32/2025' : 'PMK 54/2026 dan KMK 296/2026'} tanpa membuka PDF. Semua angka diambil dari tabel ${Y.srcKind} dan dicek silang.`)}</h1>
+    <h1>Standar Biaya Masukan TA ${Y.y} ${tip(`Baca ${Y.y === 2026 ? 'PMK 32/2025' : 'PMK 54/2026 dan KMK 296/2026'} tanpa membuka PDF. Semua angka diambil dari tabel ${Y.srcKind} dan dicek silang.`)}</h1>
     <label class="hero-search" for="hq">${ic('search')}<input id="hq" type="search" placeholder="Cari satuan biaya, provinsi, kota, atau aturan…" autocomplete="off" enterkeyhint="search"><kbd class="hide-sm">${isMac ? '⌘' : 'Ctrl'} K</kbd></label>
     <div class="hero-tags">${HOME_HINTS.map((h) => `<a href="#/cari?q=${encodeURIComponent(h)}" data-q="${esc(h)}">${esc(h)}</a>`).join('')}</div>
     <div class="hero-law">
@@ -563,7 +574,7 @@ function viewHome() {
     </div>
   </section>
   <h2 class="sec">${ic('layers-2')} Bab satuan biaya <small>${S.data.butir.length} butir ${Y.srcKind}</small></h2>
-  <div class="bab-grid">${BABS.map(babCard).join('')}</div>
+  <div class="bab-grid">${babFeature(BABS[0], 0)}<div class="bab-rest">${BABS.slice(1).map((b, i) => babCard(b, i + 1)).join('')}</div></div>
   <h2 class="sec">${ic('compass')} Alat bantu</h2>
   <div class="tools">
     <section class="card card-pad tool-route">
@@ -639,7 +650,7 @@ function viewBab(bab) {
     <div class="bab-title"><span class="bab-ico">${ic(bab.icon)}</span><div><h1 class="title">${esc(bab.name)}</h1><p class="bab-desc">${esc(bab.desc)}</p></div></div>
     <div class="chips">${bab.active ? `<span class="chip">${bab.count} jenis satuan biaya</span>` : ''}<span class="chip">${butirs.length} butir ${Y.srcKind}</span>${nBT ? `<span class="chip bt">${nBT} batas tertinggi</span>` : ''}${butirs.length - nBT ? `<span class="chip dl">${butirs.length - nBT} dapat dilampaui</span>` : ''}</div>
   </div>
-  ${bab.active ? '' : `<div class="callout soon-call">${ic('sparkles')}<div><b>Segera hadir.</b> Bab ini belum dibuka pada tahap 1 (perjalanan dinas). Datanya sudah diekstrak dari ${Y.src} dan akan diaktifkan pada tahap berikutnya. Daftar butirnya bisa dilihat di bawah.</div></div>`}
+  ${bab.active ? '' : `<div class="callout soon-call">${ic('clock')}<div><b>Segera hadir.</b> Bab ini belum dibuka pada tahap 1 (perjalanan dinas). Datanya sudah diekstrak dari ${Y.src} dan akan diaktifkan pada tahap berikutnya. Daftar butirnya bisa dilihat di bawah.</div></div>`}
   ${tools}
   ${groups}`;
   return { html };
@@ -744,7 +755,7 @@ function viewButir(id, params, anchor) {
     return { html: `<div class="page-head"><div class="crumb"><a href="#/bab/${bb.key}">${esc(bb.name)}</a></div>
       <div class="bab-title"><span class="bab-ico">${ic(it?.icon || bb.icon)}</span><div><h1 class="title">${esc(it?.n || b.title)}</h1><p class="bab-desc">${esc(b.title)}</p></div></div>
       <div class="chips">${sifatChipTip(b)}${refChip(b)}<span class="chip soon">Segera hadir</span></div></div>
-      <div class="callout soon-call">${ic('sparkles')}<div><b>Segera hadir.</b> Butir ini belum dibuka pada tahap 1 (perjalanan dinas). Tabel dan penjelasannya akan tampil saat bab ${esc(bb.name)} diaktifkan.</div></div>
+      <div class="callout soon-call">${ic('clock')}<div><b>Segera hadir.</b> Butir ini belum dibuka pada tahap 1 (perjalanan dinas). Tabel dan penjelasannya akan tampil saat bab ${esc(bb.name)} diaktifkan.</div></div>
       <div class="actions" style="margin-top:14px"><a class="btn" href="#/bab/${bb.key}">${ic(bb.icon)} Lihat bab ${esc(bb.name)}</a>${pdfBtn(b)}</div>` };
   }
   const ents = entriesOf(id);
@@ -878,7 +889,7 @@ function viewButir(id, params, anchor) {
     };
     $('#refBtn').onclick = () => copy(`${ref(b, { code: (params.r && b.tables[ti]?.rows.find((x) => x.c === params.r)?.v?.[0]) || params.r || b.no })} (${e.name})`, 'Rujukan disalin');
     const sh = $('#shareBtn');
-    if (sh) sh.onclick = () => navigator.share({ title: e.name + ` — SBM ${Y.y}`, url: location.href }).catch(() => {});
+    if (sh) sh.onclick = () => navigator.share({ title: `${e.name} · SBM ${Y.y}`, url: location.href }).catch(() => {});
     const hl = $('#hlrow');
     if (hl) setTimeout(() => hl.scrollIntoView({ block: 'center', behavior: 'smooth' }), 60);
     else if (anchor) { const el = document.getElementById(anchor); if (el) setTimeout(() => el.scrollIntoView({ block: 'start', behavior: 'smooth' }), 60); }
@@ -1156,7 +1167,7 @@ function viewCompare(params) {
   <div class="page-head"><div class="crumb"><a href="#/daerah">Daerah</a><span class="sep">›</span>Bandingkan</div>
   <h1 class="title">Bandingkan Provinsi</h1><p class="subtitle">Pilih sampai 3 provinsi untuk membandingkan uang harian, penginapan, taksi, dan paket rapat. Uang harian, penginapan, dan paket rapat bersifat batas tertinggi; taksi dapat dilampaui.</p></div>
   <div class="tbl-tools">
-    ${[0, 1, 2].map((k) => `<select class="sel" data-slot="${k}"><option value="">— Pilih provinsi ${k + 1} —</option>${S.provList.map((p) => `<option value="${p.id}"${sel[k] === p.id ? ' selected' : ''}>${esc(p.nama)}</option>`).join('')}</select>`).join('')}
+    ${[0, 1, 2].map((k) => `<select class="sel" data-slot="${k}"><option value="">Pilih provinsi ${k + 1}</option>${S.provList.map((p) => `<option value="${p.id}"${sel[k] === p.id ? ' selected' : ''}>${esc(p.nama)}</option>`).join('')}</select>`).join('')}
   </div>
   <div id="cmpHost"></div>`;
   const after = () => {

@@ -248,7 +248,7 @@ function compHtml(c) {
 export function routeHtml(O, D) {
   const r = computeRoute(O, D);
   const foot = `Angka per satuan sesuai ${Y.src}. Jumlah hari, malam, dan frekuensi perjalanan mengikuti surat tugas dan PMK Perjalanan Dinas. Kota tiket ditentukan dari kota bandara yang ada di tabel ${Y.srcKind} pada provinsi yang sama (ibu kota didahulukan).`;
-  const head = `<div class="route-sum card card-pad"><div class="route-line"><span class="rp">${esc(O.label)}</span><span class="ra">→</span><span class="rp">${esc(D.label)}</span>${tip([...r.notes.map(esc), foot].join('<br><br>'))}</div>
+  const head = `<div class="route-sum card card-pad"><div class="route-line"><span class="rp">${esc(O.label)}</span><span class="ra" aria-hidden="true">→</span><span class="rp">${esc(D.label)}</span>${tip([...r.notes.map(esc), foot].join('<br><br>'))}</div>
     <div class="muted small">${esc(S.prov[O.prov].nama)} → ${esc(S.prov[D.prov].nama)} · ${esc(r.kind)}</div></div>`;
   let n = 0;
   const secs = r.sec.filter((s) => (s.items && s.items.length) || s.table).map((s) => {

@@ -24,7 +24,7 @@ const PERJADIN_ENTRIES = [
   },
   {
     key: 'representasi', group: 'dn', butir: 'L1-25', table: 1, icon: 'award',
-    name: 'Uang Representasi', desc: 'Pejabat negara/wamen, eselon I, eselon II — berlaku nasional',
+    name: 'Uang Representasi', desc: 'Pejabat negara/wamen, eselon I, eselon II. Berlaku nasional',
     syn: ['representasi', 'uang representasi', 'eselon i', 'eselon ii', 'pejabat negara', 'wamen', 'wakil menteri'],
     points: [
       'Hanya untuk pejabat negara, wakil menteri, pejabat eselon I, dan pejabat eselon II yang melaksanakan perjalanan dinas jabatan dalam rangka tugas dan fungsi yang melekat pada jabatan.',
@@ -85,7 +85,7 @@ const PERJADIN_ENTRIES = [
   },
   {
     key: 'dalam-kota', group: 'dn', butir: 'L2-4', table: 0, icon: 'map-pin',
-    name: 'Transpor Kegiatan Dalam Kota (PP)', desc: 'Pergi pulang dalam satu kabupaten/kota — berlaku nasional',
+    name: 'Transpor Kegiatan Dalam Kota (PP)', desc: 'Pergi pulang dalam satu kabupaten/kota. Berlaku nasional',
     syn: ['transpor lokal', 'transport lokal', 'dalam kota', 'transpor kegiatan', 'transport kegiatan', 'transpor dalam kota', 'pp dalam kota'],
     points: [
       'Untuk kegiatan/pekerjaan di luar kantor dalam batas wilayah suatu kabupaten/kota, pergi pulang, yang berkaitan dengan tugas kantor dan tidak menggunakan kendaraan dinas.',
