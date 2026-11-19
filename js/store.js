@@ -55,7 +55,7 @@ export async function loadData() {
   const res = await fetch(url, { cache: 'no-cache' }).catch(() => fetch(url));
   const d = await res.json();
   S.data = d;
-  for (const b of d.butir) S.butir[b.id] = b;
+  for (const b of d.butir) { S.butir[b.id] = b; b.tables.forEach((t, i) => TKEY.set(t, `${b.id}:${i}`)); }
   S.provList = d.provinsi;
   for (const p of d.provinsi) S.prov[p.id] = p;
   return d;
@@ -82,6 +82,38 @@ export function ref(b, opt = {}) {
   return `${Y.src} ${lamp} angka ${code}`;
 }
 export const lampShort = (b) => (b.lamp === 1 ? 'Lamp. I' : 'Lamp. II') + ' angka ' + b.no;
+
+// Persentase dibayar (simulasi efisiensi), disimpan per tabel dan per tahun anggaran. Bawaan 100%.
+const TKEY = new WeakMap();
+export const tableKey = (t) => TKEY.get(t);
+export const effAll = () => store.get('eff:' + Y.y, {});
+export function effPct(t) {
+  const v = Number(effAll()[TKEY.get(t)]);
+  return v > 0 && v < 100 ? v : 100;
+}
+export function setEffPct(t, v) {
+  const all = effAll();
+  const k = TKEY.get(t);
+  if (!k) return;
+  if (!(v > 0 && v < 100)) delete all[k]; else all[k] = Math.round(v * 100) / 100;
+  store.set('eff:' + Y.y, all);
+}
+export function clearEff() { store.set('eff:' + Y.y, {}); }
+const adjust = (n, p, cur) => (cur === 'USD' ? Math.round(n * p) / 100 : Math.round((n * p) / 100));
+const pctTxt = (p) => String(p).replace('.', ',') + '%';
+// Nilai uang untuk sel tabel t: bila persentase < 100, tampilkan hasil potongan dan besaran SBM aslinya
+export function money(t, n, cur = t?.cur) {
+  if (n == null) return '';
+  const p = t ? effPct(t) : 100;
+  if (p === 100) return fmt(n, cur);
+  return `<span class="eff-v" title="${pctTxt(p)} dari ${fmt(n, cur)}">${fmt(adjust(n, p, cur), cur)}</span><s class="eff-o" aria-label="Besaran SBM ${fmt(n, cur)}">${fmt(n, cur)}</s>`;
+}
+export function moneyTxt(t, n, cur = t?.cur) {
+  if (n == null) return '';
+  const p = t ? effPct(t) : 100;
+  return p === 100 ? fmt(n, cur) : `${fmt(adjust(n, p, cur), cur)} (${pctTxt(p)})`;
+}
+export { pctTxt };
 
 export function fmt(n, cur) {
   if (n == null) return '';

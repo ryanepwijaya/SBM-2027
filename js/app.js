@@ -1,5 +1,5 @@
 import { ENTRIES, GROUPS, SHORTCUTS, SIFAT, KEL_ORDER, DOC_NOTES, TOL, applyYear } from './catalog.js';
-import { S, Y, YEARS, switchYear, initYear, loadData, entry, entriesOf, esc, norm, ref, lampShort, fmt, valueCols, unitCol, shortCol, UNIT, rowsOfProv, rapatTiers, pdfLink, store, tip, fold } from './store.js';
+import { S, Y, YEARS, switchYear, initYear, loadData, entry, entriesOf, esc, norm, ref, lampShort, fmt, valueCols, unitCol, shortCol, UNIT, rowsOfProv, rapatTiers, pdfLink, store, tip, fold, money, effPct, setEffPct, clearEff, effAll, pctTxt } from './store.js';
 import { search, buildIndex, SEARCH_HINTS } from './search.js';
 import { ic } from './icons.js';
 import { loadWilayah, suggest, resolve, routeHtml, placeLabel, routeHints, W } from './rute.js';
@@ -57,6 +57,24 @@ const sifatChip = (b) => `<span class="chip ${SIFAT[b.sifat].cls}" title="${esc(
 const sifatChipTip = (b) => `<span class="tip"><button type="button" class="tip-btn chip ${SIFAT[b.sifat].cls}">${SIFAT[b.sifat].label} ${ic('info')}</button><span class="tip-body" role="tooltip"><b>${SIFAT[b.sifat].label}.</b> ${esc(SIFAT[b.sifat].text)}</span></span>`;
 const refChip = (b) => `<span class="chip ref">${lampShort(b)}</span>`;
 const pdfBtn = (b) => `<a class="btn sm pdf-btn" href="${pdfLink(b)}" target="_blank" rel="noopener" title="Buka PDF asli ${Y.src} langsung di halaman tabel ini (tab baru)"><span class="pdf-badge">PDF</span><span>Cek di ${Y.srcKind} asli <b>${pageRange(b)}</b></span>${ic('external-link', 'pdf-ext')}</a>`;
+// Daftar tabel yang sedang memakai persentase dibayar < 100%
+function effNotice() {
+  const all = effAll();
+  const items = Object.entries(all).map(([k, v]) => {
+    const [bid, t] = k.split(':'); const ti = Number(t);
+    if (!S.butir[bid]) return null;
+    const e = ENTRIES.find((x) => x.butir === bid && x.table === ti) || ENTRIES.find((x) => x.butir === bid);
+    return `<a class="chip" href="#/b/${bid}?t=${ti}">${esc(e ? (e.tab || e.name) : S.butir[bid].title)} ${pctTxt(v)}</a>`;
+  }).filter(Boolean);
+  if (!items.length) return '';
+  return `<div class="eff-note eff-sum" role="status">${ic('alert')}<div><b>Simulasi efisiensi aktif.</b> Angka berikut ditampilkan sebagian; besaran resmi tampil dicoret. <span class="chips">${items.join('')}</span></div><button type="button" class="btn sm" data-eff-clear>Kembali ke 100% semua</button></div>`;
+}
+document.addEventListener('click', (e) => {
+  const b = e.target.closest('[data-eff-clear]');
+  if (!b) return;
+  clearEff(); toast('Semua kembali ke 100%'); route();
+});
+
 // Pilihan tahun anggaran (memuat ulang aplikasi dengan data tahun terpilih)
 function yearSwitch(where) {
   const ys = Object.keys(YEARS).map(Number).sort((a, b) => b - a);
@@ -658,7 +676,7 @@ function viewBab(bab) {
 
 /* ---------------- Tabel ---------------- */
 function cellVal(t, r, i) {
-  if (r.n && r.n[i] != null) return fmt(r.n[i], r.cu || t.cur);
+  if (r.n && r.n[i] != null) return money(t, r.n[i], r.cu || t.cur);
   return esc(r.v[i]);
 }
 
@@ -786,14 +804,17 @@ function viewButir(id, params, anchor) {
   }
 
   const big = b.tables[ti].rows.length > 12;
+  const effCtl = `<div class="eff-ctl"><label for="effIn">Dibayar</label><span class="eff-box"><input id="effIn" type="text" inputmode="decimal" autocomplete="off" maxlength="6" value="100" aria-describedby="effHelp"><span>%</span></span>${tip('Untuk simulasi efisiensi, misalnya kebijakan pemotongan perjalanan dinas. Isi persentase yang dibayar (1–100); semua angka di tabel ini dihitung ulang dan besaran SBM aslinya tetap tampil dicoret di bawahnya. Tersimpan di perangkat ini per tabel dan per tahun anggaran, dan ikut dipakai di halaman Rute, Daerah, dan Bandingkan. Besaran resmi SBM tidak berubah.')}</div>`;
   if (id === 'L2-2') {
-    tools = `<div class="tbl-tools"><select class="sel" id="provSel"><option value="">Semua provinsi (31)</option>${[...new Set(b.tables[0].rows.filter((r) => r.p).map((r) => r.p))].map((p) => `<option value="${p}"${p === state.prov ? ' selected' : ''}>${esc(S.prov[p].nama)}</option>`).join('')}</select><label class="field">${ic('search')}<input id="tblq" type="search" placeholder="Cari kabupaten/kota…" value="${esc(state.filter)}"></label></div>`;
+    tools = `<div class="tbl-tools"><select class="sel" id="provSel"><option value="">Semua provinsi (31)</option>${[...new Set(b.tables[0].rows.filter((r) => r.p).map((r) => r.p))].map((p) => `<option value="${p}"${p === state.prov ? ' selected' : ''}>${esc(S.prov[p].nama)}</option>`).join('')}</select><label class="field">${ic('search')}<input id="tblq" type="search" placeholder="Cari kabupaten/kota…" value="${esc(state.filter)}"></label>${effCtl}</div>`;
   } else if (id === 'L2-6') {
-    tools = `<div class="tbl-tools"><label class="field">${ic('search')}<input id="tblq" type="search" placeholder="Cari kota, mis. surabaya atau jakarta makassar…" value="${esc(state.filter)}"></label></div>`;
+    tools = `<div class="tbl-tools"><label class="field">${ic('search')}<input id="tblq" type="search" placeholder="Cari kota, mis. surabaya atau jakarta makassar…" value="${esc(state.filter)}"></label>${effCtl}</div>`;
   } else if (big && !(id === 'L1-29')) {
-    tools = `<div class="tbl-tools"><label class="field">${ic('search')}<input id="tblq" type="search" placeholder="Saring baris tabel…" value="${esc(state.filter)}"></label></div>`;
+    tools = `<div class="tbl-tools"><label class="field">${ic('search')}<input id="tblq" type="search" placeholder="Saring baris tabel…" value="${esc(state.filter)}"></label>${effCtl}</div>`;
   } else if (id === 'L1-29') {
-    tools = `<div class="tbl-tools" id="rapatTools"><label class="field">${ic('search')}<input id="tblq" type="search" placeholder="Saring provinsi…" value="${esc(state.filter)}"></label></div>`;
+    tools = `<div class="tbl-tools" id="rapatTools"><label class="field">${ic('search')}<input id="tblq" type="search" placeholder="Saring provinsi…" value="${esc(state.filter)}"></label>${effCtl}</div>`;
+  } else if (valueCols(b.tables[ti]).length) {
+    tools = `<div class="tbl-tools">${effCtl}</div>`;
   }
 
   const draw = () => {
@@ -815,7 +836,16 @@ function viewButir(id, params, anchor) {
       filter = '';
     }
     const host = $('#tblHost');
-    host.innerHTML = renderTable(t, { rows, filter, sort: state.sort, hl: params.r });
+    state.t = t;
+    const inp = $('#effIn');
+    if (inp && document.activeElement !== inp) inp.value = String(effPct(t)).replace('.', ',');
+    const p = effPct(t);
+    const ctl = $('.eff-ctl');
+    if (ctl) ctl.classList.toggle('on', p < 100);
+    const effNote = p < 100 ? `<div class="eff-note" role="status">${ic('alert')}<div><b>Ditampilkan ${pctTxt(p)} dari besaran SBM.</b> Angka dicoret di bawahnya adalah besaran resmi ${Y.src}. Dibulatkan ke rupiah terdekat.</div><button type="button" class="btn sm" id="effReset">Kembali ke 100%</button></div>` : '';
+    host.innerHTML = effNote + renderTable(t, { rows, filter, sort: state.sort, hl: params.r });
+    const rs = $('#effReset');
+    if (rs) rs.onclick = () => { setEffPct(t, 100); draw(); toast('Kembali ke 100%'); };
     scrollHint(host);
     $$('th.sortable', host).forEach((th) => th.onclick = () => {
       const i = Number(th.dataset.col);
@@ -881,6 +911,24 @@ function viewButir(id, params, anchor) {
     if (q) q.oninput = () => { state.filter = q.value; draw(); };
     const ps = $('#provSel');
     if (ps) ps.onchange = () => { state.prov = ps.value; draw(); };
+    const ei = $('#effIn');
+    if (ei) {
+      const apply = () => {
+        const raw = ei.value.trim().replace(',', '.').replace('%', '');
+        if (raw === '') return;
+        const v = Number(raw);
+        if (!(v > 0 && v <= 100)) { ei.setAttribute('aria-invalid', 'true'); return; }
+        ei.removeAttribute('aria-invalid');
+        setEffPct(state.t, v);
+        draw();
+      };
+      let tm;
+      ei.oninput = () => { clearTimeout(tm); tm = setTimeout(apply, 350); };
+      ei.onchange = apply;
+      ei.onkeydown = (ev) => { if (ev.key === 'Enter') { clearTimeout(tm); apply(); ei.blur(); } };
+      ei.onblur = () => { if (ei.value.trim() === '' || ei.getAttribute('aria-invalid')) { ei.removeAttribute('aria-invalid'); ei.value = String(effPct(state.t)).replace('.', ','); } };
+      ei.onfocus = () => ei.select();
+    }
     $('#saveBtn').onclick = () => {
       const on = toggleSaved(e.key);
       $('#saveBtn').classList.toggle('on', on);
@@ -1007,7 +1055,7 @@ function viewRute(params) {
   ${daerahSeg('rute')}
   <div class="card card-pad">${routeForm(dari, ke)}
   </div>
-  <div id="routeHost" style="margin-top:16px">${O && D ? routeHtml(O, D) : `<div class="empty small">Pilih tujuan untuk melihat satuan biayanya.</div>`}</div>`;
+  <div id="routeHost" style="margin-top:16px">${O && D ? effNotice() + routeHtml(O, D) : `<div class="empty small">Pilih tujuan untuk melihat satuan biayanya.</div>`}</div>`;
   const after = () => {
     attachAC('rDari', (it) => go(it.id, ke));
     attachAC('rKe', (it) => go(dari, it.id));
@@ -1059,7 +1107,7 @@ function viewProv(pid) {
   const B = S.butir;
   const link = (bid, t, code) => `#/b/${bid}?t=${t}${code ? '&r=' + encodeURIComponent(code) : ''}`;
   const card = (title, b, inner, more, note) => `<section class="card card-pad dcard"><div class="head"><h3>${esc(title)} ${note ? tip(note) : ''}</h3><a class="more" href="${more}">${lampShort(b)} ›</a></div>${inner}</section>`;
-  const kv = (t, r, idxs) => `<div class="kv">${idxs.map((i) => `<div><div class="k">${esc(shortCol(t.cols[i]))}</div><div class="v">${fmt(r.n[i], t.cur)}</div></div>`).join('')}</div>`;
+  const kv = (t, r, idxs) => `<div class="kv">${idxs.map((i) => `<div><div class="k">${esc(shortCol(t.cols[i]))}</div><div class="v">${money(t, r.n[i], r.cu || t.cur)}</div></div>`).join('')}</div>`;
 
   // Uang harian
   const tUH = B['L1-25'].tables[0];
@@ -1073,27 +1121,27 @@ function viewProv(pid) {
   // Taksi
   const tT = B['L2-5'].tables[0];
   const rT = tT.rows.find((r) => r.p === pid);
-  const cT = card('Taksi ke/dari Bandara, Stasiun, Terminal', B['L2-5'], rT ? `<div class="kv"><div><div class="k">Sekali jalan (lumpsum)</div><div class="v">${fmt(rT.n[3])}</div></div></div>` : `<div class="callout warn">${ic('alert')}<div>Provinsi ini tidak tercantum dalam tabel Lampiran II angka 5 KMK 296/2026.</div></div>`, link('L2-5', 0, rT?.c),
+  const cT = card('Taksi ke/dari Bandara, Stasiun, Terminal', B['L2-5'], rT ? `<div class="kv"><div><div class="k">Sekali jalan (lumpsum)</div><div class="v">${money(tT, rT.n[3])}</div></div></div>` : `<div class="callout warn">${ic('alert')}<div>Provinsi ini tidak tercantum dalam tabel Lampiran II angka 5 KMK 296/2026.</div></div>`, link('L2-5', 0, rT?.c),
     'Bila melebihi, dapat dibayar riil sepanjang dari/ke kantor dan bukan kendaraan pribadi.');
   // Paket rapat
   const tiers = rapatTiers();
   const tR = B['L1-29'].tables[0];
   const rapRows = tiers.map((tr) => ({ name: tr.name, r: tr.rows.find((x) => x.p === pid) }));
   const vcR = valueCols(tR);
-  const cR = card('Paket Rapat di Luar Kantor', B['L1-29'], `<div style="overflow:auto"><table class="mini"><thead><tr><th>Tingkat peserta</th>${vcR.map((i) => `<th class="n">${esc(tR.cols[i])}</th>`).join('')}</tr></thead><tbody>${rapRows.map((x) => `<tr><td>${esc(x.name)}</td>${vcR.map((i) => `<td class="n">${x.r ? fmt(x.r.n[i]) : '–'}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`,
+  const cR = card('Paket Rapat di Luar Kantor', B['L1-29'], `<div style="overflow:auto"><table class="mini"><thead><tr><th>Tingkat peserta</th>${vcR.map((i) => `<th class="n">${esc(tR.cols[i])}</th>`).join('')}</tr></thead><tbody>${rapRows.map((x) => `<tr><td>${esc(x.name)}</td>${vcR.map((i) => `<td class="n">${x.r ? money(tR, x.r.n[i]) : '–'}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`,
     link('L1-29', 0, rapRows[2].r?.c), 'Per orang per paket. Uang harian rapat Rp130.000/OH hanya untuk fullboard (berlaku nasional). Eselon II ke atas: fullboard dapat 1,5×.');
   // Transport darat
   const tD = B['L2-2'].tables[0];
   const rD = tD.rows.filter((r) => r.v && r.p === pid);
   const cD = card('Transport Darat dari Ibu Kota Provinsi', B['L2-2'], rD.length
-    ? `<div class="scroll-list"><table class="mini"><thead><tr><th>Dari</th><th>Kabupaten/Kota tujuan</th><th class="n">Sekali jalan</th></tr></thead><tbody>${rD.map((r) => `<tr><td>${esc(r.v[1])}</td><td><a href="${link('L2-2', 0, r.c)}">${esc(r.v[2])}</a></td><td class="n">${fmt(r.n[4])}</td></tr>`).join('')}</tbody></table></div>`
+    ? `<div class="scroll-list"><table class="mini"><thead><tr><th>Dari</th><th>Kabupaten/Kota tujuan</th><th class="n">Sekali jalan</th></tr></thead><tbody>${rD.map((r) => `<tr><td>${esc(r.v[1])}</td><td><a href="${link('L2-2', 0, r.c)}">${esc(r.v[2])}</a></td><td class="n">${money(tD, r.n[4])}</td></tr>`).join('')}</tbody></table></div>`
     : `<div class="callout">${ic('info')}<div>${pid === 'dki' ? 'DKI Jakarta diatur tersendiri: lihat Transport Jakarta ke Bodetabek di bawah.' : 'Provinsi ini tidak tercantum dalam tabel. Menurut Penjelasan, rute yang belum tercantum mengacu pada harga pasar (at cost).'}</div></div>`,
     `#/b/L2-2?t=0&p=${pid}`, rD.length ? `${rD.length} rute. Rute yang belum tercantum mengacu pada harga pasar (at cost).` : '');
   // Bodetabek (DKI)
   let cB = '';
   if (pid === 'dki') {
     const tB = B['L2-3'].tables[0];
-    cB = card('Transport Jakarta ke Bodetabek', B['L2-3'], `<table class="mini"><tbody>${tB.rows.filter((r) => r.v).map((r) => `<tr><td>${esc(r.v[2])}</td><td class="n">${fmt(r.n[4])}</td></tr>`).join('')}</tbody></table>`, '#/b/L2-3', 'Sekali jalan, lumpsum.');
+    cB = card('Transport Jakarta ke Bodetabek', B['L2-3'], `<table class="mini"><tbody>${tB.rows.filter((r) => r.v).map((r) => `<tr><td>${esc(r.v[2])}</td><td class="n">${money(tB, r.n[4])}</td></tr>`).join('')}</tbody></table>`, '#/b/L2-3', 'Sekali jalan, lumpsum.');
   }
   // Tiket
   const tK = B['L2-6'].tables[0];
@@ -1101,15 +1149,15 @@ function viewProv(pid) {
   const rK = tK.rows.filter((r) => r.v && (r.pa === pid || r.pt === pid))
     .sort((a, b) => ([b.v[1], b.v[2]].some((c) => c.toUpperCase() === capU) - [a.v[1], a.v[2]].some((c) => c.toUpperCase() === capU)));
   const cK = card('Tiket Pesawat (PP)', B['L2-6'], rK.length
-    ? `<div class="scroll-list"><table class="mini"><thead><tr><th>Rute</th><th class="n">Bisnis</th><th class="n">Ekonomi</th></tr></thead><tbody>${rK.map((r) => `<tr><td><a href="${link('L2-6', 0, r.c)}">${esc(r.v[1])} ⇄ ${esc(r.v[2])}</a></td><td class="n">${fmt(r.n[3])}</td><td class="n">${fmt(r.n[4])}</td></tr>`).join('')}</tbody></table></div>`
+    ? `<div class="scroll-list"><table class="mini"><thead><tr><th>Rute</th><th class="n">Bisnis</th><th class="n">Ekonomi</th></tr></thead><tbody>${rK.map((r) => `<tr><td><a href="${link('L2-6', 0, r.c)}">${esc(r.v[1])} ⇄ ${esc(r.v[2])}</a></td><td class="n">${money(tK, r.n[3])}</td><td class="n">${money(tK, r.n[4])}</td></tr>`).join('')}</tbody></table></div>`
     : `<div class="callout">${ic('info')}<div>Tidak ada rute yang menyentuh kota di provinsi ini dalam tabel tiket ${Y.srcKind}.</div></div>`,
     `#/b/L2-6?q=${encodeURIComponent(p.kota[0])}`, rK.length ? `${rK.length} rute yang asal atau tujuannya kota di provinsi ini. Dibayar riil.` : '');
   // Nasional
   const tR2 = B['L1-25'].tables[1];
   const cN = `<section class="card card-pad dcard"><div class="head"><h3>Berlaku nasional ${pid === 'dki' ? tip('Untuk transpor kegiatan dalam kota, DKI Jakarta dihitung satu kabupaten/kota (Jakarta Pusat, Timur, Utara, Barat, Selatan).') : ''}</h3></div><table class="mini"><tbody>
-    <tr><td><a href="#/b/L2-4">Transpor kegiatan dalam kota (PP)</a></td><td class="n">${fmt(firstVal(B['L2-4'].tables[0]))}</td></tr>
-    <tr><td><a href="#/b/L1-29?t=1">Uang harian rapat fullboard</a></td><td class="n">${fmt(B['L1-29'].tables[1].rows.find((r) => r.v).n[3])}</td></tr>
-    ${tR2.rows.filter((r) => r.v).map((r) => `<tr><td><a href="#/b/L1-25?t=1">Representasi ${esc(r.v[1])}</a> ${tip('Luar kota / dalam kota lebih dari 8 jam')}</td><td class="n">${fmt(r.n[3])} / ${fmt(r.n[4])}</td></tr>`).join('')}
+    <tr><td><a href="#/b/L2-4">Transpor kegiatan dalam kota (PP)</a></td><td class="n">${money(B['L2-4'].tables[0], firstVal(B['L2-4'].tables[0]))}</td></tr>
+    <tr><td><a href="#/b/L1-29?t=1">Uang harian rapat fullboard</a></td><td class="n">${money(B['L1-29'].tables[1], B['L1-29'].tables[1].rows.find((r) => r.v).n[3])}</td></tr>
+    ${tR2.rows.filter((r) => r.v).map((r) => `<tr><td><a href="#/b/L1-25?t=1">Representasi ${esc(r.v[1])}</a> ${tip('Luar kota / dalam kota lebih dari 8 jam')}</td><td class="n">${money(tR2, r.n[3])} / ${money(tR2, r.n[4])}</td></tr>`).join('')}
   </tbody></table></section>`;
 
   const html = `
@@ -1119,6 +1167,7 @@ function viewProv(pid) {
     <p class="subtitle">Ibu kota: ${esc(p.kota[0])}. Semua satuan biaya yang ditetapkan per provinsi, sesuai ${Y.src}. Ketuk tautan Lamp. untuk melihat tabel lengkap dan penjelasannya.</p>
     <div class="actions"><a class="btn" href="#/bandingkan?p=${pid}">${ic('compare')} Bandingkan dengan provinsi lain</a></div>
   </div>
+  ${effNotice()}
   <h2 class="sec">${ic('plane')} Perjalanan Dinas</h2>
   <div class="grid grid-2">${cUH}${cH}${cR}${cT}${cK}${cD}${cB}${cN}</div>
   <h2 class="sec">${ic('layers-2')} Satuan biaya lain di provinsi ini ${tip(`Semua tabel ${Y.srcKind} yang besarannya ditetapkan per provinsi, di luar perjalanan dinas. Ketuk judul bab untuk membuka.`)}</h2>
@@ -1139,7 +1188,7 @@ function provOthers(pid) {
         const vc = valueCols(t);
         const ui = t.cols.findIndex((c) => /^satuan$/i.test(c));
         const grp = (() => { let g = ''; for (const x of t.rows) { if (x.g) g = x.g; if (x === r) return g; } return ''; })();
-        const inner = r ? `<div class="kv">${vc.map((i) => `<div><div class="k">${esc(shortCol(t.cols[i]))}</div><div class="v">${fmt(r.n[i], r.cu || t.cur)}</div></div>`).join('')}</div>${ui >= 0 ? `<div class="kv-unit">Satuan: ${esc(r.v[ui])}${grp && !/^Rapat Biasa$/i.test(grp) ? '' : ''}</div>` : ''}` : '<p class="na">Tidak tercantum</p>';
+        const inner = r ? `<div class="kv">${vc.map((i) => `<div><div class="k">${esc(shortCol(t.cols[i]))}</div><div class="v">${money(t, r.n[i], r.cu || t.cur)}</div></div>`).join('')}</div>${ui >= 0 ? `<div class="kv-unit">Satuan: ${esc(r.v[ui])}${grp && !/^Rapat Biasa$/i.test(grp) ? '' : ''}</div>` : ''}` : '<p class="na">Tidak tercantum</p>';
         cards.push({ key: e.key, html: `<section class="card card-pad dcard"><div class="head"><h3>${ic(e.icon)} ${esc(e.name)}</h3><a class="more" href="#/b/${b.id}?t=${e.table}${r ? '&r=' + encodeURIComponent(r.c) : ''}">${lampShort(b)} ›</a></div>${inner}</section>` });
       }
     }
@@ -1155,10 +1204,10 @@ function metrics() {
   const tiers = rapatTiers();
   const R = B['L1-29'].tables[0];
   const m = [];
-  valueCols(uh).forEach((i) => m.push({ g: 'Uang harian', l: shortCol(uh.cols[i]), f: (p) => uh.rows.find((r) => r.p === p)?.n[i] }));
-  valueCols(h).forEach((i) => m.push({ g: 'Penginapan', l: shortCol(h.cols[i]), f: (p) => h.rows.find((r) => r.p === p)?.n[i] }));
-  m.push({ g: 'Taksi', l: 'Sekali jalan', f: (p) => tx.rows.find((r) => r.p === p)?.n[3] });
-  tiers.forEach((tr, k) => valueCols(R).forEach((i) => m.push({ g: 'Paket rapat · ' + ['Menteri/Wamen', 'Eselon I–II/JF Utama', 'Eselon III ke bawah'][k], l: R.cols[i], f: (p) => tr.rows.find((r) => r.p === p)?.n[i] })));
+  valueCols(uh).forEach((i) => m.push({ t: uh, g: 'Uang harian', l: shortCol(uh.cols[i]), f: (p) => uh.rows.find((r) => r.p === p)?.n[i] }));
+  valueCols(h).forEach((i) => m.push({ t: h, g: 'Penginapan', l: shortCol(h.cols[i]), f: (p) => h.rows.find((r) => r.p === p)?.n[i] }));
+  m.push({ t: tx, g: 'Taksi', l: 'Sekali jalan', f: (p) => tx.rows.find((r) => r.p === p)?.n[3] });
+  tiers.forEach((tr, k) => valueCols(R).forEach((i) => m.push({ t: R, g: 'Paket rapat · ' + ['Menteri/Wamen', 'Eselon I–II/JF Utama', 'Eselon III ke bawah'][k], l: R.cols[i], f: (p) => tr.rows.find((r) => r.p === p)?.n[i] })));
   return m;
 }
 function viewCompare(params) {
@@ -1178,9 +1227,9 @@ function viewCompare(params) {
       const rows = metrics().map((m) => {
         const head = m.g !== g ? `<tr class="grp"><td colspan="${ps.length + 1}">${esc(m.g)}</td></tr>` : '';
         g = m.g;
-        return head + `<tr><td class="lbl">${esc(m.l)}</td>${ps.map((p) => { const v = m.f(p); return `<td class="n">${v != null ? fmt(v) : '<span class="na">Tidak tercantum</span>'}</td>`; }).join('')}</tr>`;
+        return head + `<tr><td class="lbl">${esc(m.l)}</td>${ps.map((p) => { const v = m.f(p); return `<td class="n">${v != null ? money(m.t, v) : '<span class="na">Tidak tercantum</span>'}</td>`; }).join('')}</tr>`;
       }).join('');
-      $('#cmpHost').innerHTML = `<div class="tbl-wrap"><table class="t"><thead><tr><th>Komponen</th>${ps.map((p) => `<th class="n"><a href="#/daerah/p/${p}">${esc(S.prov[p].nama)}</a></th>`).join('')}</tr></thead><tbody>${rows}</tbody></table></div>`;
+      $('#cmpHost').innerHTML = effNotice() + `<div class="tbl-wrap"><table class="t"><thead><tr><th>Komponen</th>${ps.map((p) => `<th class="n"><a href="#/daerah/p/${p}">${esc(S.prov[p].nama)}</a></th>`).join('')}</tr></thead><tbody>${rows}</tbody></table></div>`;
     };
     $$('[data-slot]').forEach((s) => s.onchange = () => {
       sel[Number(s.dataset.slot)] = s.value;

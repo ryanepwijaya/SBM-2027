@@ -1,5 +1,5 @@
 // Fitur Rute Perjadin: dari kota X ke kota Y → satuan biaya yang relevan
-import { S, Y, norm, esc, fmt, valueCols, shortCol, rapatTiers, tip } from './store.js';
+import { S, Y, norm, esc, fmt, money, moneyTxt, valueCols, shortCol, rapatTiers, tip } from './store.js';
 
 export const W = { data: null, byId: {}, list: [], ticketByReg: {} };
 
@@ -101,7 +101,7 @@ function comp(bid, ti, row, title, sub, opt = {}) {
   const vc = opt.cols || valueCols(t);
   return {
     title, sub, bid, ti, code: row?.c, sifat: b.sifat, note: opt.note,
-    vals: row ? vc.map((i) => ({ k: opt.labels?.[i] || shortCol(t.cols[i]), v: fmt(row.n[i], t.cur), hl: opt.hl?.includes(i) })) : [],
+    vals: row ? vc.map((i) => ({ k: opt.labels?.[i] || shortCol(t.cols[i]), v: money(t, row.n[i], row.cu || t.cur), hl: opt.hl?.includes(i) })) : [],
     missing: !row ? (opt.missing || `Tidak tercantum dalam tabel ${Y.srcKind}.`) : null,
   };
 }
@@ -126,7 +126,7 @@ export function computeRoute(O, D) {
   const rep = (colIdx) => ({
     title: 'Uang representasi', sub: 'Hanya pejabat negara/wamen, eselon I, dan eselon II pada perjalanan dinas jabatan. Berlaku nasional.',
     bid: 'L1-25', ti: 1, code: '25.2', sifat: 'BT',
-    vals: tRep.rows.filter((r) => r.v).map((r) => ({ k: r.v[1], v: fmt(r.n[colIdx]) })),
+    vals: tRep.rows.filter((r) => r.v).map((r) => ({ k: r.v[1], v: money(tRep, r.n[colIdx]) })),
   });
 
   if (sameKab) {
@@ -210,9 +210,9 @@ export function computeRoute(O, D) {
   sec.push({
     h: 'Bila mengikuti rapat di luar kantor', table: {
       cols: ['Tingkat peserta', ...vcR.map((i) => tR.cols[i])],
-      rows: tiers.map((tr) => { const r = tr.rows.find((x) => x.p === D.prov); return [tr.name, ...vcR.map((i) => (r ? fmt(r.n[i]) : '–'))]; }),
+      rows: tiers.map((tr) => { const r = tr.rows.find((x) => x.p === D.prov); return [esc(tr.name), ...vcR.map((i) => (r ? money(tR, r.n[i]) : '–'))]; }),
       bid: 'L1-29', code: tiers[2].rows.find((x) => x.p === D.prov)?.c,
-      note: `Paket per orang di ${pD.nama}. Uang harian rapat ${fmt(S.butir['L1-29'].tables[1].rows.find((r) => r.v).n[3])}/OH hanya untuk fullboard.`,
+      note: `Paket per orang di ${pD.nama}. Uang harian rapat ${moneyTxt(S.butir['L1-29'].tables[1], S.butir['L1-29'].tables[1].rows.find((r) => r.v).n[3])}/OH hanya untuk fullboard.`,
     },
   });
 
@@ -254,8 +254,8 @@ export function routeHtml(O, D) {
   const secs = r.sec.filter((s) => (s.items && s.items.length) || s.table).map((s) => {
     n++;
     if (s.table) {
-      return `<section class="rsec"><h2 class="sec"><span class="step">${n}</span>${esc(s.h)} ${tip(esc(s.table.note))}</h2><div class="card card-pad"><div style="overflow:auto"><table class="mini"><thead><tr>${s.table.cols.map((c, i) => `<th${i ? ' class="n"' : ''}>${esc(c)}</th>`).join('')}</tr></thead><tbody>${s.table.rows.map((row) => `<tr>${row.map((c, i) => `<td${i ? ' class="n"' : ''}>${esc(c)}</td>`).join('')}</tr>`).join('')}</tbody></table></div>
-        <div class="chips" style="margin-top:10px"><span class="chip bt">Batas Tertinggi</span><a class="chip ref" href="#/b/L1-29?t=0${s.table.code ? '&r=' + encodeURIComponent(s.table.code) : ''}">Lamp. I angka 29</a></div></div></section>`;
+      return `<section class="rsec"><h2 class="sec"><span class="step">${n}</span>${esc(s.h)} ${tip(esc(s.table.note))}</h2><div class="card card-pad"><div style="overflow:auto"><table class="mini"><thead><tr>${s.table.cols.map((c, i) => `<th${i ? ' class="n"' : ''}>${esc(c)}</th>`).join('')}</tr></thead><tbody>${s.table.rows.map((row) => `<tr>${row.map((c, i) => `<td${i ? ' class="n"' : ''}>${c}</td>`).join('')}</tr>`).join('')}</tbody></table></div>
+        <div class="chips" style="margin-top:10px"><span class="chip bt">Batas Tertinggi</span><a class="chip ref" href="#/b/L1-29?t=0${s.table.code ? '&r=' + encodeURIComponent(s.table.code) : ''}">Lamp. I angka ${S.butir['L1-29'].no}</a></div></div></section>`;
     }
     return `<section class="rsec"><h2 class="sec"><span class="step">${n}</span>${esc(s.h)}</h2><div class="card rlist">${s.items.map(compHtml).join('')}</div></section>`;
   }).join('');

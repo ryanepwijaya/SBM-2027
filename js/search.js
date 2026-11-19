@@ -1,6 +1,6 @@
 // Mesin pencarian dalam aplikasi
 import { ENTRIES, SOON_SYN, CITY_ALIAS, GROUPS } from './catalog.js';
-import { S, Y, norm, esc, fmt, valueCols, shortCol, entriesOf, rapatTiers } from './store.js';
+import { S, Y, norm, esc, fmt, moneyTxt, valueCols, shortCol, entriesOf, rapatTiers } from './store.js';
 import { matchPlace, suggest } from './rute.js';
 import { BABS } from './bab.js';
 
@@ -128,7 +128,7 @@ function takePhrases(q, phrases) {
 
 function summarize(t, r, max = 4) {
   const vc = valueCols(t);
-  return vc.slice(0, max).map((i) => `${shortCol(t.cols[i])} ${r.n[i] != null ? fmt(r.n[i], t.cur) : esc(r.v[i])}`).join(' · ');
+  return vc.slice(0, max).map((i) => `${shortCol(t.cols[i])} ${r.n[i] != null ? moneyTxt(t, r.n[i], r.cu || t.cur) : esc(r.v[i])}`).join(' · ');
 }
 
 function hrefRow(b, ti, code, extra = '') {
@@ -267,7 +267,7 @@ export function search(qRaw) {
       ? set.includes(r.v[1].toUpperCase()) && set.includes(r.v[2].toUpperCase())
       : set.includes(r.v[1].toUpperCase()) || set.includes(r.v[2].toUpperCase())));
     if (cityNames.length >= 2) {
-      for (const r of rows) out.best.push({ t: `Tiket ${r.v[1]} ⇄ ${r.v[2]}`, d: `Bisnis ${fmt(r.n[3])} · Ekonomi ${fmt(r.n[4])} (PP)`, href: hrefRow(tiketB, 0, r.c), kind: 'Tiket DN' });
+      for (const r of rows) out.best.push({ t: `Tiket ${r.v[1]} ⇄ ${r.v[2]}`, d: `Bisnis ${moneyTxt(tiketB.tables[0], r.n[3])} · Ekonomi ${moneyTxt(tiketB.tables[0], r.n[4])} (PP)`, href: hrefRow(tiketB, 0, r.c), kind: 'Tiket DN' });
       if (!rows.length) out.best.push({ t: `Rute ${cityNames.join(' ⇄ ')}`, d: `Rute ini tidak tercantum dalam tabel tiket ${Y.src}.`, href: `#/b/L2-6?q=${encodeURIComponent(cityNames[0])}`, kind: 'Tiket DN' });
     } else {
       out.best.push({ t: `Tiket pesawat dari/ke ${cityNames[0]}`, d: `${rows.length} rute tercantum`, href: `#/b/L2-6?q=${encodeURIComponent(cityNames[0])}`, kind: 'Tiket DN' });

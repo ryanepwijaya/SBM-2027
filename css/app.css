@@ -1046,3 +1046,31 @@ summary { cursor: pointer; }
   .fl-tx small { display: none; }
   .feat-all { padding: 10px 14px; }
 }
+
+/* Persentase dibayar (simulasi efisiensi) */
+.eff-ctl { display: inline-flex; align-items: center; gap: 8px; margin-left: auto; font-size: 14px; font-weight: 600; color: var(--text); }
+.eff-ctl label { cursor: pointer; }
+.eff-box { display: inline-flex; align-items: center; gap: 4px; height: 40px; padding: 0 10px 0 4px; border-radius: 10px; background: var(--surface); border: 1px solid var(--border); }
+.eff-box:focus-within { border-color: var(--navy); }
+[data-theme="dark"] .eff-box:focus-within { border-color: var(--gold-2); }
+.eff-box input { width: 52px; border: 0; background: transparent; font: inherit; font-size: 16px; font-weight: 800; text-align: right; color: var(--text); font-variant-numeric: tabular-nums; padding: 0 2px; }
+.eff-box input:focus-visible { outline: none; }
+.eff-box input[aria-invalid] { color: var(--red); }
+.eff-box span { color: var(--muted); font-weight: 700; }
+.eff-ctl.on .eff-box { border: 2px solid var(--gold); background: color-mix(in srgb, var(--gold) 14%, var(--surface)); }
+.eff-note { display: flex; align-items: center; gap: 12px; padding: 12px 14px; margin: 0 0 12px; border-radius: 12px; border: 1px solid color-mix(in srgb, var(--gold) 60%, var(--border)); background: color-mix(in srgb, var(--gold) 12%, var(--surface)); color: var(--text); font-size: 14px; line-height: 1.45; }
+.eff-note > svg { width: 20px; height: 20px; flex: none; color: #9A6B00; }
+[data-theme="dark"] .eff-note > svg { color: var(--gold-2); }
+.eff-note > div { flex: 1; min-width: 0; }
+.eff-note .btn { flex: none; }
+.eff-note .chips { display: inline-flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+.eff-note .chip { text-decoration: none; background: var(--surface); border: 1px solid var(--border); color: var(--text); font-weight: 650; }
+.eff-sum { margin-top: 4px; }
+.eff-v { font-weight: inherit; }
+.eff-o { display: block; font-size: 11.5px; font-weight: 500; color: var(--muted); text-decoration-thickness: 1px; margin-top: 1px; }
+@media (max-width: 639px) {
+  .eff-ctl { margin-left: 0; }
+  .eff-note { flex-wrap: wrap; align-items: flex-start; }
+  .eff-note > div { flex-basis: calc(100% - 32px); }
+  .eff-note .btn { margin-left: 32px; }
+}
