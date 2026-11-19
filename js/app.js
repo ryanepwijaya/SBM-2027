@@ -56,6 +56,7 @@ async function copy(text, msg = 'Disalin') {
 const sifatChip = (b) => `<span class="chip ${SIFAT[b.sifat].cls}" title="${esc(SIFAT[b.sifat].text)}">${SIFAT[b.sifat].label}</span>`;
 const sifatChipTip = (b) => `<span class="tip"><button type="button" class="tip-btn chip ${SIFAT[b.sifat].cls}">${SIFAT[b.sifat].label} ${ic('info')}</button><span class="tip-body" role="tooltip"><b>${SIFAT[b.sifat].label}.</b> ${esc(SIFAT[b.sifat].text)}</span></span>`;
 const refChip = (b) => `<span class="chip ref">${lampShort(b)}</span>`;
+const pdfBtn = (b) => `<a class="btn sm pdf-btn" href="${pdfLink(b)}" target="_blank" rel="noopener" title="Buka PDF asli KMK 296/2026 langsung di halaman tabel ini (tab baru)"><span class="pdf-badge">PDF</span><span>Cek di KMK asli <b>${pageRange(b)}</b></span>${ic('external-link', 'pdf-ext')}</a>`;
 const pageRange = (b) => (b.pages.length > 1 ? `hal. ${b.pages[0]}–${b.pages[b.pages.length - 1]}` : `hal. ${b.pages[0]}`);
 const groupOf = (gid) => GROUPS.find((g) => g.id === gid);
 
@@ -677,7 +678,7 @@ function viewButir(id, params, anchor) {
       <div class="bab-title"><span class="bab-ico">${ic(it?.icon || bb.icon)}</span><div><h1 class="title">${esc(it?.n || b.title)}</h1><p class="bab-desc">${esc(b.title)}</p></div></div>
       <div class="chips">${sifatChipTip(b)}${refChip(b)}<span class="chip soon">Segera hadir</span></div></div>
       <div class="callout soon-call">${ic('sparkles')}<div><b>Segera hadir.</b> Butir ini belum dibuka pada tahap 1 (perjalanan dinas). Tabel dan penjelasannya akan tampil saat bab ${esc(bb.name)} diaktifkan.</div></div>
-      <div class="actions" style="margin-top:14px"><a class="btn" href="#/bab/${bb.key}">${ic(bb.icon)} Lihat bab ${esc(bb.name)}</a><a class="btn" href="${pdfLink(b)}" target="_blank" rel="noopener">${ic('file')} Buka PDF ${pageRange(b)}</a></div>` };
+      <div class="actions" style="margin-top:14px"><a class="btn" href="#/bab/${bb.key}">${ic(bb.icon)} Lihat bab ${esc(bb.name)}</a>${pdfBtn(b)}</div>` };
   }
   const ents = entriesOf(id);
   let ti = Math.max(0, Math.min(Number(params.t || 0), b.tables.length - 1));
@@ -765,8 +766,9 @@ function viewButir(id, params, anchor) {
     <div class="crumb">${bab ? `<a href="#/bab/${bab.key}">${esc(bab.name)}</a>` : ''}${bgrp && bgrp.t ? `<span class="sep">›</span>${esc(bgrp.t)}` : ''}</div>
     <h1 class="title">${esc(title)}</h1>
     <p class="subtitle">${esc(b.title)}</p>
-    <div class="chips">${sifatChipTip(b)}${refChip(b)}<a class="chip" href="${pdfLink(b)}" target="_blank" rel="noopener">${ic('file')} PDF ${pageRange(b)}</a></div>
+    <div class="chips">${sifatChipTip(b)}${refChip(b)}</div>
     <div class="actions">
+      ${pdfBtn(b)}
       <button class="btn sm${isSaved(e.key) ? ' on' : ''}" id="saveBtn">${ic('star')} <span>${isSaved(e.key) ? 'Tersimpan' : 'Simpan'}</span></button>
       <button class="btn sm" id="refBtn">${ic('copy')} Salin rujukan</button>
       ${navigator.share ? `<button class="btn sm" id="shareBtn">${ic('share')} Bagikan</button>` : ''}

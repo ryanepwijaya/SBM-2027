@@ -926,3 +926,14 @@ table.t td.unit abbr { text-decoration: none; border-bottom: 1px dotted var(--fa
 .fold > summary > span svg { width: 17px; height: 17px; vertical-align: -3px; margin-right: 6px; }
 .dcard h3 { flex-wrap: nowrap; align-items: flex-start; }
 .dcard h3 > svg { flex: none; margin-top: 3px; }
+
+/* Tombol rujukan PDF: dibuat menonjol agar jelas bisa diklik */
+.btn.pdf-btn { background: var(--navy); color: #fff; border-color: var(--navy); gap: 8px; padding-left: 6px; box-shadow: 0 2px 8px rgba(34,45,99,.22); transition: transform .2s var(--ease, ease), box-shadow .2s, background .15s; }
+.btn.pdf-btn:hover { background: var(--navy-700); color: #fff; transform: translateY(-1px); box-shadow: 0 6px 16px rgba(34,45,99,.3); }
+.btn.pdf-btn b { color: var(--gold-2); font-weight: 750; }
+.pdf-badge { display: inline-grid; place-items: center; height: 22px; padding: 0 6px; border-radius: 6px; background: var(--red); color: #fff; font-size: 10.5px; font-weight: 800; letter-spacing: .04em; }
+.btn.pdf-btn .pdf-ext { width: 14px; height: 14px; opacity: .8; transition: transform .2s var(--ease, ease); }
+.btn.pdf-btn:hover .pdf-ext { transform: translate(2px, -2px); opacity: 1; }
+[data-theme="dark"] .btn.pdf-btn { background: var(--gold-2); color: var(--navy-900); border-color: var(--gold-2); box-shadow: none; }
+[data-theme="dark"] .btn.pdf-btn:hover { background: #ffe14d; color: var(--navy-900); }
+[data-theme="dark"] .btn.pdf-btn b { color: var(--navy-900); }
