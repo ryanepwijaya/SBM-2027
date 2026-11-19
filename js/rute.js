@@ -1,5 +1,5 @@
 // Fitur Rute Perjadin: dari kota X ke kota Y → satuan biaya yang relevan
-import { S, norm, esc, fmt, valueCols, shortCol, rapatTiers, tip } from './store.js';
+import { S, Y, norm, esc, fmt, valueCols, shortCol, rapatTiers, tip } from './store.js';
 
 export const W = { data: null, byId: {}, list: [], ticketByReg: {} };
 
@@ -102,7 +102,7 @@ function comp(bid, ti, row, title, sub, opt = {}) {
   return {
     title, sub, bid, ti, code: row?.c, sifat: b.sifat, note: opt.note,
     vals: row ? vc.map((i) => ({ k: opt.labels?.[i] || shortCol(t.cols[i]), v: fmt(row.n[i], t.cur), hl: opt.hl?.includes(i) })) : [],
-    missing: !row ? (opt.missing || 'Tidak tercantum dalam tabel KMK.') : null,
+    missing: !row ? (opt.missing || `Tidak tercantum dalam tabel ${Y.srcKind}.`) : null,
   };
 }
 
@@ -163,9 +163,9 @@ export function computeRoute(O, D) {
     if (isCapital(O) && darRow(D).length) {
       for (const x of darRow(D)) leg.push(comp('L2-2', 0, x.r, `Transport darat ${x.r.v[1]} → ${x.r.v[2]}`, 'Sekali jalan dari ibu kota provinsi.', { labels: { 4: 'Sekali jalan' }, note: x.note }));
     } else if (isCapital(D) && darRow(O).length) {
-      for (const x of darRow(O)) leg.push(comp('L2-2', 0, x.r, `Transport darat ${x.r.v[2]} → ${x.r.v[1]}`, 'Sekali jalan (KMK: dari ibu kota provinsi atau sebaliknya).', { labels: { 4: 'Sekali jalan' }, note: x.note }));
+      for (const x of darRow(O)) leg.push(comp('L2-2', 0, x.r, `Transport darat ${x.r.v[2]} → ${x.r.v[1]}`, `Sekali jalan (${Y.srcKind}: dari ibu kota provinsi atau sebaliknya).`, { labels: { 4: 'Sekali jalan' }, note: x.note }));
     } else {
-      leg.push({ title: 'Transport darat', sub: '', bid: 'L2-2', ti: 0, sifat: 'DL', vals: [], missing: 'Tabel KMK hanya memuat rute dari ibu kota provinsi ke kabupaten/kota. Rute yang belum tercantum mengacu pada harga pasar (at cost).' });
+      leg.push({ title: 'Transport darat', sub: '', bid: 'L2-2', ti: 0, sifat: 'DL', vals: [], missing: `Tabel ${Y.srcKind} hanya memuat rute dari ibu kota provinsi ke kabupaten/kota. Rute yang belum tercantum mengacu pada harga pasar (at cost).` });
     }
     // tiket dalam provinsi (mis. Jayapura–Biak), bila ada
     const tk = ticketRoutes(O, D);
@@ -173,7 +173,7 @@ export function computeRoute(O, D) {
   } else {
     // antarprovinsi
     if (!O.dki && O.reg && !W.ticketByReg[O.reg.id] && !isCapital(O)) {
-      for (const x of darRow(O)) dep.push(comp('L2-2', 0, x.r, `Transport darat ${x.r.v[2]} → ${x.r.v[1]}`, 'Menuju ibu kota provinsi (KMK: dari ibu kota provinsi atau sebaliknya).', { labels: { 4: 'Sekali jalan' }, note: x.note }));
+      for (const x of darRow(O)) dep.push(comp('L2-2', 0, x.r, `Transport darat ${x.r.v[2]} → ${x.r.v[1]}`, `Menuju ibu kota provinsi (${Y.srcKind}: dari ibu kota provinsi atau sebaliknya).`, { labels: { 4: 'Sekali jalan' }, note: x.note }));
     }
     const tk = ticketRoutes(O, D);
     leg.push(...tk.items);
@@ -236,7 +236,7 @@ function ticketRoutes(O, D) {
 
 /* ---------- Tampilan ---------- */
 function compHtml(c) {
-  const ref = `<a class="chip ref" href="#/b/${c.bid}?t=${c.ti}${c.code ? '&r=' + encodeURIComponent(c.code) : ''}">${S.butir[c.bid].lamp === 1 ? 'Lamp. I' : 'Lamp. II'} angka ${c.code || S.butir[c.bid].no}</a>`;
+  const ref = `<a class="chip ref" href="#/b/${c.bid}?t=${c.ti}${c.code ? '&r=' + encodeURIComponent(c.code) : ''}">${S.butir[c.bid].lamp === 1 ? 'Lamp. I' : 'Lamp. II'} angka ${(c.code && rowBy(c.bid, c.code, c.ti)?.v?.[0]) || c.code || S.butir[c.bid].no}</a>`;
   const sif = `<span class="chip ${c.sifat === 'BT' ? 'bt' : 'dl'}">${c.sifat === 'BT' ? 'Batas Tertinggi' : 'Dapat Dilampaui'}</span>`;
   const vals = c.missing
     ? `<div class="callout warn" style="margin-top:8px"><div>${esc(c.missing)}</div></div>`
@@ -247,7 +247,7 @@ function compHtml(c) {
 
 export function routeHtml(O, D) {
   const r = computeRoute(O, D);
-  const foot = 'Angka per satuan sesuai KMK 296/2026. Jumlah hari, malam, dan frekuensi perjalanan mengikuti surat tugas dan PMK Perjalanan Dinas. Kota tiket ditentukan dari kota bandara yang ada di tabel KMK pada provinsi yang sama (ibu kota didahulukan).';
+  const foot = `Angka per satuan sesuai ${Y.src}. Jumlah hari, malam, dan frekuensi perjalanan mengikuti surat tugas dan PMK Perjalanan Dinas. Kota tiket ditentukan dari kota bandara yang ada di tabel ${Y.srcKind} pada provinsi yang sama (ibu kota didahulukan).`;
   const head = `<div class="route-sum card card-pad"><div class="route-line"><span class="rp">${esc(O.label)}</span><span class="ra">→</span><span class="rp">${esc(D.label)}</span>${tip([...r.notes.map(esc), foot].join('<br><br>'))}</div>
     <div class="muted small">${esc(S.prov[O.prov].nama)} → ${esc(S.prov[D.prov].nama)} · ${esc(r.kind)}</div></div>`;
   let n = 0;

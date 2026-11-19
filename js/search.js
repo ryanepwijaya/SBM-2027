@@ -1,6 +1,6 @@
 // Mesin pencarian dalam aplikasi
 import { ENTRIES, SOON_SYN, CITY_ALIAS, GROUPS } from './catalog.js';
-import { S, norm, esc, fmt, valueCols, shortCol, entriesOf, rapatTiers } from './store.js';
+import { S, Y, norm, esc, fmt, valueCols, shortCol, entriesOf, rapatTiers } from './store.js';
 import { matchPlace, suggest } from './rute.js';
 import { BABS } from './bab.js';
 
@@ -255,7 +255,7 @@ export function search(qRaw) {
       }
       const r = t.rows.find((x) => x.v && x.p === pid);
       if (r) out.best.push({ t: `${e.name} · ${p.nama}`, d: summarize(t, r), href: hrefRow(b, e.table, r.c), kind: 'Baris tabel' });
-      else out.best.push({ t: `${e.name} · ${p.nama}`, d: 'Tidak tercantum dalam tabel KMK untuk provinsi ini.', href: `#/b/${b.id}`, kind: 'Catatan' });
+      else out.best.push({ t: `${e.name} · ${p.nama}`, d: `Tidak tercantum dalam tabel ${Y.srcKind} untuk provinsi ini.`, href: `#/b/${b.id}`, kind: 'Catatan' });
     }
   }
 
@@ -268,7 +268,7 @@ export function search(qRaw) {
       : set.includes(r.v[1].toUpperCase()) || set.includes(r.v[2].toUpperCase())));
     if (cityNames.length >= 2) {
       for (const r of rows) out.best.push({ t: `Tiket ${r.v[1]} ⇄ ${r.v[2]}`, d: `Bisnis ${fmt(r.n[3])} · Ekonomi ${fmt(r.n[4])} (PP)`, href: hrefRow(tiketB, 0, r.c), kind: 'Tiket DN' });
-      if (!rows.length) out.best.push({ t: `Rute ${cityNames.join(' ⇄ ')}`, d: 'Rute ini tidak tercantum dalam tabel tiket KMK 296/2026.', href: `#/b/L2-6?q=${encodeURIComponent(cityNames[0])}`, kind: 'Tiket DN' });
+      if (!rows.length) out.best.push({ t: `Rute ${cityNames.join(' ⇄ ')}`, d: `Rute ini tidak tercantum dalam tabel tiket ${Y.src}.`, href: `#/b/L2-6?q=${encodeURIComponent(cityNames[0])}`, kind: 'Tiket DN' });
     } else {
       out.best.push({ t: `Tiket pesawat dari/ke ${cityNames[0]}`, d: `${rows.length} rute tercantum`, href: `#/b/L2-6?q=${encodeURIComponent(cityNames[0])}`, kind: 'Tiket DN' });
     }
@@ -333,7 +333,7 @@ export function search(qRaw) {
         const words = p.n.split(' ');
         if (pt.every((t) => words.some((w) => w.startsWith(t)))) {
           const e = entriesOf(p.b.id)[0];
-          out.pens.push({ t: e ? e.name : p.b.title, d: snippet(p.x, pt), href: `#/b/${p.b.id}?hl=${encodeURIComponent(pt.join(' '))}#${p.i < 0 ? 'def' : 'pen'}`, src: p.i < 0 ? 'Definisi PMK 54/2026' : 'Penjelasan KMK 296/2026' });
+          out.pens.push({ t: e ? e.name : p.b.title, d: snippet(p.x, pt), href: `#/b/${p.b.id}?hl=${encodeURIComponent(pt.join(' '))}#${p.i < 0 ? 'def' : 'pen'}`, src: p.i < 0 ? `Definisi ${Y.norm}` : `Penjelasan ${Y.src}` });
           if (out.pens.length >= 12) break;
         }
       }

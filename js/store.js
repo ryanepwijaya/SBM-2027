@@ -4,8 +4,55 @@ import { ic } from './icons.js';
 
 export const S = { data: null, butir: {}, prov: {}, provList: [] };
 
+// Tahun anggaran yang bisa dipilih. Kode butir (L1-25 dst.) memakai penomoran 2027 untuk kedua tahun;
+// nomor asli di dokumen tiap tahun tersimpan di butir.lamp/butir.no.
+export const YEARS = {
+  2027: {
+    y: 2027, data: 'data/sbm.json', doc: 'docs/kmk-296-2026.pdf', src: 'KMK 296/2026', srcKind: 'KMK',
+    norm: 'PMK 54/2026', normDoc: 'docs/pmk-54-2026.pdf', sources: 'PMK 54/2026 · KMK 296/2026', rows: '3.168', tolL1: 5,
+  },
+  2026: {
+    y: 2026, data: 'data/sbm-2026.json', doc: 'docs/pmk-32-2025.pdf', src: 'PMK 32/2025', srcKind: 'PMK',
+    norm: 'PMK 32/2025', normDoc: 'docs/pmk-32-2025.pdf', sources: 'PMK 32/2025', rows: '3.171', tolL1: 6,
+  },
+};
+export const DEFAULT_YEAR = 2027;
+export const Y = { ...YEARS[DEFAULT_YEAR] };
+
+// Urutan: ?tahun= di URL, lalu pilihan terakhir, lalu bawaan
+export function pickYear() {
+  let y = null;
+  try { y = Number(new URLSearchParams(location.search).get('tahun')) || null; } catch { /* abaikan */ }
+  if (!YEARS[y]) y = store.get('year', DEFAULT_YEAR);
+  if (!YEARS[y]) y = DEFAULT_YEAR;
+  store.set('year', y);
+  return y;
+}
+export function yearUrl(y, hash = location.hash) {
+  return location.pathname + (y === DEFAULT_YEAR ? '' : `?tahun=${y}`) + hash;
+}
+export function switchYear(y) {
+  if (!YEARS[y] || y === Y.y) return;
+  store.set('year', y);
+  location.href = yearUrl(y);
+}
+
+let yearReady = false;
+export function initYear() {
+  if (yearReady) return Y.y;
+  yearReady = true;
+  const y = pickYear();
+  Object.assign(Y, YEARS[y]);
+  // URL selalu memuat tahun non-bawaan, agar tautan yang dibagikan membuka tahun yang sama
+  try { if (location.search !== (y === DEFAULT_YEAR ? '' : `?tahun=${y}`)) history.replaceState(null, '', yearUrl(y)); } catch { /* abaikan */ }
+  document.documentElement.dataset.year = y;
+  return y;
+}
+
 export async function loadData() {
-  const res = await fetch('data/sbm.json', { cache: 'no-cache' }).catch(() => fetch('data/sbm.json'));
+  initYear();
+  const url = Y.data;
+  const res = await fetch(url, { cache: 'no-cache' }).catch(() => fetch(url));
   const d = await res.json();
   S.data = d;
   for (const b of d.butir) S.butir[b.id] = b;
@@ -32,7 +79,7 @@ export function norm(s) {
 export function ref(b, opt = {}) {
   const lamp = b.lamp === 1 ? 'Lampiran I' : 'Lampiran II';
   const code = opt.code || String(b.no);
-  return `KMK 296/2026 ${lamp} angka ${code}`;
+  return `${Y.src} ${lamp} angka ${code}`;
 }
 export const lampShort = (b) => (b.lamp === 1 ? 'Lamp. I' : 'Lamp. II') + ' angka ' + b.no;
 
@@ -99,7 +146,7 @@ export function rapatTiers() {
 
 export function pdfLink(b, page) {
   const p = page || b.pages[0];
-  return `docs/kmk-296-2026.pdf#page=${p}`;
+  return `${Y.doc}#page=${p}`;
 }
 
 // Penyimpanan lokal (aman bila diblokir)

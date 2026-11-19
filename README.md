@@ -4,11 +4,14 @@ Aplikasi bantu baca **Standar Biaya Masukan TA 2027**: PMK Nomor 54 Tahun 2026 (
 
 Seluruh 58 butir KMK aktif dalam 6 bab: Perjalanan Dinas, Honorarium, Fasilitas Pegawai, Barang & Jasa, Pemeliharaan, dan Bantuan.
 
+Ada pilihan tahun: **TA 2027** (bawaan) dan **TA 2026** (PMK Nomor 32 Tahun 2025, satu dokumen berisi norma, besaran, dan Penjelasan). Tahun dipilih lewat tombol di topbar/beranda/Lainnya, disimpan di localStorage, dan ditulis di URL sebagai `?tahun=2026` agar tautan yang dibagikan membuka tahun yang sama.
+
 ## Struktur
 
 - `index.html`, `css/app.css`, `js/*.js`: aplikasi statis tanpa build step
-- `data/sbm.json`: semua tabel, Penjelasan KMK, dan definisi PMK
-- `docs/`: PDF asli PMK 54/2026 dan KMK 296/2026
+- `data/sbm.json`: TA 2027 — semua tabel, Penjelasan KMK, dan definisi PMK
+- `data/sbm-2026.json`: TA 2026 — tabel dan Penjelasan PMK 32/2025, dengan kode butir yang sama dengan TA 2027 (nomor asli tetap di `lamp`/`no` dan kolom No)
+- `docs/`: PDF asli PMK 54/2026, KMK 296/2026, dan PMK 32/2025 (dikompresi tanpa mengubah isi)
 - `sw.js`, `manifest.webmanifest`, `icons/`: PWA dan offline
 - `data/wilayah.json`: 38 provinsi + 514 kab/kota (idn-area-data v4.0.1, ODbL, sumber Kemendagri) dipetakan ke baris KMK untuk fitur Rute
 - `scripts/`: pipeline ekstraksi dari PDF
@@ -26,6 +29,20 @@ python3 scripts/validate.py data/sbm.json /tmp/kmk.txt   # cek silang dengan eks
 # data wilayah (unduh paket idn-area-data dari npm lebih dulu)
 python3 scripts/build_wilayah.py <folder data idn-area-data>/ data/sbm.json data/wilayah.json
 ```
+
+### TA 2026
+
+```bash
+cd scripts/y2026
+pdftotext -layout pmk-32-2025.pdf /tmp/pmk26.txt
+python3 dump_lines.py pmk-32-2025.pdf /tmp/lines.json
+python3 build_tables.py /tmp/lines.json /tmp/tables26.json
+python3 validate.py /tmp/tables26.json /tmp/pmk26.txt
+python3 build_text.py /tmp/pmk26.txt /tmp/tables26.json /tmp/text26.json
+python3 build_data.py /tmp/tables26.json /tmp/text26.json map.json ../../data/sbm.json ../../data/sbm-2026.json
+```
+
+`map.json` memetakan nomor butir PMK 32/2025 ke kode butir TA 2027. Penyesuaian teks per tahun (poin penting, catatan dokumen, dasar hukum sifat) ada di `YEAR_PATCH` pada `js/catalog.js`.
 
 ## Menambah atau mengubah entri
 

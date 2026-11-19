@@ -940,3 +940,27 @@ table.t td.unit abbr { text-decoration: none; border-bottom: 1px dotted var(--fa
 /* Judul hero di atas kotak cari agar keterangan (i) tidak tertimpa */
 .hero h1 { z-index: 3; }
 *:has(> .tip.open), *:has(> .tip.hover) { z-index: 6; }
+
+/* Pilihan tahun anggaran */
+.yr { display: inline-flex; align-items: center; gap: 2px; padding: 3px; border-radius: 10px; flex: none; }
+.yr-b {
+  border: 0; cursor: pointer; font: inherit; font-weight: 700; font-size: 13px; line-height: 1;
+  padding: 7px 10px; border-radius: 7px; background: transparent; color: inherit;
+  font-variant-numeric: tabular-nums; transition: background .15s, color .15s;
+}
+.yr-b.on { background: var(--gold); color: var(--navy-900); cursor: default; }
+.yr-top { background: rgba(255,255,255,.1); color: rgba(255,255,255,.85); box-shadow: inset 0 0 0 1px rgba(255,255,255,.14); }
+.yr-top .yr-b:not(.on):hover { background: rgba(255,255,255,.14); color: #fff; }
+.yr-top .yr-b { padding: 7px 9px; }
+.hero-year { margin: -2px 0 14px; position: relative; z-index: 2; }
+.yr-hero { background: rgba(255,255,255,.1); color: #fff; box-shadow: inset 0 0 0 1px rgba(255,255,255,.18); }
+.yr-hero .yr-b { padding: 8px 14px; }
+.yr-hero .yr-b:not(.on):hover { background: rgba(255,255,255,.16); }
+.yr-more { background: var(--surface-2); box-shadow: inset 0 0 0 1px var(--border); color: var(--text); }
+.yr-more .yr-b { padding: 9px 16px; font-size: 14px; }
+.yr-more .yr-b:not(.on):hover { background: var(--surface); }
+@media (max-width: 380px) { .yr-top .yr-b { padding: 7px 7px; font-size: 12px; } }
+@media (min-width: 1024px) {
+  .yr-top { background: var(--surface-2); color: var(--muted); box-shadow: inset 0 0 0 1px var(--border); }
+  .yr-top .yr-b:not(.on):hover { background: var(--surface); color: var(--text); }
+}

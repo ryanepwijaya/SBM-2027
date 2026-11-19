@@ -181,6 +181,61 @@ export const DOC_NOTES = [
   { t: 'Judul kelompok berulang', x: 'Tabel Lampiran II angka 18.2 (Penyelenggaraan Perwakilan RI) mencetak ulang judul kelompok di setiap halaman. Aplikasi menampilkannya sekali.' },
 ];
 
+// Penyesuaian per tahun. "Poin penting" ditulis dari Penjelasan KMK 296/2026 (TA 2027); Penjelasan PMK 32/2025
+// (TA 2026) sudah dibandingkan kata per kata. Yang berbeda secara isi disesuaikan di sini, sisanya identik.
+// points: { key: { indeks: 'teks pengganti' | null (dihapus) } }, appNote: { key: 'teks' | null }
+export const YEAR_PATCH = {
+  2026: {
+    kind: 'PMK',
+    sifat: {
+      BT: 'Besaran biaya yang tidak dapat dilampaui (Pasal 2 huruf a dan Pasal 3 ayat (1) PMK 32/2025).',
+      DL: 'Besaran biaya yang dapat dilampaui (Pasal 2 huruf b dan Pasal 3 ayat (2) PMK 32/2025).',
+    },
+    points: {
+      'honor-keuangan': { 5: 'Untuk kegiatan BA BUN: honorarium dapat diberikan dengan alokasi dari pagu RKA-K/L berkenaan.' },
+      'uh-dn': { 1: 'Jika perjalanan dinas memerlukan lebih dari satu lokasi tujuan dalam kabupaten/kota yang sama, transpor lokal dapat dibayar riil dan uang harian yang diberikan menjadi 60% dari satuan biaya.' },
+      'honor-dikti': { 4: 'Lain-lain (11.3.1–11.3.6; Penjelasan menulisnya 11.3.a–11.3.f): untuk dosen dari luar perguruan tinggi bersangkutan atau nondosen.' },
+    },
+    appNote: {
+      'honor-seleksi-nasional': null,
+      'bop-penyuluh': null,
+    },
+    docNotes: [
+      { t: 'Kode butir mengikuti urutan TA 2027', x: 'Agar menu dan pencarian sama di kedua tahun, alamat halaman memakai kode butir TA 2027. Nomor yang ditampilkan di tabel, rujukan, dan tombol PDF tetap nomor asli PMK 32/2025 (misalnya penginapan ada di Lampiran I angka 30, bukan 27).' },
+      { t: 'Taksi hanya 34 provinsi', x: 'Tabel satuan biaya transportasi dari/ke terminal bus/stasiun/bandara/pelabuhan (Lampiran II angka 16) tidak memuat Papua Barat Daya, Papua Tengah, Papua Selatan, dan Papua Pegunungan. Aplikasi menampilkan "Tidak tercantum", bukan Rp0.' },
+      { t: 'Transport darat hanya 31 provinsi', x: 'Lampiran II angka 1 tidak memuat Kalimantan Utara, Maluku, dan empat provinsi Papua baru. DKI Jakarta diatur tersendiri di angka 2. Menurut Penjelasan, rute yang belum tercantum mengacu pada harga pasar (at cost).' },
+      { t: 'Rute tiket ditulis satu arah', x: 'Tabel tiket pesawat dalam negeri (Lampiran II angka 17) mencantumkan setiap pasangan kota satu kali (asal – tujuan). Pencarian rute di aplikasi ini mencocokkan kedua arah.' },
+      { t: 'Nomor urut tiket 94 tidak ada', x: 'Di tabel tiket pesawat dalam negeri, nomor urut melompat dari 93 (Bandung – Batam) ke 95 (Bandung – Denpasar). Tidak ada baris yang hilang dari teks; jumlah rute tetap 316.' },
+      { t: 'Nomor urut tercetak dua kali', x: 'Lampiran I angka 36.1.2: nomor 36 tercetak dua kali dan nomor 37 tidak ada. Lampiran I angka 35.2.2: nomor 35 tercetak dua kali dan nomor 36 tidak ada. Lampiran II angka 19.1: nomor 90 tercetak dua kali dan nomor 91 tidak ada. Lampiran I angka 11.2.1.b.1: huruf b tercetak dua kali (baris kedua: Asisten Ahli). Aplikasi menampilkan semua baris sesuai cetakan.' },
+      { t: 'Penjelasan angka 11 memakai huruf', x: 'Penjelasan honorarium perguruan tinggi menyebut "poin 11.3.a sampai dengan poin 11.3.f", sedangkan tabelnya bernomor 11.3.1 sampai 11.3.6.' },
+      { t: 'Ejaan provinsi diseragamkan', x: 'PMK memakai "SUMATRA" dan "SUMATERA" secara bergantian, serta menulis sebagian nama dengan huruf berjarak (mis. "R I A U"). Aplikasi menyeragamkan penulisan nama provinsi agar pencarian dan perbandingan konsisten. Nomor dan angka tidak diubah.' },
+      { t: 'Salah ketik "T INGKAT"', x: 'Judul paket rapat angka 38.1 tertulis "RAPAT KOORDINASI T INGKAT". Aplikasi menampilkannya sebagai "Tingkat".' },
+      { t: 'Nama kabupaten/kota sesuai teks PMK', x: 'Beberapa nama ditulis apa adanya sesuai PMK, misalnya "Kab. Luwuk" dan "Kab. Tojouna-Una" (Sulawesi Tengah) serta "Memberamo". Aplikasi menampilkan teks sesuai PMK karena itu yang dikutip.' },
+      { t: 'Baris "Kota Bojonegoro"', x: 'Lampiran II angka 1 nomor 229 mencantumkan "Kota Bojonegoro" (Rp225.000), padahal yang ada hanya Kabupaten Bojonegoro (nomor 201, besaran sama). Fitur Rute memakai baris Kab. Bojonegoro.' },
+      { t: 'Nama kabupaten di tabel transport darat yang berbeda dengan nama resmi', x: 'Untuk fitur Rute, aplikasi memetakan: Kab. Toba Samosir → Kab. Toba; Kab. Pali → Kab. Penukal Abab Lematang Ilir; Kab. Pangadaran → Kab. Pangandaran; Kab. Pulau Pisau → Kab. Pulang Pisau; Kab. Pahuwato → Kab. Pohuwato; Kab. Mamuju Utara → Kab. Pasangkayu; Kab. Luwuk → Kab. Banggai (Luwuk adalah ibu kota Kab. Banggai). Teks PMK tetap ditampilkan apa adanya di tabel.' },
+    ],
+  },
+};
+
+// Terapkan penyesuaian tahun ke katalog (dipanggil sekali setelah data dimuat)
+export function applyYear(y) {
+  const P = YEAR_PATCH[y];
+  if (!P) return;
+  if (P.sifat) for (const k in P.sifat) SIFAT[k].text = P.sifat[k];
+  for (const e of ENTRIES) {
+    const pp = P.points && P.points[e.key];
+    if (pp && e.points) e.points = e.points.map((x, i) => (i in pp ? pp[i] : x)).filter((x) => x != null);
+    if (P.appNote && e.key in P.appNote) e.appNote = P.appNote[e.key];
+    if (P.kind) {
+      const fix = (x) => (typeof x === 'string' ? x.replace(/\bKMK\b/g, P.kind) : x);
+      e.appNote = fix(e.appNote);
+      if (e.points) e.points = e.points.map(fix);
+      e.desc = fix(e.desc);
+    }
+  }
+  if (P.docNotes) DOC_NOTES.splice(0, DOC_NOTES.length, ...P.docNotes);
+}
+
 // Alias tambahan kota tiket/ibu kota → bentuk di KMK
 export const CITY_ALIAS = {
   'jogja': 'YOGYAKARTA', 'yogya': 'YOGYAKARTA', 'jogjakarta': 'YOGYAKARTA', 'jkt': 'JAKARTA', 'sby': 'SURABAYA',

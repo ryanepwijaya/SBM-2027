@@ -65,7 +65,7 @@ export const BABS = [
 ];
 
 export const REF_LINKS = [
-  { h: '#/lainnya/catatan', n: 'Catatan Umum KMK', icon: 'book-open' },
+  { h: '#/lainnya/catatan', n: 'Catatan Umum', icon: 'book-open' },
   { h: '#/lainnya/singkatan', n: 'Singkatan Satuan', icon: 'a-large-small' },
   { h: '#/lainnya/dokumen', n: 'Catatan atas Dokumen', icon: 'triangle-alert' },
   { h: '#/lainnya/tentang', n: 'Dasar Hukum & PDF', icon: 'info' },

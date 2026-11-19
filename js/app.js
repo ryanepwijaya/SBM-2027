@@ -1,5 +1,5 @@
-import { ENTRIES, GROUPS, SHORTCUTS, SIFAT, KEL_ORDER, DOC_NOTES, TOL } from './catalog.js';
-import { S, loadData, entry, entriesOf, esc, norm, ref, lampShort, fmt, valueCols, unitCol, shortCol, UNIT, rowsOfProv, rapatTiers, pdfLink, store, tip, fold } from './store.js';
+import { ENTRIES, GROUPS, SHORTCUTS, SIFAT, KEL_ORDER, DOC_NOTES, TOL, applyYear } from './catalog.js';
+import { S, Y, YEARS, switchYear, initYear, loadData, entry, entriesOf, esc, norm, ref, lampShort, fmt, valueCols, unitCol, shortCol, UNIT, rowsOfProv, rapatTiers, pdfLink, store, tip, fold } from './store.js';
 import { search, buildIndex, SEARCH_HINTS } from './search.js';
 import { ic } from './icons.js';
 import { loadWilayah, suggest, resolve, routeHtml, placeLabel, routeHints, W } from './rute.js';
@@ -56,7 +56,22 @@ async function copy(text, msg = 'Disalin') {
 const sifatChip = (b) => `<span class="chip ${SIFAT[b.sifat].cls}" title="${esc(SIFAT[b.sifat].text)}">${SIFAT[b.sifat].label}</span>`;
 const sifatChipTip = (b) => `<span class="tip"><button type="button" class="tip-btn chip ${SIFAT[b.sifat].cls}">${SIFAT[b.sifat].label} ${ic('info')}</button><span class="tip-body" role="tooltip"><b>${SIFAT[b.sifat].label}.</b> ${esc(SIFAT[b.sifat].text)}</span></span>`;
 const refChip = (b) => `<span class="chip ref">${lampShort(b)}</span>`;
-const pdfBtn = (b) => `<a class="btn sm pdf-btn" href="${pdfLink(b)}" target="_blank" rel="noopener" title="Buka PDF asli KMK 296/2026 langsung di halaman tabel ini (tab baru)"><span class="pdf-badge">PDF</span><span>Cek di KMK asli <b>${pageRange(b)}</b></span>${ic('external-link', 'pdf-ext')}</a>`;
+const pdfBtn = (b) => `<a class="btn sm pdf-btn" href="${pdfLink(b)}" target="_blank" rel="noopener" title="Buka PDF asli ${Y.src} langsung di halaman tabel ini (tab baru)"><span class="pdf-badge">PDF</span><span>Cek di ${Y.srcKind} asli <b>${pageRange(b)}</b></span>${ic('external-link', 'pdf-ext')}</a>`;
+// Pilihan tahun anggaran (memuat ulang aplikasi dengan data tahun terpilih)
+function yearSwitch(where) {
+  const ys = Object.keys(YEARS).map(Number).sort((a, b) => b - a);
+  return `<div class="yr yr-${where}" role="group" aria-label="Tahun anggaran">${where === 'side' ? '<span class="yr-lbl">TA</span>' : ''}${ys.map((y) => `<button type="button" class="yr-b${y === Y.y ? ' on' : ''}" data-year="${y}" aria-pressed="${y === Y.y}" title="Standar Biaya Masukan TA ${y} (${YEARS[y].src})">${where === 'top' || where === 'side' ? y : `TA ${y}`}</button>`).join('')}</div>`;
+}
+function bindYearSwitch(root) {
+  root.addEventListener('click', (e) => {
+    const b = e.target.closest('.yr-b');
+    if (!b || b.classList.contains('on')) return;
+    e.preventDefault();
+    document.querySelectorAll('.yr-b').forEach((x) => x.classList.toggle('on', x === b || x.dataset.year === b.dataset.year));
+    switchYear(Number(b.dataset.year));
+  });
+}
+const firstVal = (t) => { const r = t.rows.find((x) => x.n); const i = valueCols(t)[0]; return r ? r.n[i] : null; };
 const pageRange = (b) => (b.pages.length > 1 ? `hal. ${b.pages[0]}–${b.pages[b.pages.length - 1]}` : `hal. ${b.pages[0]}`);
 const groupOf = (gid) => GROUPS.find((g) => g.id === gid);
 
@@ -80,14 +95,14 @@ function shell() {
   const bottom = NAV.map((n) => n.k === 'cari'
     ? `<a href="${n.h}" data-nav="${n.k}" class="search-fab"><span class="fab">${ic('search')}</span><span class="lbl">${n.t}</span></a>`
     : `<a href="${n.h}" data-nav="${n.k}">${ic(n.i)}<span>${n.t}</span></a>`).join('');
-  const brand = `<a class="brand" href="#/"><span class="brand-mark"><span>SBM</span></span><span class="brand-text"><b>SBM 2027</b><small>PMK 54/2026 · KMK 296/2026</small></span></a>`;
+  const brand = `<a class="brand" href="#/"><span class="brand-mark"><span>SBM</span></span><span class="brand-text"><b>SBM ${Y.y}</b><small>${Y.sources}</small></span></a>`;
   $('#app').innerHTML = `
   <aside class="sidebar" aria-label="Navigasi">
     ${brand}
     <div class="side-scroll" id="sideScroll">${sideHtml()}</div>
     <div class="side-foot">
       <button class="side-btn" id="sideTheme" data-theme-ico aria-label="Ganti tema" data-tip="Ganti tema"></button>
-      <span class="side-ver">SBM TA 2027</span>
+      <span class="side-ver">SBM TA ${Y.y}</span>
       <button class="side-btn" id="railBtn" aria-label="Ciutkan sidebar" data-tip="Lebarkan sidebar">${ic('panel-left-close')}</button>
     </div>
   </aside>
@@ -96,6 +111,7 @@ function shell() {
       ${brand}
       <nav class="crumbs" id="crumbs" aria-label="Lokasi"></nav>
       <span class="spacer"></span>
+      ${yearSwitch('top')}
       <button class="top-search" id="topSearch" type="button" aria-label="Cari">${ic('search')}<span>Cari satuan biaya, kota, atau aturan…</span><kbd>${isMac ? '⌘' : 'Ctrl'} K</kbd></button>
       <button class="icon-btn" id="themeBtn" data-theme-ico aria-label="Ganti tema"></button>
     </header>
@@ -104,7 +120,7 @@ function shell() {
   <nav class="bottomnav">${bottom}</nav>
   <div class="pal" id="pal" hidden>
     <div class="pal-back" data-pal-close></div>
-    <div class="pal-box" role="dialog" aria-modal="true" aria-label="Cari di SBM 2027">
+    <div class="pal-box" role="dialog" aria-modal="true" aria-label="Cari di SBM ${Y.y}">
       <div class="pal-in">${ic('search')}<input id="palq" type="search" placeholder="Cari satuan biaya, provinsi, kota, rute, atau kata dalam aturan…" autocomplete="off" spellcheck="false" aria-controls="palList"><kbd data-pal-close>Esc</kbd></div>
       <div class="pal-list" id="palList" role="listbox"></div>
       <div class="pal-foot"><span><kbd>↑</kbd><kbd>↓</kbd> pilih</span><span><kbd>↵</kbd> buka</span><span><kbd>Esc</kbd> tutup</span><a id="palAll" href="#/cari">Lihat semua hasil ${ic('arrow-right')}</a></div>
@@ -114,6 +130,7 @@ function shell() {
   <div class="toast" id="toast" role="status"></div>`;
   $('#themeBtn').onclick = toggleTheme;
   $('#sideTheme').onclick = toggleTheme;
+  bindYearSwitch(document);
   $('#topSearch').onclick = () => openPalette('');
   document.addEventListener('keydown', (e) => {
     const typing = /INPUT|TEXTAREA|SELECT/.test(document.activeElement?.tagName);
@@ -466,7 +483,10 @@ function route() {
 }
 
 function footer() {
-  return `<div class="foot">Sumber: PMK 54/2026 · KMK 296/2026 ${tip('PMK Nomor 54 Tahun 2026 tentang Standar Biaya Masukan dan KMK Nomor 296 Tahun 2026 tentang Rincian Besaran Standar Biaya Masukan (TA 2027). Aplikasi bantu baca, bukan dokumen resmi. Untuk keperluan formal, rujuk dokumen aslinya.')}</div>`;
+  const about = Y.y === 2026
+    ? 'PMK Nomor 32 Tahun 2025 tentang Standar Biaya Masukan Tahun Anggaran 2026.'
+    : 'PMK Nomor 54 Tahun 2026 tentang Standar Biaya Masukan dan KMK Nomor 296 Tahun 2026 tentang Rincian Besaran Standar Biaya Masukan (TA 2027).';
+  return `<div class="foot">Sumber: ${Y.sources} ${tip(about + ' Aplikasi bantu baca, bukan dokumen resmi. Untuk keperluan formal, rujuk dokumen aslinya.')}</div>`;
 }
 
 /* ---------------- Beranda ---------------- */
@@ -490,16 +510,17 @@ function viewHome() {
   return `
   <section class="hero hero-u">
     <div class="hero-eyebrow">${ic('sparkles')} Standar Biaya Masukan</div>
-    <h1>Tahun Anggaran 2027 ${tip('Baca PMK 54/2026 dan KMK 296/2026 tanpa membuka PDF. Semua angka diambil dari tabel KMK dan dicek silang.')}</h1>
+    <h1>Tahun Anggaran ${Y.y} ${tip(`Baca ${Y.y === 2026 ? 'PMK 32/2025' : 'PMK 54/2026 dan KMK 296/2026'} tanpa membuka PDF. Semua angka diambil dari tabel ${Y.srcKind} dan dicek silang.`)}</h1>
+    <div class="hero-year">${yearSwitch('hero')}</div>
     <label class="hero-search" for="hq">${ic('search')}<input id="hq" type="search" placeholder="Cari satuan biaya, provinsi, kota, atau aturan…" autocomplete="off" enterkeyhint="search"><kbd class="hide-sm">${isMac ? '⌘' : 'Ctrl'} K</kbd></label>
     <div class="hero-tags">${HOME_HINTS.map((h) => `<a href="#/cari?q=${encodeURIComponent(h)}" data-q="${esc(h)}">${esc(h)}</a>`).join('')}</div>
     <div class="hero-law">
-      <a href="#/lainnya/tentang"><b>PMK 54/2026</b><span>Norma & jenis</span></a>
-      <a href="#/lainnya/tentang"><b>KMK 296/2026</b><span>Besaran rupiah</span></a>
+      ${Y.y === 2026 ? `<a href="#/lainnya/tentang"><b>PMK 32/2025</b><span>Norma, besaran & penjelasan</span></a>` : `<a href="#/lainnya/tentang"><b>PMK 54/2026</b><span>Norma & jenis</span></a>
+      <a href="#/lainnya/tentang"><b>KMK 296/2026</b><span>Besaran rupiah</span></a>`}
       <span><b>${total} butir</b><span>dalam ${BABS.length} bab</span></span>
     </div>
   </section>
-  <h2 class="sec">${ic('layers-2')} Bab satuan biaya <small>${S.data.butir.length} butir KMK</small></h2>
+  <h2 class="sec">${ic('layers-2')} Bab satuan biaya <small>${S.data.butir.length} butir ${Y.srcKind}</small></h2>
   <div class="bab-grid">${BABS.map(babCard).join('')}</div>
   <h2 class="sec">${ic('compass')} Alat bantu</h2>
   <div class="tools">
@@ -543,7 +564,7 @@ function viewJelajah() {
   const babs = BABS.map((b) => `<a class="li bab-li${b.active ? '' : ' soon'}" href="#/bab/${b.key}"><span class="li-ico big">${ic(b.icon)}</span><div class="grow"><div class="t">${esc(b.name)}</div><div class="d">${esc(b.desc)}</div></div>${b.active ? `<span class="chip ok">${b.count} jenis</span>` : '<span class="chip soon">Segera</span>'}${ic('chev', 'chev')}</a>`).join('');
   const refs = REF_LINKS.map((r) => `<a class="li" href="${r.h}"><span class="li-ico">${ic(r.icon)}</span><div class="grow"><div class="t">${esc(r.n)}</div></div>${ic('chev', 'chev')}</a>`).join('');
   return `
-  <div class="page-head"><h1 class="title">Jelajah</h1><p class="subtitle">Satuan biaya dikelompokkan per bab, mengikuti kelompok dalam KMK 296/2026.</p></div>
+  <div class="page-head"><h1 class="title">Jelajah</h1><p class="subtitle">Satuan biaya dikelompokkan per bab, mengikuti kelompok dalam ${Y.src}.</p></div>
   <div class="group-title">Bab satuan biaya</div>
   <div class="card list">${babs}</div>
   <div class="group-title">Referensi</div>
@@ -574,9 +595,9 @@ function viewBab(bab) {
   <div class="page-head bab-head">
     <div class="crumb"><a href="#/jelajah">Jelajah</a><span class="sep">›</span>${esc(bab.name)}</div>
     <div class="bab-title"><span class="bab-ico">${ic(bab.icon)}</span><div><h1 class="title">${esc(bab.name)}</h1><p class="bab-desc">${esc(bab.desc)}</p></div></div>
-    <div class="chips">${bab.active ? `<span class="chip">${bab.count} jenis satuan biaya</span>` : ''}<span class="chip">${butirs.length} butir KMK</span>${nBT ? `<span class="chip bt">${nBT} batas tertinggi</span>` : ''}${butirs.length - nBT ? `<span class="chip dl">${butirs.length - nBT} dapat dilampaui</span>` : ''}</div>
+    <div class="chips">${bab.active ? `<span class="chip">${bab.count} jenis satuan biaya</span>` : ''}<span class="chip">${butirs.length} butir ${Y.srcKind}</span>${nBT ? `<span class="chip bt">${nBT} batas tertinggi</span>` : ''}${butirs.length - nBT ? `<span class="chip dl">${butirs.length - nBT} dapat dilampaui</span>` : ''}</div>
   </div>
-  ${bab.active ? '' : `<div class="callout soon-call">${ic('sparkles')}<div><b>Segera hadir.</b> Bab ini belum dibuka pada tahap 1 (perjalanan dinas). Datanya sudah diekstrak dari KMK 296/2026 dan akan diaktifkan pada tahap berikutnya. Daftar butirnya bisa dilihat di bawah.</div></div>`}
+  ${bab.active ? '' : `<div class="callout soon-call">${ic('sparkles')}<div><b>Segera hadir.</b> Bab ini belum dibuka pada tahap 1 (perjalanan dinas). Datanya sudah diekstrak dari ${Y.src} dan akan diaktifkan pada tahap berikutnya. Daftar butirnya bisa dilihat di bawah.</div></div>`}
   ${tools}
   ${groups}`;
   return { html };
@@ -754,15 +775,15 @@ function viewButir(id, params, anchor) {
   if (id === 'L1-29') tabs = tabs.replace(/<\/div>$/, `<span class="tabs-tip">${tip('Tarif fullboard dihitung untuk 1 kamar berdua. Untuk eselon II/JF utama ke atas (1 kamar sendiri), indeks paling tinggi 1,5 kali tarif fullboard.')}</span></div>`);
   const pts = [...new Set(ents.flatMap((x) => x.points || []))];
   const notes = [...new Set(ents.map((x) => x.appNote).filter(Boolean))];
-  const points = pts.length ? fold('Poin penting', `<ul class="points">${pts.map((p) => `<li>${esc(p)}</li>`).join('')}</ul>${notes.map((n) => `<div class="callout warn" style="margin-top:12px">${ic('alert')}<div>${esc(n)}</div></div>`).join('')}<div class="points-note">Diringkas dari Penjelasan KMK 296/2026.</div>`, { meta: pts.length + ' poin' }) : '';
+  const points = pts.length ? fold('Poin penting', `<ul class="points">${pts.map((p) => `<li>${esc(p)}</li>`).join('')}</ul>${notes.map((n) => `<div class="callout warn" style="margin-top:12px">${ic('alert')}<div>${esc(n)}</div></div>`).join('')}<div class="points-note">Diringkas dari Penjelasan ${Y.src}.</div>`, { meta: pts.length + ' poin' }) : '';
   const openText = !!(params.hl || anchor);
-  const pen = fold('Penjelasan · KMK 296/2026', `<div class="reg">${renderReg(b.pen, hlTokens)}</div><div class="src">${ref(b)} (Penjelasan atas Lampiran ${b.lamp === 1 ? 'I' : 'II'})</div>`, { id: 'pen', open: openText && anchor !== 'def' });
-  const def = fold('Definisi · PMK 54/2026', `<div class="def">${renderReg([{ t: 'p', x: b.def }], hlTokens)}</div><div class="src">Lampiran ${b.lamp === 1 ? 'I' : 'II'} PMK 54/2026 angka ${b.no}: ${esc(b.title)}</div>`, { id: 'def', open: openText && anchor === 'def' });
+  const pen = fold(`Penjelasan · ${Y.src}`, `<div class="reg">${renderReg(b.pen, hlTokens)}</div><div class="src">${ref(b)} (Penjelasan atas Lampiran ${b.lamp === 1 ? 'I' : 'II'})</div>`, { id: 'pen', open: openText && anchor !== 'def' });
+  const def = !b.def ? '' : fold(`Definisi · ${Y.norm}`, `<div class="def">${renderReg([{ t: 'p', x: b.def }], hlTokens)}</div><div class="src">Lampiran ${b.lamp === 1 ? 'I' : 'II'} ${Y.norm} angka ${b.no}: ${esc(b.title)}</div>`, { id: 'def', open: openText && anchor === 'def' });
   const others = bgrp ? bgrp.items.filter((x) => x.butir !== id && x.active) : [];
   const relTitle = bgrp && bgrp.t ? `Lainnya di ${esc(bab.name)} · ${esc(bgrp.t)}` : `Lainnya di ${esc(bab ? bab.name : '')}`;
   const related = others.length ? fold(relTitle, `<div class="list">${others.map((x) => `<a class="li" href="${x.href}"><span class="li-ico">${ic(x.icon)}</span><div class="grow"><div class="t">${esc(x.full || x.n)}</div></div>${ic('chev', 'chev')}</a>`).join('')}</div>`, { meta: others.length }) : '';
   const tolOn = id in TOL && (TOL[id] === null || TOL[id].includes(ti));
-  const tolFold = tolOn ? fold('Toleransi kabupaten tertentu', `<p class="fold-p">Untuk kabupaten berikut, pengusulan satuan biaya ini dapat melebihi besaran provinsinya sampai persentase yang tercantum (Catatan Umum Lampiran ${b.lamp === 1 ? 'I butir 5' : 'II butir 3'}).</p><table class="plain"><thead><tr><th>Provinsi</th><th>Kabupaten</th><th style="text-align:right">Toleransi</th></tr></thead><tbody>${S.data.toleransi.map((t) => `<tr><td>${esc(t[0])}</td><td>${esc(t[1])}</td><td style="text-align:right" class="tnum"><b>${t[2]}%</b></td></tr>`).join('')}</tbody></table>`, { meta: S.data.toleransi.length + ' kabupaten' }) : '';
+  const tolFold = tolOn ? fold('Toleransi kabupaten tertentu', `<p class="fold-p">Untuk kabupaten berikut, pengusulan satuan biaya ini dapat melebihi besaran provinsinya sampai persentase yang tercantum (Catatan Umum Lampiran ${b.lamp === 1 ? `I butir ${Y.tolL1}` : 'II butir 3'}).</p><table class="plain"><thead><tr><th>Provinsi</th><th>Kabupaten</th><th style="text-align:right">Toleransi</th></tr></thead><tbody>${S.data.toleransi.map((t) => `<tr><td>${esc(t[0])}</td><td>${esc(t[1])}</td><td style="text-align:right" class="tnum"><b>${t[2]}%</b></td></tr>`).join('')}</tbody></table>`, { meta: S.data.toleransi.length + ' kabupaten' }) : '';
 
   const title = id === 'L1-25' ? e.name : e.name;
   const html = `
@@ -813,9 +834,9 @@ function viewButir(id, params, anchor) {
       $('#saveBtn span').textContent = on ? 'Tersimpan' : 'Simpan';
       toast(on ? 'Disimpan' : 'Dihapus dari tersimpan');
     };
-    $('#refBtn').onclick = () => copy(`${ref(b, { code: params.r || b.no })} (${e.name})`, 'Rujukan disalin');
+    $('#refBtn').onclick = () => copy(`${ref(b, { code: (params.r && b.tables[ti]?.rows.find((x) => x.c === params.r)?.v?.[0]) || params.r || b.no })} (${e.name})`, 'Rujukan disalin');
     const sh = $('#shareBtn');
-    if (sh) sh.onclick = () => navigator.share({ title: e.name + ' — SBM 2027', url: location.href }).catch(() => {});
+    if (sh) sh.onclick = () => navigator.share({ title: e.name + ` — SBM ${Y.y}`, url: location.href }).catch(() => {});
     const hl = $('#hlrow');
     if (hl) setTimeout(() => hl.scrollIntoView({ block: 'center', behavior: 'smooth' }), 60);
     else if (anchor) { const el = document.getElementById(anchor); if (el) setTimeout(() => el.scrollIntoView({ block: 'start', behavior: 'smooth' }), 60); }
@@ -827,7 +848,7 @@ function viewButir(id, params, anchor) {
 function viewCari(q) {
   return `
   <div class="page-head"><h1 class="title">Cari</h1><p class="subtitle">Ketik jenis biaya, provinsi, kota, atau kata dalam aturan.<br>Contoh: ${SEARCH_HINTS.map((h) => `<i>${esc(h)}</i>`).join(', ')}.</p></div>
-  <div class="search-box">${ic('search')}<input id="q" type="search" value="${esc(q)}" placeholder="Cari di SBM 2027…" autocomplete="off" enterkeyhint="search" aria-label="Cari"><button id="qClear" aria-label="Hapus">${ic('x')}</button></div>
+  <div class="search-box">${ic('search')}<input id="q" type="search" value="${esc(q)}" placeholder="Cari di SBM ${Y.y}…" autocomplete="off" enterkeyhint="search" aria-label="Cari"><button id="qClear" aria-label="Hapus">${ic('x')}</button></div>
   <div id="results"></div>`;
 }
 function afterCari(q) {
@@ -905,7 +926,7 @@ function attachAC(inputId, onPick) {
   let items = [], idx = -1;
   const render = () => {
     if (!items.length) { box.innerHTML = inp.value.trim() ? '<div class="ac-empty">Tidak ditemukan</div>' : ''; box.classList.toggle('open', !!inp.value.trim()); return; }
-    box.innerHTML = items.map((it, i) => `<button type="button" class="ac-it${i === idx ? ' on' : ''}" data-i="${i}"><span class="ac-t">${esc(it.n)}${it.air ? ' <span class="ac-air" title="Ada di tabel tiket pesawat KMK">' + ic('plane') + '</span>' : ''}</span><span class="ac-s">${esc(it.sub)}</span><span class="ac-b">${esc(it.t)}</span></button>`).join('');
+    box.innerHTML = items.map((it, i) => `<button type="button" class="ac-it${i === idx ? ' on' : ''}" data-i="${i}"><span class="ac-t">${esc(it.n)}${it.air ? ' <span class="ac-air" title="Ada di tabel tiket pesawat ${Y.srcKind}">' + ic('plane') + '</span>' : ''}</span><span class="ac-s">${esc(it.sub)}</span><span class="ac-b">${esc(it.t)}</span></button>`).join('');
     box.classList.add('open');
   };
   inp.addEventListener('input', () => { items = suggest(inp.value); idx = items.length ? 0 : -1; render(); });
@@ -1028,12 +1049,12 @@ function viewProv(pid) {
     .sort((a, b) => ([b.v[1], b.v[2]].some((c) => c.toUpperCase() === capU) - [a.v[1], a.v[2]].some((c) => c.toUpperCase() === capU)));
   const cK = card('Tiket Pesawat (PP)', B['L2-6'], rK.length
     ? `<div class="scroll-list"><table class="mini"><thead><tr><th>Rute</th><th class="n">Bisnis</th><th class="n">Ekonomi</th></tr></thead><tbody>${rK.map((r) => `<tr><td><a href="${link('L2-6', 0, r.c)}">${esc(r.v[1])} ⇄ ${esc(r.v[2])}</a></td><td class="n">${fmt(r.n[3])}</td><td class="n">${fmt(r.n[4])}</td></tr>`).join('')}</tbody></table></div>`
-    : `<div class="callout">${ic('info')}<div>Tidak ada rute yang menyentuh kota di provinsi ini dalam tabel tiket KMK.</div></div>`,
+    : `<div class="callout">${ic('info')}<div>Tidak ada rute yang menyentuh kota di provinsi ini dalam tabel tiket ${Y.srcKind}.</div></div>`,
     `#/b/L2-6?q=${encodeURIComponent(p.kota[0])}`, rK.length ? `${rK.length} rute yang asal atau tujuannya kota di provinsi ini. Dibayar riil.` : '');
   // Nasional
   const tR2 = B['L1-25'].tables[1];
   const cN = `<section class="card card-pad dcard"><div class="head"><h3>Berlaku nasional ${pid === 'dki' ? tip('Untuk transpor kegiatan dalam kota, DKI Jakarta dihitung satu kabupaten/kota (Jakarta Pusat, Timur, Utara, Barat, Selatan).') : ''}</h3></div><table class="mini"><tbody>
-    <tr><td><a href="#/b/L2-4">Transpor kegiatan dalam kota (PP)</a></td><td class="n">${fmt(B['L2-4'].tables[0].rows[0].n[2])}</td></tr>
+    <tr><td><a href="#/b/L2-4">Transpor kegiatan dalam kota (PP)</a></td><td class="n">${fmt(firstVal(B['L2-4'].tables[0]))}</td></tr>
     <tr><td><a href="#/b/L1-29?t=1">Uang harian rapat fullboard</a></td><td class="n">${fmt(B['L1-29'].tables[1].rows.find((r) => r.v).n[3])}</td></tr>
     ${tR2.rows.filter((r) => r.v).map((r) => `<tr><td><a href="#/b/L1-25?t=1">Representasi ${esc(r.v[1])}</a> ${tip('Luar kota / dalam kota lebih dari 8 jam')}</td><td class="n">${fmt(r.n[3])} / ${fmt(r.n[4])}</td></tr>`).join('')}
   </tbody></table></section>`;
@@ -1042,12 +1063,12 @@ function viewProv(pid) {
   <div class="page-head">
     <div class="crumb"><a href="#/daerah">Daerah</a><span class="sep">›</span>Dalam Negeri</div>
     <h1 class="title">${esc(p.nama)}</h1>
-    <p class="subtitle">Ibu kota: ${esc(p.kota[0])}. Semua satuan biaya yang ditetapkan per provinsi, sesuai KMK 296/2026. Ketuk tautan Lamp. untuk melihat tabel lengkap dan penjelasannya.</p>
+    <p class="subtitle">Ibu kota: ${esc(p.kota[0])}. Semua satuan biaya yang ditetapkan per provinsi, sesuai ${Y.src}. Ketuk tautan Lamp. untuk melihat tabel lengkap dan penjelasannya.</p>
     <div class="actions"><a class="btn" href="#/bandingkan?p=${pid}">${ic('compare')} Bandingkan dengan provinsi lain</a></div>
   </div>
   <h2 class="sec">${ic('plane')} Perjalanan Dinas</h2>
   <div class="grid grid-2">${cUH}${cH}${cR}${cT}${cK}${cD}${cB}${cN}</div>
-  <h2 class="sec">${ic('layers-2')} Satuan biaya lain di provinsi ini ${tip('Semua tabel KMK yang besarannya ditetapkan per provinsi, di luar perjalanan dinas. Ketuk judul bab untuk membuka.')}</h2>
+  <h2 class="sec">${ic('layers-2')} Satuan biaya lain di provinsi ini ${tip(`Semua tabel ${Y.srcKind} yang besarannya ditetapkan per provinsi, di luar perjalanan dinas. Ketuk judul bab untuk membuka.`)}</h2>
   <div class="grid">${provOthers(pid)}</div>`;
   return { html };
 }
@@ -1129,9 +1150,32 @@ function viewSaved() {
 let deferredPrompt = null;
 window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); deferredPrompt = e; });
 
+// Paragraf toleransi dari data ("6. untuk satuan biaya … sebagai berikut:")
+function tolPara(x) {
+  const m = x.match(/^(\d+\.)\s*(.*)$/s);
+  const body = (m ? m[2] : x).replace(/sebagai berikut:\s*$/, 'sebagai berikut (lihat tabel di bawah).');
+  return `<p class="blk l1"><span class="m">${m ? m[1] : ''}</span>${esc(body)}</p>`;
+}
 function viewMore(sub) {
   const M = S.data.meta;
   const back = `<div class="crumb"><a href="#/lainnya">Lainnya</a></div>`;
+  if (sub === 'tentang' && Y.y === 2026) {
+    return { html: `<div class="page-head">${back}<h1 class="title">Tentang dasar hukum</h1><p class="subtitle">Tahun Anggaran 2026</p></div>
+    <div class="grid">
+      <div class="card card-pad"><table class="plain"><tbody>
+        <tr><th colspan="2">${esc(M.pmk.nomor)}</th></tr>
+        <tr><td>Tentang</td><td>${esc(M.pmk.tentang)}</td></tr>
+        <tr><td>Ditetapkan</td><td>${esc(M.pmk.ditetapkan)}</td></tr>
+        <tr><td>Diundangkan</td><td>${esc(M.pmk.diundangkan)}</td></tr>
+        <tr><td>Digunakan</td><td>${esc(M.pmk.berlaku)} (Pasal 1)</td></tr>
+        <tr><td>Isi</td><td>Satu dokumen memuat norma, besaran rupiah, dan Penjelasan: Lampiran I (batas tertinggi, 39 butir) dan Lampiran II (dapat dilampaui, 19 butir). ${M.pmk.halaman} halaman. Untuk TA 2026 tidak ada KMK rincian besaran terpisah seperti TA 2027.</td></tr>
+      </tbody></table><div class="actions"><a class="btn" href="${Y.doc}" target="_blank" rel="noopener">${ic('download')} PDF PMK 32/2025</a></div></div>
+      <div class="card card-pad"><table class="plain"><tbody><tr><th colspan="2">Penomoran butir</th></tr><tr><td colspan="2">Urutan butir PMK 32/2025 berbeda dengan TA 2027 (misalnya penginapan: angka 30 di TA 2026, angka 27 di TA 2027). Aplikasi memakai menu yang sama untuk kedua tahun; nomor yang tampil di tabel, rujukan, dan tombol PDF adalah nomor asli PMK 32/2025.</td></tr></tbody></table></div>
+      <div class="card card-pad"><table class="plain"><tbody><tr><th colspan="2">Data wilayah (fitur Rute)</th></tr><tr><td>Sumber</td><td>idn-area-data v4.0.1 oleh Fityan Nugroho, dari data wilayah administrasi Kemendagri. Dilisensikan dengan Open Database License (ODbL).</td></tr><tr><td>Isi</td><td>38 provinsi dan 514 kabupaten/kota, dipetakan ke baris PMK (transport darat, Bodetabek) dan kota tiket.</td></tr></tbody></table></div>
+      <div class="card card-pad"><table class="plain"><tbody><tr><th colspan="2">Ikon</th></tr><tr><td>Sumber</td><td>Lucide (lucide.dev), lucide-static v1.75.0. Dilisensikan dengan ISC License, © Lucide Contributors. Disematkan di aplikasi agar berfungsi tanpa internet.</td></tr></tbody></table></div>
+      <div class="callout">${ic('info')}<div>Seluruh angka diambil langsung dari tabel PDF PMK 32/2025 dan dicek silang dengan ekstraksi teks kedua (${Y.rows} baris data; semua nominal rupiah di tabel cocok dengan teks). Aplikasi ini alat bantu baca; untuk keperluan formal, rujuk dokumen aslinya.</div></div>
+    </div>` };
+  }
   if (sub === 'tentang') {
     return { html: `<div class="page-head">${back}<h1 class="title">Tentang dasar hukum</h1></div>
     <div class="grid">
@@ -1158,26 +1202,28 @@ function viewMore(sub) {
   if (sub === 'catatan') {
     const CU = S.data.catatan_umum;
     const tol = S.data.toleransi;
-    return { html: `<div class="page-head">${back}<h1 class="title">Catatan Umum KMK</h1><p class="subtitle">Catatan di akhir Lampiran I dan Lampiran II KMK 296/2026.</p></div>
+    return { html: `<div class="page-head">${back}<h1 class="title">Catatan Umum ${Y.srcKind}</h1><p class="subtitle">Catatan di akhir Lampiran I dan Lampiran II ${Y.src}.</p></div>
     <div class="grid">
-      <div class="card card-pad reg"><h3>Catatan Umum Lampiran I</h3>${renderReg(CU.L1)}<p class="blk l1"><span class="m">5.</span>untuk satuan biaya pengadaan kendaraan operasional bus, sewa kendaraan, pengadaan kendaraan operasional kantor dan/atau lapangan roda 2 dan roda 4, pengadaan pakaian dinas, dan konsumsi rapat pada beberapa kabupaten diberikan toleransi pengusulan satuan biaya melebihi ketentuan (lihat tabel di bawah).</p></div>
-      <div class="card card-pad reg"><h3>Catatan Umum Lampiran II</h3>${renderReg(CU.L2)}<p class="blk l1"><span class="m">3.</span>Untuk satuan biaya pemeliharaan dan operasional kendaraan dinas, pemeliharaan sarana kantor, penggantian inventaris lama dan/atau pembelian inventaris untuk pegawai baru, pengadaan bahan makanan, sewa mesin fotokopi, dan pemeliharaan gedung/bangunan dalam negeri, pada beberapa kabupaten diberikan toleransi pengusulan satuan biaya melebihi ketentuan (lihat tabel di bawah).</p></div>
+      <div class="card card-pad reg"><h3>Catatan Umum Lampiran I</h3>${renderReg(CU.L1)}${CU.tol_L1 ? tolPara(CU.tol_L1) : `<p class="blk l1"><span class="m">5.</span>untuk satuan biaya pengadaan kendaraan operasional bus, sewa kendaraan, pengadaan kendaraan operasional kantor dan/atau lapangan roda 2 dan roda 4, pengadaan pakaian dinas, dan konsumsi rapat pada beberapa kabupaten diberikan toleransi pengusulan satuan biaya melebihi ketentuan (lihat tabel di bawah).</p>`}</div>
+      <div class="card card-pad reg"><h3>Catatan Umum Lampiran II</h3>${renderReg(CU.L2)}${CU.tol_L2 ? tolPara(CU.tol_L2) : `<p class="blk l1"><span class="m">3.</span>Untuk satuan biaya pemeliharaan dan operasional kendaraan dinas, pemeliharaan sarana kantor, penggantian inventaris lama dan/atau pembelian inventaris untuk pegawai baru, pengadaan bahan makanan, sewa mesin fotokopi, dan pemeliharaan gedung/bangunan dalam negeri, pada beberapa kabupaten diberikan toleransi pengusulan satuan biaya melebihi ketentuan (lihat tabel di bawah).</p>`}</div>
       <div class="card card-pad"><div class="reg"><h3>Toleransi kabupaten tertentu</h3></div>
-        <div class="callout warn" style="margin-bottom:12px">${ic('alert')}<div>Toleransi ini <b>tidak berlaku untuk satuan biaya perjalanan dinas</b> (uang harian, penginapan, paket rapat, transportasi, tiket). Hanya untuk satuan biaya yang disebut pada butir 5 (Lampiran I) dan butir 3 (Lampiran II) di atas.</div></div>
+        <div class="callout warn" style="margin-bottom:12px">${ic('alert')}<div>Toleransi ini <b>tidak berlaku untuk satuan biaya perjalanan dinas</b> (uang harian, penginapan, paket rapat, transportasi, tiket). Hanya untuk satuan biaya yang disebut pada butir ${Y.tolL1} (Lampiran I) dan butir 3 (Lampiran II) di atas.</div></div>
         <table class="plain"><thead><tr><th>Provinsi</th><th>Kabupaten</th><th style="text-align:right">Toleransi</th></tr></thead><tbody>${tol.map((t) => `<tr><td>${esc(t[0])}</td><td>${esc(t[1])}</td><td style="text-align:right" class="tnum"><b>${t[2]}%</b></td></tr>`).join('')}</tbody></table>
         <div class="src">Persentase dari satuan biaya provinsi yang bersangkutan.</div></div>
     </div>` };
   }
   if (sub === 'singkatan') {
-    return { html: `<div class="page-head">${back}<h1 class="title">Daftar singkatan satuan</h1></div><div class="card card-pad"><table class="plain"><tbody>${S.data.singkatan.map((s) => `<tr><td><b>${esc(s[0])}</b></td><td>${esc(s[1])}</td></tr>`).join('')}</tbody></table><div class="src">Pengertian Istilah, KMK 296/2026.</div></div>` };
+    return { html: `<div class="page-head">${back}<h1 class="title">Daftar singkatan satuan</h1></div><div class="card card-pad"><table class="plain"><tbody>${S.data.singkatan.map((s) => `<tr><td><b>${esc(s[0])}</b></td><td>${esc(s[1])}</td></tr>`).join('')}</tbody></table><div class="src">Pengertian Istilah, ${Y.src}.</div></div>` };
   }
   if (sub === 'dokumen') {
-    return { html: `<div class="page-head">${back}<h1 class="title">Catatan atas dokumen</h1><p class="subtitle">Hal-hal di dokumen KMK yang perlu diketahui saat membaca aplikasi ini.</p></div><div class="card list">${DOC_NOTES.map((d) => `<div class="li"><div class="grow"><div class="t">${esc(d.t)}</div><div class="d">${esc(d.x)}</div></div></div>`).join('')}</div>` };
+    return { html: `<div class="page-head">${back}<h1 class="title">Catatan atas dokumen</h1><p class="subtitle">Hal-hal di dokumen ${Y.src} (TA ${Y.y}) yang perlu diketahui saat membaca aplikasi ini.</p></div><div class="card list">${DOC_NOTES.map((d) => `<div class="li"><div class="grow"><div class="t">${esc(d.t)}</div><div class="d">${esc(d.x)}</div></div></div>`).join('')}</div>` };
   }
   const pref = store.get('theme', 'system');
   const isStandalone = window.matchMedia('(display-mode: standalone)').matches;
   const html = `
   <div class="page-head"><h1 class="title">Lainnya</h1></div>
+  <div class="group-title">Tahun anggaran</div>
+  <div class="card card-pad">${yearSwitch('more')}<div class="muted small" style="margin-top:10px">TA 2027: PMK 54/2026 dan KMK 296/2026. TA 2026: PMK 32/2025. Pilihan disimpan di perangkat ini.</div></div>
   <div class="group-title">Tampilan</div>
   <div class="card card-pad"><div class="theme-pick">
     <button data-th="light" class="${pref === 'light' ? 'on' : ''}">${ic('sun')} Terang</button>
@@ -1188,10 +1234,10 @@ function viewMore(sub) {
   <div class="card list">
     <a class="li" href="#/tersimpan">${ic('star', 'chev')}<div class="grow"><div class="t">Tersimpan</div></div>${ic('chev', 'chev')}</a>
     <a class="li" href="#/bandingkan">${ic('compare', 'chev')}<div class="grow"><div class="t">Bandingkan provinsi</div></div>${ic('chev', 'chev')}</a>
-    <a class="li" href="#/lainnya/catatan">${ic('list', 'chev')}<div class="grow"><div class="t">Catatan Umum KMK</div></div>${ic('chev', 'chev')}</a>
+    <a class="li" href="#/lainnya/catatan">${ic('list', 'chev')}<div class="grow"><div class="t">Catatan Umum ${Y.srcKind}</div></div>${ic('chev', 'chev')}</a>
     <a class="li" href="#/lainnya/singkatan">${ic('book', 'chev')}<div class="grow"><div class="t">Daftar singkatan</div></div>${ic('chev', 'chev')}</a>
     <a class="li" href="#/lainnya/dokumen">${ic('alert', 'chev')}<div class="grow"><div class="t">Catatan atas dokumen</div></div>${ic('chev', 'chev')}</a>
-    <a class="li" href="#/lainnya/tentang">${ic('info', 'chev')}<div class="grow"><div class="t">Tentang PMK 54/2026 & KMK 296/2026</div></div>${ic('chev', 'chev')}</a>
+    <a class="li" href="#/lainnya/tentang">${ic('info', 'chev')}<div class="grow"><div class="t">Tentang ${Y.y === 2026 ? 'PMK 32/2025' : 'PMK 54/2026 & KMK 296/2026'}</div></div>${ic('chev', 'chev')}</a>
   </div>
   <div class="group-title">Aplikasi</div>
   <div class="card card-pad">
@@ -1261,6 +1307,8 @@ function initTips() {
 
 /* ---------------- Mulai ---------------- */
 async function start() {
+  applyYear(initYear());
+  document.title = `SBM ${Y.y} · Standar Biaya Masukan TA ${Y.y}`;
   shell();
   initTips();
   $('#main').innerHTML = `<div class="empty">Memuat data…</div>`;
