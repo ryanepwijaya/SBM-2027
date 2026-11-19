@@ -941,53 +941,60 @@ table.t td.unit abbr { text-decoration: none; border-bottom: 1px dotted var(--fa
 .hero h1 { z-index: 3; }
 *:has(> .tip.open), *:has(> .tip.hover) { z-index: 6; }
 
-/* Pilihan tahun anggaran */
-.yr { display: inline-flex; align-items: center; gap: 2px; padding: 3px; border-radius: 10px; flex: none; }
-.yr-b {
-  border: 0; cursor: pointer; font: inherit; font-weight: 700; font-size: 13px; line-height: 1;
-  padding: 7px 10px; border-radius: 7px; background: transparent; color: inherit;
-  font-variant-numeric: tabular-nums; transition: background .15s, color .15s;
+/* Pilihan tahun anggaran: dropdown di pojok kiri atas (sidebar PC, topbar HP) */
+.yr { position: relative; flex: none; }
+.yr-btn {
+  display: inline-flex; align-items: center; gap: 8px; height: 40px; padding: 0 10px 0 11px;
+  border-radius: 10px; border: 1.5px solid var(--gold); background: rgba(255,255,255,.08); color: #fff;
+  font: inherit; font-size: 13.5px; cursor: pointer; white-space: nowrap; transition: background .15s, box-shadow .15s;
 }
-.yr-b.on { background: var(--gold); color: var(--navy-900); cursor: default; }
-.yr-top { background: rgba(255,255,255,.1); color: rgba(255,255,255,.85); box-shadow: inset 0 0 0 1px rgba(255,255,255,.14); }
-.yr-top .yr-b:not(.on):hover { background: rgba(255,255,255,.14); color: #fff; }
-.yr-top .yr-b { padding: 7px 9px; }
-.hero-year { margin: -2px 0 14px; position: relative; z-index: 2; }
-.yr-hero { background: rgba(255,255,255,.1); color: #fff; box-shadow: inset 0 0 0 1px rgba(255,255,255,.18); }
-.yr-hero .yr-b { padding: 8px 14px; }
-.yr-hero .yr-b:not(.on):hover { background: rgba(255,255,255,.16); }
-.yr-more { background: var(--surface-2); box-shadow: inset 0 0 0 1px var(--border); color: var(--text); }
-.yr-more .yr-b { padding: 9px 16px; font-size: 14px; }
-.yr-more .yr-b:not(.on):hover { background: var(--surface); }
-@media (max-width: 380px) { .yr-top .yr-b { padding: 7px 7px; font-size: 12px; } }
-@media (min-width: 1024px) {
-  .yr-top { background: var(--surface-2); color: var(--muted); box-shadow: inset 0 0 0 1px var(--border); }
-  .yr-top .yr-b:not(.on):hover { background: var(--surface); color: var(--text); }
+.yr-btn:hover { background: rgba(255,255,255,.14); }
+.yr.open .yr-btn, .yr-btn:focus-visible { box-shadow: 0 0 0 3px rgba(244,190,22,.35); outline: none; }
+.yr-btn svg { width: 17px; height: 17px; flex: none; }
+.yr-cal { color: var(--gold); }
+.yr-lbl { opacity: .85; }
+.yr-cur { font-size: 15px; font-weight: 800; font-variant-numeric: tabular-nums; }
+.yr-chev { margin-left: auto; opacity: .85; transition: transform .2s; }
+.yr.open .yr-chev { transform: rotate(180deg); }
+.yr-menu {
+  position: fixed; z-index: 120; padding: 6px; border-radius: 12px; background: var(--surface); color: var(--text);
+  border: 1px solid var(--border); box-shadow: 0 16px 40px rgba(15,23,62,.22);
 }
+.yr-menu[hidden] { display: none; }
+.yr-opt {
+  display: flex; align-items: center; gap: 10px; width: 100%; padding: 10px 12px; border: 0; border-radius: 8px;
+  background: transparent; color: inherit; font: inherit; text-align: left; cursor: pointer;
+}
+.yr-opt:hover, .yr-opt:focus-visible { background: var(--surface-2); outline: none; }
+.yr-opt.on { background: color-mix(in srgb, var(--gold) 18%, transparent); }
+.yr-opt-t { flex: 1; display: flex; flex-direction: column; line-height: 1.25; }
+.yr-opt-t b { font-size: 15.5px; font-variant-numeric: tabular-nums; }
+.yr-opt-t small { font-size: 12px; color: var(--muted); }
+.yr-ok { width: 18px; height: 18px; color: var(--navy); flex: none; }
+[data-theme="dark"] .yr-ok { color: var(--gold-2); }
 
-/* Tahun anggaran: pojok kiri atas (sidebar PC, topbar HP) */
+/* HP: di samping logo, label disingkat */
 .side-year { display: none; }
-.yr-y { display: block; }
+.topbar .yr-top .yr-lbl { display: none; }
+.topbar .yr-top .yr-btn { height: 36px; gap: 6px; padding: 0 8px 0 9px; }
+@media (max-width: 1023px) { .topbar .brand-text small { display: none; } }
+@media (max-width: 360px) { .topbar .yr-top .yr-cal { display: none; } }
+
+/* PC: di bawah logo sidebar */
 @media (min-width: 1024px) {
   .topbar .yr-top { display: none; }
   .side-year { display: block; flex: none; padding: 0 14px 14px; margin-bottom: 6px; border-bottom: 1px solid rgba(255,255,255,.1); }
-  .side-year-lbl { font-size: 10.5px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; color: rgba(255,255,255,.6); margin: 0 4px 7px; }
-  .yr-side { display: grid; grid-template-columns: 1fr 1fr; width: 100%; padding: 4px; gap: 4px; border-radius: 12px; background: rgba(0,0,0,.22); box-shadow: inset 0 0 0 1px rgba(255,255,255,.12); }
-  .yr-side .yr-b { padding: 9px 6px 8px; border-radius: 9px; color: rgba(255,255,255,.78); text-align: center; }
-  .yr-side .yr-y { font-size: 18px; font-weight: 800; letter-spacing: .01em; }
-  .yr-side small { display: block; margin-top: 4px; font-size: 10.5px; font-weight: 600; opacity: .75; white-space: nowrap; }
-  .yr-side .yr-b:not(.on):hover { background: rgba(255,255,255,.1); color: #fff; }
-  .yr-side .yr-b.on { background: var(--gold); color: var(--navy-900); box-shadow: 0 4px 14px rgba(244,190,22,.35); }
-  .yr-side .yr-b.on small { opacity: .8; }
+  .yr-side .yr-btn { width: 100%; height: 44px; font-size: 14px; }
+  .yr-side .yr-cur { font-size: 16px; }
   html[data-rail="1"] .side-year { padding: 0 10px 12px; }
-  html[data-rail="1"] .side-year-lbl { display: none; }
-  html[data-rail="1"] .yr-side { grid-template-columns: 1fr; }
-  html[data-rail="1"] .yr-side .yr-b { padding: 7px 0; }
-  html[data-rail="1"] .yr-side .yr-y { font-size: 12.5px; }
-  html[data-rail="1"] .yr-side small { display: none; }
+  html[data-rail="1"] .yr-side .yr-btn { justify-content: center; padding: 0; gap: 2px; flex-direction: column; height: 50px; }
+  html[data-rail="1"] .yr-side .yr-lbl, html[data-rail="1"] .yr-side .yr-chev { display: none; }
+  html[data-rail="1"] .yr-side .yr-cal { width: 15px; height: 15px; }
+  html[data-rail="1"] .yr-side .yr-cur { font-size: 12.5px; }
 }
-@media (max-width: 1023px) {
-  .topbar .yr-top { order: 0; margin-left: 2px; }
-  .topbar .yr-top .yr-b.on { box-shadow: 0 2px 10px rgba(244,190,22,.35); }
-  .topbar .brand-text small { display: none; }
-}
+
+/* Halaman Lainnya */
+.yr-more .yr-btn { border-color: var(--border); background: var(--surface-2); color: var(--text); height: 44px; }
+.yr-more .yr-btn:hover { background: var(--surface); }
+.yr-more .yr-cal { color: var(--navy); }
+[data-theme="dark"] .yr-more .yr-cal { color: var(--gold-2); }

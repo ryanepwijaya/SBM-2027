@@ -60,16 +60,58 @@ const pdfBtn = (b) => `<a class="btn sm pdf-btn" href="${pdfLink(b)}" target="_b
 // Pilihan tahun anggaran (memuat ulang aplikasi dengan data tahun terpilih)
 function yearSwitch(where) {
   const ys = Object.keys(YEARS).map(Number).sort((a, b) => b - a);
-  return `<div class="yr yr-${where}" role="group" aria-label="Tahun anggaran">${ys.map((y) => `<button type="button" class="yr-b${y === Y.y ? ' on' : ''}" data-year="${y}" aria-pressed="${y === Y.y}" title="Standar Biaya Masukan TA ${y} (${YEARS[y].src})"${where === 'side' ? ` data-tip="TA ${y}"` : ''}>${where === 'top' || where === 'side' ? `<span class="yr-y">${y}</span>` : `TA ${y}`}${where === 'side' ? `<small>${YEARS[y].src}</small>` : ''}</button>`).join('')}</div>`;
+  const opts = ys.map((y) => `<button type="button" class="yr-opt${y === Y.y ? ' on' : ''}" role="option" aria-selected="${y === Y.y}" data-year="${y}"><span class="yr-opt-t"><b>${y}</b><small>${YEARS[y].sources}</small></span>${y === Y.y ? ic('check', 'yr-ok') : ''}</button>`).join('');
+  return `<div class="yr yr-${where}"><button type="button" class="yr-btn" aria-haspopup="listbox" aria-expanded="false" title="Ganti tahun anggaran">${ic('calendar', 'yr-cal')}<span class="yr-lbl">Tahun Anggaran:</span><b class="yr-cur">${Y.y}</b>${ic('chevron-down', 'yr-chev')}</button><div class="yr-menu" role="listbox" aria-label="Tahun anggaran" hidden>${opts}</div></div>`;
+}
+function closeYearMenus(except) {
+  document.querySelectorAll('.yr.open').forEach((w) => {
+    if (w === except) return;
+    w.classList.remove('open');
+    w.querySelector('.yr-btn').setAttribute('aria-expanded', 'false');
+    w.querySelector('.yr-menu').hidden = true;
+  });
+}
+function openYearMenu(w) {
+  const btn = w.querySelector('.yr-btn');
+  const m = w.querySelector('.yr-menu');
+  closeYearMenus(w);
+  // posisi fixed agar tidak terpotong sidebar/topbar; ukur tombol sebelum menu ditampilkan
+  const r = btn.getBoundingClientRect();
+  w.classList.add('open'); btn.setAttribute('aria-expanded', 'true');
+  const width = Math.max(r.width, 230);
+  let left = r.left;
+  if (left + width > innerWidth - 8) left = Math.max(8, innerWidth - 8 - width);
+  m.style.cssText = `position:fixed;top:${Math.round(r.bottom + 6)}px;left:${Math.round(left)}px;width:${Math.round(width)}px`;
+  m.hidden = false;
+  (m.querySelector('.yr-opt.on') || m.querySelector('.yr-opt')).focus();
 }
 function bindYearSwitch(root) {
   root.addEventListener('click', (e) => {
-    const b = e.target.closest('.yr-b');
-    if (!b || b.classList.contains('on')) return;
-    e.preventDefault();
-    document.querySelectorAll('.yr-b').forEach((x) => x.classList.toggle('on', x === b || x.dataset.year === b.dataset.year));
-    switchYear(Number(b.dataset.year));
+    const btn = e.target.closest('.yr-btn');
+    if (btn) { e.preventDefault(); const w = btn.closest('.yr'); if (w.classList.contains('open')) closeYearMenus(); else openYearMenu(w); return; }
+    const opt = e.target.closest('.yr-opt');
+    if (opt) {
+      e.preventDefault();
+      const y = Number(opt.dataset.year);
+      closeYearMenus();
+      if (y !== Y.y) { document.querySelectorAll('.yr-cur').forEach((x) => { x.textContent = y; }); switchYear(y); }
+      return;
+    }
+    if (!e.target.closest('.yr-menu')) closeYearMenus();
   });
+  root.addEventListener('keydown', (e) => {
+    const w = document.querySelector('.yr.open');
+    if (!w) return;
+    if (e.key === 'Escape') { closeYearMenus(); w.querySelector('.yr-btn').focus(); return; }
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+      const os = [...w.querySelectorAll('.yr-opt')];
+      const i = os.indexOf(document.activeElement);
+      os[(i + (e.key === 'ArrowDown' ? 1 : -1) + os.length) % os.length].focus();
+      e.preventDefault();
+    }
+  });
+  window.addEventListener('resize', () => closeYearMenus());
+  window.addEventListener('hashchange', () => closeYearMenus());
 }
 const firstVal = (t) => { const r = t.rows.find((x) => x.n); const i = valueCols(t)[0]; return r ? r.n[i] : null; };
 const pageRange = (b) => (b.pages.length > 1 ? `hal. ${b.pages[0]}–${b.pages[b.pages.length - 1]}` : `hal. ${b.pages[0]}`);
@@ -99,7 +141,7 @@ function shell() {
   $('#app').innerHTML = `
   <aside class="sidebar" aria-label="Navigasi">
     ${brand}
-    <div class="side-year"><div class="side-year-lbl">Tahun Anggaran</div>${yearSwitch('side')}</div>
+    <div class="side-year">${yearSwitch('side')}</div>
     <div class="side-scroll" id="sideScroll">${sideHtml()}</div>
     <div class="side-foot">
       <button class="side-btn" id="sideTheme" data-theme-ico aria-label="Ganti tema" data-tip="Ganti tema"></button>
