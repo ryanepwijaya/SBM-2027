@@ -161,6 +161,7 @@ function sideHtml() {
 }
 
 let openAcc = null;
+let keepFly = null;
 function setAcc(key, { scroll = false } = {}) {
   openAcc = key;
   const rail = document.documentElement.dataset.rail === '1';
@@ -218,8 +219,19 @@ function initSidebar() {
     const h = e.target.closest('.acc-h');
     if (!h) return;
     const acc = h.closest('.acc');
-    if (document.documentElement.dataset.rail === '1') { openFly(acc); return; }
-    setAcc(acc.classList.contains('open') ? null : acc.dataset.acc, { scroll: true });
+    const key = acc.dataset.acc;
+    const target = babByKey(key) ? '#/bab/' + key : null; // Referensi tidak punya halaman ringkasan
+    const onTarget = target && location.hash === target;
+    if (document.documentElement.dataset.rail === '1') {
+      const wasFly = acc.classList.contains('fly');
+      if (!wasFly || !target || onTarget) openFly(acc); // buka/tutup flyout
+      if (target && !onTarget) { keepFly = key; location.hash = target; }
+      return;
+    }
+    // Klik bab: buka sub-menu sekaligus ke Ringkasan bab. Klik lagi saat sudah di ringkasan: tutup.
+    if (acc.classList.contains('open') && (!target || onTarget)) { setAcc(null); return; }
+    setAcc(key, { scroll: true });
+    if (target && !onTarget) location.hash = target;
   });
   document.addEventListener('click', (e) => { if (!e.target.closest('.acc.fly')) closeFly(); });
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeFly(); });
@@ -246,7 +258,8 @@ function sideActive(sideKey, itemKey, babKey) {
   $$('.acc').forEach((a) => a.classList.toggle('has-on', !!itemKey && !!a.querySelector(`[data-item="${CSS.escape(itemKey)}"]`)));
   if (babKey && babKey !== openAcc) setAcc(babKey, { scroll: true });
   else if (babKey) setTimeout(() => sideReveal(babKey), 30);
-  closeFly();
+  if (keepFly && keepFly === babKey) keepFly = null; // flyout tetap terbuka setelah klik bab di mode ciut
+  else closeFly();
 }
 
 /* ---------------- Breadcrumb ---------------- */
