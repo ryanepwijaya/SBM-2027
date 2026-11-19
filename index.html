@@ -20,6 +20,7 @@
       var p = JSON.parse(localStorage.getItem('sbm27:theme') || '"system"');
       var d = p === 'dark' || (p === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
       document.documentElement.dataset.theme = d ? 'dark' : 'light';
+      document.documentElement.dataset.rail = JSON.parse(localStorage.getItem('sbm27:rail') || 'false') ? '1' : '0';
     } catch (e) { document.documentElement.dataset.theme = 'light'; }
   </script>
 </head>

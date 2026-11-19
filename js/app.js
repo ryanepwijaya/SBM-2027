@@ -3,16 +3,26 @@ import { S, loadData, entry, entriesOf, esc, norm, ref, lampShort, fmt, valueCol
 import { search, buildIndex, SEARCH_HINTS } from './search.js';
 import { ic } from './icons.js';
 import { loadWilayah, suggest, resolve, routeHtml, placeLabel, routeHints, W } from './rute.js';
+import { BABS, REF_LINKS, babByKey, babByKel, babOfButir } from './bab.js';
 
 const $ = (s, el = document) => el.querySelector(s);
 const $$ = (s, el = document) => [...el.querySelectorAll(s)];
 const NAV = [
-  { k: 'beranda', h: '#/', t: 'Beranda', i: 'home' },
+  { k: 'beranda', h: '#/', t: 'Beranda', i: 'house' },
   { k: 'jelajah', h: '#/jelajah', t: 'Jelajah', i: 'compass' },
   { k: 'cari', h: '#/cari', t: 'Cari', i: 'search' },
   { k: 'daerah', h: '#/rute', t: 'Daerah', i: 'map' },
   { k: 'lainnya', h: '#/lainnya', t: 'Lainnya', i: 'menu' },
 ];
+const SIDE_MAIN = [
+  { k: 'beranda', h: '#/', t: 'Beranda', i: 'house' },
+  { k: 'rute', h: '#/rute', t: 'Rute Perjadin', i: 'route' },
+  { k: 'daerah', h: '#/daerah', t: 'Daerah', i: 'map' },
+  { k: 'bandingkan', h: '#/bandingkan', t: 'Bandingkan Provinsi', i: 'scale' },
+  { k: 'tersimpan', h: '#/tersimpan', t: 'Tersimpan', i: 'star' },
+];
+const isDesk = () => window.matchMedia('(min-width: 1024px)').matches;
+const isMac = /Mac|iPhone|iPad/.test(navigator.platform || '');
 
 /* ---------------- Tema ---------------- */
 const mq = window.matchMedia('(prefers-color-scheme: dark)');
@@ -66,45 +76,290 @@ function pushRecent(k) {
 
 /* ---------------- Shell ---------------- */
 function shell() {
-  const nav = NAV.map((n) => `<a href="${n.h}" data-nav="${n.k}">${ic(n.i)}<span>${n.t}</span></a>`).join('');
   const bottom = NAV.map((n) => n.k === 'cari'
     ? `<a href="${n.h}" data-nav="${n.k}" class="search-fab"><span class="fab">${ic('search')}</span><span class="lbl">${n.t}</span></a>`
     : `<a href="${n.h}" data-nav="${n.k}">${ic(n.i)}<span>${n.t}</span></a>`).join('');
   const brand = `<a class="brand" href="#/"><span class="brand-mark"><span>SBM</span></span><span class="brand-text"><b>SBM 2027</b><small>PMK 54/2026 · KMK 296/2026</small></span></a>`;
   $('#app').innerHTML = `
-  <aside class="sidebar">
+  <aside class="sidebar" aria-label="Navigasi">
     ${brand}
-    <nav class="side-nav">${nav}<div class="sep"></div><a href="#/tersimpan" data-nav="tersimpan">${ic('star')}<span>Tersimpan</span></a><a href="#/bandingkan" data-nav="bandingkan">${ic('compare')}<span>Bandingkan Provinsi</span></a></nav>
-    <div class="side-foot"><b>Tahap 1</b> · Perjalanan Dinas</div>
+    <div class="side-scroll" id="sideScroll">${sideHtml()}</div>
+    <div class="side-foot">
+      <button class="side-btn" id="sideTheme" data-theme-ico aria-label="Ganti tema" data-tip="Ganti tema"></button>
+      <span class="side-ver">TA 2027 · Tahap 1</span>
+      <button class="side-btn" id="railBtn" aria-label="Ciutkan sidebar" data-tip="Lebarkan sidebar">${ic('panel-left-close')}</button>
+    </div>
   </aside>
   <div class="content">
     <header class="topbar">
       ${brand}
-      <label class="top-search" for="topq">${ic('search')}<input id="topq" type="search" placeholder="Cari satuan biaya, provinsi, kota, atau aturan…" autocomplete="off"><kbd>/</kbd></label>
+      <nav class="crumbs" id="crumbs" aria-label="Lokasi"></nav>
       <span class="spacer"></span>
+      <button class="top-search" id="topSearch" type="button" aria-label="Cari">${ic('search')}<span>Cari satuan biaya, kota, atau aturan…</span><kbd>${isMac ? '⌘' : 'Ctrl'} K</kbd></button>
       <button class="icon-btn" id="themeBtn" data-theme-ico aria-label="Ganti tema"></button>
     </header>
     <main class="main" id="main" tabindex="-1"></main>
   </div>
   <nav class="bottomnav">${bottom}</nav>
+  <div class="pal" id="pal" hidden>
+    <div class="pal-back" data-pal-close></div>
+    <div class="pal-box" role="dialog" aria-modal="true" aria-label="Cari di SBM 2027">
+      <div class="pal-in">${ic('search')}<input id="palq" type="search" placeholder="Cari satuan biaya, provinsi, kota, rute, atau kata dalam aturan…" autocomplete="off" spellcheck="false" aria-controls="palList"><kbd data-pal-close>Esc</kbd></div>
+      <div class="pal-list" id="palList" role="listbox"></div>
+      <div class="pal-foot"><span><kbd>↑</kbd><kbd>↓</kbd> pilih</span><span><kbd>↵</kbd> buka</span><span><kbd>Esc</kbd> tutup</span><a id="palAll" href="#/cari">Lihat semua hasil ${ic('arrow-right')}</a></div>
+    </div>
+  </div>
+  <div class="rail-tip" id="railTip" role="tooltip"></div>
   <div class="toast" id="toast" role="status"></div>`;
   $('#themeBtn').onclick = toggleTheme;
-  const topq = $('#topq');
-  topq.addEventListener('input', () => { location.hash = '#/cari?q=' + encodeURIComponent(topq.value); });
-  topq.addEventListener('focus', () => { if (!location.hash.startsWith('#/cari')) location.hash = '#/cari?q=' + encodeURIComponent(topq.value); });
+  $('#sideTheme').onclick = toggleTheme;
+  $('#topSearch').onclick = () => openPalette('');
   document.addEventListener('keydown', (e) => {
     const typing = /INPUT|TEXTAREA|SELECT/.test(document.activeElement?.tagName);
-    if ((e.key === '/' && !typing) || (e.key.toLowerCase() === 'k' && (e.ctrlKey || e.metaKey))) {
+    const isK = e.key && e.key.toLowerCase() === 'k' && (e.ctrlKey || e.metaKey);
+    if ((e.key === '/' && !typing) || isK) {
       e.preventDefault();
-      const box = $('#q') || (getComputedStyle($('.top-search')).display !== 'none' ? topq : null);
-      if (box) box.focus(); else location.hash = '#/cari';
+      if (isDesk()) { if (palOpen()) closePalette(); else openPalette(''); }
+      else if ($('#q')) $('#q').focus();
+      else location.hash = '#/cari';
     }
   });
+  initSidebar();
+  initPalette();
   applyTheme();
+}
+
+/* ---------------- Sidebar (PC) ---------------- */
+function sideHtml() {
+  const main = SIDE_MAIN.map((n) => `<a class="side-link" href="${n.h}" data-side="${n.k}" data-tip="${n.t}">${ic(n.i)}<span>${n.t}</span></a>`).join('');
+  const acc = (key, name, icon, badge, body, cls = '') => `
+    <div class="acc${cls}" data-acc="${key}">
+      <button class="acc-h" type="button" aria-expanded="false" aria-controls="acc-${key}" data-tip="${esc(name)}">
+        <span class="acc-ico">${ic(icon)}</span><span class="acc-t">${esc(name)}</span>${badge}${ic('chevron-down', 'acc-chev')}
+      </button>
+      <div class="acc-p" id="acc-${key}"><div class="acc-in">${body}</div></div>
+    </div>`;
+  const stagger = (arr) => arr.map((h, i) => h.replace('<a ', `<a style="--i:${Math.min(i, 14)}" `).replace('<div ', `<div style="--i:${Math.min(i, 14)}" `)).join('');
+  const babs = BABS.map((b) => {
+    const parts = [`<div class="fly-h">${ic(b.icon)}${esc(b.name)}</div>`];
+    parts.push(`<a class="acc-it acc-all" href="#/bab/${b.key}" data-item="bab:${b.key}">${ic('layout-grid')}<span>Ringkasan bab</span></a>`);
+    if (!b.active) parts.push(`<div class="acc-soon">${ic('sparkles')}<span>Segera hadir. Daftar butirnya sudah bisa dilihat.</span></div>`);
+    for (const g of b.groups) {
+      if (g.t) parts.push(`<div class="acc-g">${esc(g.t)}</div>`);
+      for (const it of g.items) parts.push(`<a class="acc-it${it.active ? '' : ' off'}" href="${it.href}" data-item="${it.k}" title="${esc(it.full || it.n)}">${ic(it.icon)}<span>${esc(it.n)}</span>${it.active ? '' : ic('lock-keyhole', 'lk')}</a>`);
+    }
+    const badge = b.active ? `<span class="acc-n">${b.count}</span>` : '<span class="acc-n soon">Segera</span>';
+    return acc(b.key, b.name, b.icon, badge, stagger(parts), b.active ? '' : ' soon');
+  }).join('');
+  const refBody = stagger([`<div class="fly-h">${ic('library')}Referensi</div>`, ...REF_LINKS.map((r) => `<a class="acc-it" href="${r.h}" data-item="ref:${r.h}">${ic(r.icon)}<span>${esc(r.n)}</span></a>`)]);
+  return `
+    <nav class="side-main">${main}</nav>
+    <div class="side-label">Bab satuan biaya</div>
+    <div class="side-babs">${babs}</div>
+    <div class="side-label">Referensi</div>
+    <div class="side-babs">${acc('ref', 'Referensi', 'library', '', refBody)}</div>`;
+}
+
+let openAcc = null;
+function setAcc(key, { scroll = false } = {}) {
+  openAcc = key;
+  const rail = document.documentElement.dataset.rail === '1';
+  $$('.acc').forEach((a) => {
+    const on = !rail && a.dataset.acc === key;
+    a.classList.toggle('open', on);
+    a.querySelector('.acc-h').setAttribute('aria-expanded', String(on));
+  });
+  if (scroll && key && !rail) setTimeout(() => sideReveal(key), 380);
+}
+function sideReveal(key) {
+  const sc = $('#sideScroll');
+  const acc = $(`.acc[data-acc="${key}"]`);
+  if (!sc || !acc) return;
+  const s = sc.getBoundingClientRect();
+  const on = acc.querySelector('.acc-it.on');
+  const h = acc.querySelector('.acc-h').getBoundingClientRect();
+  const a = acc.getBoundingClientRect();
+  let dy = 0;
+  if (on) {
+    const r = on.getBoundingClientRect();
+    if (r.bottom > s.bottom - 12) dy = r.bottom - s.bottom + 48;
+    else if (r.top < s.top + 12) dy = r.top - s.top - 48;
+  } else if (a.bottom > s.bottom - 8) dy = Math.min(a.bottom - s.bottom + 8, h.top - s.top - 8);
+  else if (h.top < s.top) dy = h.top - s.top - 8;
+  if (dy) sc.scrollBy({ top: dy, behavior: 'smooth' });
+}
+function closeFly() { $$('.acc.fly').forEach((a) => a.classList.remove('fly')); }
+function openFly(acc) {
+  const was = acc.classList.contains('fly');
+  closeFly();
+  hideRailTip();
+  if (was) return;
+  const h = acc.querySelector('.acc-h').getBoundingClientRect();
+  const p = acc.querySelector('.acc-p');
+  acc.classList.add('fly');
+  const maxH = window.innerHeight - 24;
+  const ph = Math.min(p.scrollHeight, maxH);
+  p.style.top = Math.max(12, Math.min(h.top - 6, window.innerHeight - ph - 12)) + 'px';
+}
+function setRail(on) {
+  document.documentElement.dataset.rail = on ? '1' : '0';
+  store.set('rail', on);
+  const b = $('#railBtn');
+  if (b) { b.innerHTML = ic(on ? 'panel-left-open' : 'panel-left-close'); b.setAttribute('aria-label', on ? 'Lebarkan sidebar' : 'Ciutkan sidebar'); }
+  closeFly();
+  setAcc(openAcc);
+}
+const railTip = () => $('#railTip');
+function hideRailTip() { railTip()?.classList.remove('show'); }
+function initSidebar() {
+  setRail(!!store.get('rail', false));
+  $('#railBtn').onclick = () => setRail(document.documentElement.dataset.rail !== '1');
+  $('#sideScroll').addEventListener('click', (e) => {
+    const h = e.target.closest('.acc-h');
+    if (!h) return;
+    const acc = h.closest('.acc');
+    if (document.documentElement.dataset.rail === '1') { openFly(acc); return; }
+    setAcc(acc.classList.contains('open') ? null : acc.dataset.acc, { scroll: true });
+  });
+  document.addEventListener('click', (e) => { if (!e.target.closest('.acc.fly')) closeFly(); });
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeFly(); });
+  window.addEventListener('resize', closeFly);
+  $('#sideScroll').addEventListener('scroll', closeFly, { passive: true });
+  // tooltip mode ciut
+  const sb = $('.sidebar');
+  sb.addEventListener('mouseover', (e) => {
+    const el = e.target.closest('[data-tip]');
+    if (!el || document.documentElement.dataset.rail !== '1' || el.closest('.acc.fly')) return;
+    if (el.closest('.acc')?.classList.contains('fly')) return;
+    const r = el.getBoundingClientRect();
+    const t = railTip();
+    t.textContent = el.dataset.tip;
+    t.style.top = r.top + r.height / 2 + 'px';
+    t.style.left = r.right + 10 + 'px';
+    t.classList.add('show');
+  });
+  sb.addEventListener('mouseout', (e) => { if (!e.relatedTarget || !sb.contains(e.relatedTarget) || !e.relatedTarget.closest('[data-tip]')) hideRailTip(); });
+}
+function sideActive(sideKey, itemKey, babKey) {
+  $$('[data-side]').forEach((a) => a.classList.toggle('on', a.dataset.side === sideKey));
+  $$('[data-item]').forEach((a) => a.classList.toggle('on', a.dataset.item === itemKey));
+  $$('.acc').forEach((a) => a.classList.toggle('has-on', !!itemKey && !!a.querySelector(`[data-item="${CSS.escape(itemKey)}"]`)));
+  if (babKey && babKey !== openAcc) setAcc(babKey, { scroll: true });
+  else if (babKey) setTimeout(() => sideReveal(babKey), 30);
+  closeFly();
+}
+
+/* ---------------- Breadcrumb ---------------- */
+function setCrumbs(list) {
+  const el = $('#crumbs');
+  if (!el) return;
+  el.innerHTML = list.map((c, i) => {
+    const last = i === list.length - 1;
+    const inner = `${c.i ? ic(c.i) : ''}<span>${esc(c.t)}</span>`;
+    return (i ? ic('chevron-right', 'cs') : '') + (c.h && !last ? `<a href="${c.h}">${inner}</a>` : `<b${last ? ' aria-current="page"' : ''}>${inner}</b>`);
+  }).join('');
 }
 
 function setNav(k) {
   $$('[data-nav]').forEach((a) => a.classList.toggle('on', a.dataset.nav === k));
+}
+
+/* ---------------- Jendela cari (PC) ---------------- */
+let palIdx = 0;
+let palItems = [];
+const palOpen = () => !$('#pal').hidden;
+function openPalette(q) {
+  const pal = $('#pal');
+  const inp = $('#palq');
+  if (pal.hidden) {
+    pal.hidden = false;
+    requestAnimationFrame(() => pal.classList.add('show'));
+  }
+  inp.value = q || '';
+  renderPalette(inp.value);
+  inp.focus();
+  inp.setSelectionRange(inp.value.length, inp.value.length);
+}
+function closePalette() {
+  const pal = $('#pal');
+  if (pal.hidden) return;
+  pal.classList.remove('show');
+  setTimeout(() => { pal.hidden = true; }, 160);
+}
+function babIconOf(butirId) {
+  const b = babOfButir(butirId);
+  const it = b?.items.find((x) => x.butir === butirId);
+  return it?.icon || b?.icon || 'file-text';
+}
+function renderPalette(q) {
+  const list = $('#palList');
+  const all = $('#palAll');
+  all.href = '#/cari' + (q.trim() ? '?q=' + encodeURIComponent(q) : '');
+  const secs = [];
+  const item = (x) => ({ href: x.href, t: x.t, html: !!x.html, d: x.d, dHtml: !!(x.html || x.snip), i: x.i, k: x.k, v: x.v });
+  if (!q.trim()) {
+    const recent = store.get('recent', []).map(entry).filter(Boolean).slice(0, 4);
+    if (recent.length) secs.push({ t: 'Terakhir dilihat', items: recent.map((e) => item({ href: `#/b/${e.butir}?t=${e.table}`, t: e.name, d: e.desc, i: e.icon })) });
+    secs.push({ t: 'Buka bab', items: BABS.map((b) => item({ href: `#/bab/${b.key}`, t: b.name, d: b.desc, i: b.icon, k: b.active ? `${b.count} jenis` : 'Segera' })) });
+    secs.push({ t: 'Alat', items: [
+      item({ href: '#/rute', t: 'Rute Perjadin', d: 'Dari kota X ke kota Y: semua satuan biaya yang relevan', i: 'route' }),
+      item({ href: '#/daerah', t: 'Per Provinsi', d: 'Semua satuan biaya perjadin satu provinsi', i: 'map' }),
+      item({ href: '#/bandingkan', t: 'Bandingkan Provinsi', d: 'Sampai 3 provinsi berdampingan', i: 'scale' }),
+      item({ href: '#/daerah/ln', t: 'Luar Negeri', d: 'Uang harian per negara dan tiket per kota', i: 'globe' }),
+    ] });
+    const hist = store.get('qhist', []).slice(0, 5);
+    if (hist.length) secs.push({ t: 'Pencarian terakhir', items: hist.map((h) => item({ href: '#q:' + h, t: h, i: 'history' })) });
+  } else {
+    const r = search(q);
+    if (r.best.length) secs.push({ t: 'Langsung ke', items: r.best.slice(0, 6).map((x) => item({ ...x, i: x.kind === 'Rute' ? 'route' : x.kind === 'Daerah' ? 'map' : x.kind === 'Bab' ? 'plane' : 'corner-down-left', k: x.kind })) });
+    if (r.menus.length) secs.push({ t: 'Jenis satuan biaya', items: r.menus.slice(0, 6).map((x) => item({ ...x, i: babIconOf(x.ref.id), k: lampShort(x.ref) })) });
+    if (r.rows.length) secs.push({ t: 'Baris tabel', items: r.rows.slice(0, 6).map((x) => item({ ...x, d: (x.d || '') + (x.v ? ' · ' + x.v : ''), html: true, i: 'list', v: null })) });
+    if (r.pens.length) secs.push({ t: 'Dalam teks aturan', items: r.pens.slice(0, 4).map((x) => item({ ...x, snip: true, i: 'file-text', k: x.src.split(' ')[0] })) });
+    if (r.soon.length) secs.push({ t: 'Belum tersedia', items: r.soon.slice(0, 4).map((b) => item({ href: `#/b/${b.id}`, t: b.title, d: `${babByKel(b.kel)?.name || ''} · ${lampShort(b)}`, i: 'lock-keyhole', k: 'Segera' })) });
+    if (r.corrected) secs.unshift({ t: `Menampilkan hasil untuk “${r.corrected}”`, items: [] });
+  }
+  palItems = secs.flatMap((s) => s.items);
+  palIdx = 0;
+  let n = 0;
+  list.innerHTML = palItems.length || secs.length ? secs.map((s) => `<div class="pal-sec">${esc(s.t)}</div>${s.items.map((x) => {
+    const i = n++;
+    return `<a class="pal-it${i === 0 ? ' on' : ''}" href="${esc(x.href)}" data-pi="${i}" role="option"><span class="pal-ico">${ic(x.i || 'arrow-right')}</span><span class="pal-tx"><span class="pal-t">${x.html ? x.t : esc(x.t)}</span>${x.d ? `<span class="pal-d">${x.dHtml ? x.d : esc(x.d)}</span>` : ''}</span>${x.k ? `<span class="pal-k">${esc(x.k)}</span>` : ''}${ic('corner-down-left', 'pal-enter')}</a>`;
+  }).join('')}`).join('') : '';
+  if (q.trim() && !palItems.length) list.innerHTML = `<div class="pal-empty">${ic('search')}<b>Tidak ada hasil untuk “${esc(q)}”</b><span>Coba nama provinsi, kota, atau jenis biaya.</span></div>`;
+}
+function palMove(d) {
+  if (!palItems.length) return;
+  palIdx = (palIdx + d + palItems.length) % palItems.length;
+  $$('#palList .pal-it').forEach((a) => a.classList.toggle('on', Number(a.dataset.pi) === palIdx));
+  $(`#palList [data-pi="${palIdx}"]`)?.scrollIntoView({ block: 'nearest' });
+}
+function palGo(href) {
+  if (href.startsWith('#q:')) { openPalette(href.slice(3)); return; }
+  saveQuery($('#palq').value);
+  closePalette();
+  location.hash = href;
+}
+function initPalette() {
+  const inp = $('#palq');
+  let tmr;
+  inp.addEventListener('input', () => { clearTimeout(tmr); tmr = setTimeout(() => renderPalette(inp.value), 70); });
+  inp.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowDown') { e.preventDefault(); palMove(1); }
+    else if (e.key === 'ArrowUp') { e.preventDefault(); palMove(-1); }
+    else if (e.key === 'Enter') { e.preventDefault(); const it = palItems[palIdx]; if (it) palGo(it.href); else if (inp.value.trim()) palGo('#/cari?q=' + encodeURIComponent(inp.value)); }
+    else if (e.key === 'Escape') { e.preventDefault(); closePalette(); }
+  });
+  $('#pal').addEventListener('click', (e) => {
+    if (e.target.closest('[data-pal-close]')) { closePalette(); return; }
+    const a = e.target.closest('a.pal-it');
+    if (a) { e.preventDefault(); palGo(a.getAttribute('href')); return; }
+    if (e.target.closest('#palAll')) { e.preventDefault(); palGo($('#palAll').getAttribute('href')); }
+  });
+  $('#palList').addEventListener('mousemove', (e) => {
+    const a = e.target.closest('.pal-it');
+    if (a && Number(a.dataset.pi) !== palIdx) { palIdx = Number(a.dataset.pi); $$('#palList .pal-it').forEach((x) => x.classList.toggle('on', x === a)); }
+  });
+  window.addEventListener('hashchange', closePalette);
 }
 
 /* ---------------- Router ---------------- */
@@ -127,24 +382,56 @@ function route() {
     updateResults(params.q || '');
     return;
   }
+  if (key === 'segera') { const bb = babByKel(parts[1]); location.replace('#/bab/' + (bb ? bb.key : 'perjadin')); return; }
   let html = '';
   let after = null;
+  const home = { t: 'Beranda', h: '#/', i: 'house' };
+  let cr = [home];
+  let side = [null, null, null];
   try {
     switch (key) {
-      case 'beranda': setNav('beranda'); html = viewHome(); after = afterHome; break;
-      case 'jelajah': setNav('jelajah'); html = viewJelajah(); break;
-      case 'segera': setNav('jelajah'); html = viewSoon(parts[1]); break;
-      case 'b': setNav('jelajah'); ({ html, after } = viewButir(parts[1], params, anchor)); break;
-      case 'cari': setNav('cari'); html = viewCari(params.q || ''); after = () => afterCari(params.q || ''); break;
+      case 'beranda': setNav('beranda'); side = ['beranda']; html = viewHome(); after = afterHome; break;
+      case 'jelajah': setNav('jelajah'); cr.push({ t: 'Jelajah' }); html = viewJelajah(); break;
+      case 'bab': {
+        setNav('jelajah');
+        const bb = babByKey(parts[1]) || BABS[0];
+        cr.push({ t: bb.name, i: bb.icon });
+        side = [null, 'bab:' + bb.key, bb.key];
+        ({ html, after } = viewBab(bb));
+        break;
+      }
+      case 'b': {
+        setNav('jelajah');
+        const bb = babOfButir(parts[1]);
+        if (bb) {
+          const ti = Number(params.t || 0);
+          const it = bb.items.find((x) => x.butir === parts[1] && x.table === ti) || bb.items.find((x) => x.butir === parts[1]);
+          cr.push({ t: bb.name, h: '#/bab/' + bb.key, i: bb.icon }, { t: it ? (it.full || it.n) : parts[1] });
+          side = [null, it?.k, bb.key];
+        }
+        ({ html, after } = viewButir(parts[1], params, anchor));
+        break;
+      }
+      case 'cari': setNav('cari'); cr.push({ t: 'Cari' }); html = viewCari(params.q || ''); after = () => afterCari(params.q || ''); break;
       case 'daerah':
         setNav('daerah');
-        if (parts[1] === 'p') ({ html, after } = viewProv(parts[2]));
-        else ({ html, after } = viewDaerah(parts[1] === 'ln' ? 'ln' : 'dn', params));
+        side = ['daerah'];
+        cr.push({ t: 'Daerah', h: '#/daerah', i: 'map' });
+        if (parts[1] === 'p') { cr.push({ t: S.prov[parts[2]]?.nama || 'Provinsi' }); ({ html, after } = viewProv(parts[2])); }
+        else { cr.push({ t: parts[1] === 'ln' ? 'Luar Negeri' : 'Per Provinsi' }); ({ html, after } = viewDaerah(parts[1] === 'ln' ? 'ln' : 'dn', params)); }
         break;
-      case 'rute': setNav('daerah'); ({ html, after } = viewRute(params)); break;
-      case 'bandingkan': setNav('bandingkan'); ({ html, after } = viewCompare(params)); break;
-      case 'tersimpan': setNav('tersimpan'); html = viewSaved(); break;
-      case 'lainnya': setNav('lainnya'); ({ html, after } = viewMore(parts[1])); break;
+      case 'rute': setNav('daerah'); side = ['rute']; cr.push({ t: 'Rute Perjadin', i: 'route' }); ({ html, after } = viewRute(params)); break;
+      case 'bandingkan': setNav('bandingkan'); side = ['bandingkan']; cr.push({ t: 'Bandingkan Provinsi', i: 'scale' }); ({ html, after } = viewCompare(params)); break;
+      case 'tersimpan': setNav('tersimpan'); side = ['tersimpan']; cr.push({ t: 'Tersimpan', i: 'star' }); html = viewSaved(); break;
+      case 'lainnya': {
+        setNav('lainnya');
+        const ref = REF_LINKS.find((r) => r.h === '#/' + parts.join('/'));
+        cr.push(parts[1] ? { t: 'Referensi', h: '#/lainnya', i: 'library' } : { t: 'Lainnya' });
+        if (parts[1] && ref) cr.push({ t: ref.n });
+        side = [null, ref ? 'ref:' + ref.h : null, 'ref'];
+        ({ html, after } = viewMore(parts[1]));
+        break;
+      }
       default: html = `<div class="empty">Halaman tidak ditemukan. <a href="#/">Kembali ke Beranda</a></div>`;
     }
   } catch (err) {
@@ -153,9 +440,10 @@ function route() {
   }
   html = html.replace(/<\/h1>\s*<p class="subtitle">([\s\S]*?)<\/p>/g, (m, t) => ` ${tip(t)}</h1>`);
   main.innerHTML = html + footer();
-  if (pathKey !== lastPath) window.scrollTo(0, 0);
+  if (pathKey !== lastPath) { window.scrollTo(0, 0); main.classList.remove('enter'); void main.offsetWidth; main.classList.add('enter'); }
   lastPath = key === 'cari' ? 'cari' : pathKey;
-  if (key !== 'cari') { const tq = $('#topq'); if (tq && document.activeElement !== tq) tq.value = ''; }
+  setCrumbs(cr);
+  sideActive(side[0], side[1], side[2]);
   if (after) after();
 }
 
@@ -164,27 +452,53 @@ function footer() {
 }
 
 /* ---------------- Beranda ---------------- */
+const HOME_HINTS = ['uang harian jatim', 'jakarta surabaya', 'penginapan dki', 'taksi bali', 'fullboard', 'jepang'];
+function babCard(b, i) {
+  const pops = b.popular.map((k) => b.items.find((x) => x.k === k)).filter(Boolean);
+  return `<a class="bab-card${b.active ? '' : ' soon'}" href="#/bab/${b.key}" style="--i:${i}">
+    <div class="bc-top"><span class="bc-ico">${ic(b.icon)}</span>${b.active ? '<span class="chip ok">Tersedia</span>' : '<span class="chip soon">Segera</span>'}</div>
+    <b class="bc-name">${esc(b.name)}</b>
+    <p class="bc-desc">${esc(b.desc)}</p>
+    <div class="bc-pop">${pops.map((x) => `<span>${ic(x.icon)}${esc(x.n)}</span>`).join('')}</div>
+    <div class="bc-foot"><span>${b.count} ${b.active ? 'jenis satuan biaya' : 'butir'}</span>${ic('arrow-right')}</div>
+  </a>`;
+}
 function viewHome() {
-  const sc = SHORTCUTS.map((k) => {
-    const e = entry(k); const b = S.butir[e.butir];
-    return `<a class="sc" href="#/b/${e.butir}?t=${e.table}" title="${esc(e.desc)}"><span class="ico">${ic(e.icon)}</span><b>${esc(e.name)}</b></a>`;
-  }).join('');
-  const recent = store.get('recent', []).map(entry).filter(Boolean);
-  const sv = saved().map(entry).filter(Boolean);
-  const list = (arr) => `<div class="card list">${arr.map(entryRow).join('')}</div>`;
+  const recent = store.get('recent', []).map(entry).filter(Boolean).slice(0, 5);
+  const sv = saved().map(entry).filter(Boolean).slice(0, 5);
+  const total = S.data.butir.length;
+  const mini = (arr, empty) => arr.length ? `<div class="card list">${arr.map(entryRow).join('')}</div>` : `<div class="card empty-card">${empty}</div>`;
+  const tool = (h, i, t, d) => `<a class="tool" href="${h}"><span class="tool-ico">${ic(i)}</span><span class="tool-tx"><b>${t}</b><small>${d}</small></span>${ic('chevron-right', 'chev')}</a>`;
   return `
-  <section class="hero">
-    <h1>Standar Biaya Masukan TA 2027 ${tip('Baca PMK 54/2026 dan KMK 296/2026 tanpa membuka PDF. Tahap 1: perjalanan dinas. Contoh pencarian: <i>uang harian jatim</i>, <i>jakarta surabaya</i>, <i>fullboard</i>, <i>taksi bali</i>.')}</h1>
-    <label class="hero-search" for="hq">${ic('search')}<input id="hq" type="search" placeholder="Cari satuan biaya, provinsi, atau kota…" autocomplete="off" enterkeyhint="search"></label>
+  <section class="hero hero-u">
+    <div class="hero-eyebrow">${ic('sparkles')} Standar Biaya Masukan</div>
+    <h1>Tahun Anggaran 2027 ${tip('Baca PMK 54/2026 dan KMK 296/2026 tanpa membuka PDF. Semua angka diambil dari tabel KMK dan dicek silang.')}</h1>
+    <label class="hero-search" for="hq">${ic('search')}<input id="hq" type="search" placeholder="Cari satuan biaya, provinsi, kota, atau aturan…" autocomplete="off" enterkeyhint="search"><kbd class="hide-sm">${isMac ? '⌘' : 'Ctrl'} K</kbd></label>
+    <div class="hero-tags">${HOME_HINTS.map((h) => `<a href="#/cari?q=${encodeURIComponent(h)}" data-q="${esc(h)}">${esc(h)}</a>`).join('')}</div>
+    <div class="hero-law">
+      <a href="#/lainnya/tentang"><b>PMK 54/2026</b><span>Norma & jenis</span></a>
+      <a href="#/lainnya/tentang"><b>KMK 296/2026</b><span>Besaran rupiah</span></a>
+      <span><b>${total} butir</b><span>dalam ${BABS.length} bab</span></span>
+    </div>
   </section>
-  <section class="card card-pad home-route">
-    <div class="row" style="margin-bottom:10px"><b>${ic('route')} Rute perjadin</b>${tip('Pilih kota asal dan tujuan; semua satuan biaya yang relevan langsung muncul. Mencakup 514 kabupaten/kota dan 38 provinsi.')}</div>
-    ${routeForm('jakarta', '', true)}
-  </section>
-  <h2 class="sec">Pintasan</h2>
-  <div class="shortcuts">${sc}</div>
-  ${recent.length ? `<h2 class="sec">${ic('clock')} Terakhir dilihat</h2>${list(recent)}` : ''}
-  ${sv.length ? `<h2 class="sec">${ic('star')} Tersimpan</h2>${list(sv)}` : ''}
+  <h2 class="sec">${ic('layers-2')} Bab satuan biaya <small>Tahap 1: Perjalanan Dinas</small></h2>
+  <div class="bab-grid">${BABS.map(babCard).join('')}</div>
+  <h2 class="sec">${ic('compass')} Alat bantu</h2>
+  <div class="tools">
+    <section class="card card-pad tool-route">
+      <div class="row tr-head"><span class="tool-ico">${ic('route')}</span><div><b>Rute perjadin</b><small>Dari kota X ke kota Y, semua satuan biaya langsung muncul</small></div>${tip('Mencakup 514 kabupaten/kota dan 38 provinsi. Kota asal bawaan: Jakarta.')}</div>
+      ${routeForm('jakarta', '', true)}
+    </section>
+    <div class="tool-list card">
+      ${tool('#/daerah', 'map', 'Per provinsi', 'Semua satuan biaya perjadin satu provinsi')}
+      ${tool('#/bandingkan', 'scale', 'Bandingkan provinsi', 'Sampai 3 provinsi berdampingan')}
+      ${tool('#/daerah/ln', 'globe', 'Luar negeri', 'Uang harian per negara & tiket per kota')}
+    </div>
+  </div>
+  <div class="two-col">
+    <div><h2 class="sec">${ic('history')} Terakhir dilihat</h2>${mini(recent, 'Halaman yang Anda buka akan muncul di sini.')}</div>
+    <div><h2 class="sec">${ic('star')} Tersimpan</h2>${mini(sv, `Tekan ${ic('star')} <b>Simpan</b> di halaman satuan biaya untuk menyimpannya di sini.`)}</div>
+  </div>
 `;
 }
 function afterHome() {
@@ -194,38 +508,60 @@ function afterHome() {
   $('#rSwap').style.visibility = 'hidden';
   $$('[data-clear]').forEach((b) => b.onclick = () => { const i = $('#' + b.dataset.clear); i.value = ''; i.focus(); });
   const hq = $('#hq');
-  hq.addEventListener('input', () => { location.hash = '#/cari?q=' + encodeURIComponent(hq.value); });
+  hq.addEventListener('input', () => {
+    if (isDesk()) { const v = hq.value; hq.value = ''; openPalette(v); }
+    else location.hash = '#/cari?q=' + encodeURIComponent(hq.value);
+  });
+  hq.addEventListener('focus', () => { if (isDesk()) { hq.blur(); openPalette(''); } });
+  $$('.hero-tags [data-q]').forEach((a) => a.addEventListener('click', (e) => { if (isDesk()) { e.preventDefault(); openPalette(a.dataset.q); } }));
 }
 function entryRow(e) {
   const b = S.butir[e.butir];
-  return `<a class="li" href="#/b/${e.butir}?t=${e.table}" title="${esc(e.desc)}"><div class="grow"><div class="t">${esc(e.name)}</div></div><span class="chip ${SIFAT[b.sifat].cls} hide-sm">${SIFAT[b.sifat].label}</span><span class="li-ref hide-sm">${lampShort(b)}</span>${ic('chev', 'chev')}</a>`;
+  return `<a class="li" href="#/b/${e.butir}?t=${e.table}" title="${esc(e.desc)}"><span class="li-ico">${ic(e.icon)}</span><div class="grow"><div class="t">${esc(e.name)}</div></div><span class="chip ${SIFAT[b.sifat].cls} hide-sm">${SIFAT[b.sifat].label}</span><span class="li-ref hide-sm">${lampShort(b)}</span>${ic('chev', 'chev')}</a>`;
 }
 
-/* ---------------- Jelajah ---------------- */
+/* ---------------- Jelajah (HP) ---------------- */
 function viewJelajah() {
-  const groups = GROUPS.map((g) => {
-    const items = ENTRIES.filter((e) => e.group === g.id);
-    return `<div class="group-title">${esc(g.name)} <span class="count">${items.length}</span></div><div class="card list">${items.map(entryRow).join('')}</div>`;
-  }).join('');
-  const soon = KEL_ORDER.filter((k) => k !== 'C').map((k) => {
-    const n = S.data.butir.filter((b) => b.kel === k).length;
-    return `<a class="li soon" href="#/segera/${k}"><div class="grow"><div class="t">${esc(S.data.kelompok[k])}</div><div class="d">${n} butir · segera hadir</div></div>${ic('chev', 'chev')}</a>`;
-  }).join('');
+  const babs = BABS.map((b) => `<a class="li bab-li${b.active ? '' : ' soon'}" href="#/bab/${b.key}"><span class="li-ico big">${ic(b.icon)}</span><div class="grow"><div class="t">${esc(b.name)}</div><div class="d">${esc(b.desc)}</div></div>${b.active ? `<span class="chip ok">${b.count} jenis</span>` : '<span class="chip soon">Segera</span>'}${ic('chev', 'chev')}</a>`).join('');
+  const refs = REF_LINKS.map((r) => `<a class="li" href="${r.h}"><span class="li-ico">${ic(r.icon)}</span><div class="grow"><div class="t">${esc(r.n)}</div></div>${ic('chev', 'chev')}</a>`).join('');
   return `
-  <div class="page-head"><h1 class="title">Jelajah</h1><p class="subtitle">Satuan biaya perjalanan dinas, dikelompokkan menurut jenis perjalanan. Nomor butir mengikuti KMK 296/2026.</p></div>
-  ${groups}
-  <div class="group-title">Segera hadir</div>
-  <div class="card list">${soon}</div>`;
+  <div class="page-head"><h1 class="title">Jelajah</h1><p class="subtitle">Satuan biaya dikelompokkan per bab. Tahap 1 membuka Perjalanan Dinas; bab lain menyusul.</p></div>
+  <div class="group-title">Bab satuan biaya</div>
+  <div class="card list">${babs}</div>
+  <div class="group-title">Referensi</div>
+  <div class="card list">${refs}</div>`;
 }
 
-function viewSoon(kel) {
-  const name = S.data.kelompok[kel];
-  if (!name) return `<div class="empty">Kelompok tidak ditemukan.</div>`;
-  const items = S.data.butir.filter((b) => b.kel === kel);
-  return `
-  <div class="page-head"><div class="crumb"><a href="#/jelajah">Jelajah</a><span class="sep">›</span>Segera hadir</div>
-  <h1 class="title">${esc(name)}</h1><p class="subtitle">Kelompok ini belum dibuka di aplikasi. Datanya sudah tersedia dan akan diaktifkan pada tahap berikutnya.</p></div>
-  <div class="card list">${items.map((b) => `<div class="li soon"><div class="grow"><div class="t">${esc(b.title)}</div><div class="d">${lampShort(b)} · ${SIFAT[b.sifat].label}</div></div><span class="chip soon">Segera</span></div>`).join('')}</div>`;
+/* ---------------- Halaman bab ---------------- */
+function viewBab(bab) {
+  const butirs = [...new Set(bab.items.map((x) => x.butir))].map((id) => S.butir[id]);
+  const nBT = butirs.filter((b) => b.sifat === 'BT').length;
+  const card = (it, i) => {
+    const b = S.butir[it.butir];
+    return `<a class="ent${it.active ? '' : ' off'}" href="${it.href}" style="--i:${i}">
+      <span class="ent-ico">${ic(it.icon)}</span>
+      <span class="ent-tx"><b>${esc(it.full || it.n)}</b><small>${esc(it.desc || b.title)}</small>
+      <span class="ent-meta"><span class="chip ${SIFAT[b.sifat].cls}">${SIFAT[b.sifat].label}</span><span class="li-ref">${lampShort(b)}</span></span></span>
+    </a>`;
+  };
+  let n = 0;
+  const groups = bab.groups.map((g) => `${g.t ? `<div class="group-title">${esc(g.t)} <span class="count">${g.items.length}</span></div>` : ''}<div class="ent-grid">${g.items.map((it) => card(it, n++)).join('')}</div>`).join('');
+  const tools = bab.key === 'perjadin' ? `<div class="bab-tools">
+      <a href="#/rute">${ic('route')}<span><b>Rute perjadin</b><small>Kota X ke kota Y</small></span></a>
+      <a href="#/daerah">${ic('map')}<span><b>Per provinsi</b><small>Semua biaya satu provinsi</small></span></a>
+      <a href="#/bandingkan">${ic('scale')}<span><b>Bandingkan</b><small>Sampai 3 provinsi</small></span></a>
+      <a href="#/daerah/ln">${ic('globe')}<span><b>Luar negeri</b><small>Per negara & kota</small></span></a>
+    </div>` : '';
+  const html = `
+  <div class="page-head bab-head">
+    <div class="crumb"><a href="#/jelajah">Jelajah</a><span class="sep">›</span>${esc(bab.name)}</div>
+    <div class="bab-title"><span class="bab-ico">${ic(bab.icon)}</span><div><h1 class="title">${esc(bab.name)}</h1><p class="bab-desc">${esc(bab.desc)}</p></div></div>
+    <div class="chips">${bab.active ? `<span class="chip">${bab.count} jenis satuan biaya</span>` : ''}<span class="chip">${butirs.length} butir KMK</span>${nBT ? `<span class="chip bt">${nBT} batas tertinggi</span>` : ''}${butirs.length - nBT ? `<span class="chip dl">${butirs.length - nBT} dapat dilampaui</span>` : ''}</div>
+  </div>
+  ${bab.active ? '' : `<div class="callout soon-call">${ic('sparkles')}<div><b>Segera hadir.</b> Bab ini belum dibuka pada tahap 1 (perjalanan dinas). Datanya sudah diekstrak dari KMK 296/2026 dan akan diaktifkan pada tahap berikutnya. Daftar butirnya bisa dilihat di bawah.</div></div>`}
+  ${tools}
+  ${groups}`;
+  return { html };
 }
 
 /* ---------------- Tabel ---------------- */
@@ -316,7 +652,13 @@ function viewButir(id, params, anchor) {
   const b = S.butir[id];
   if (!b) return { html: `<div class="empty">Butir tidak ditemukan.</div>` };
   if (!b.active) {
-    return { html: `<div class="page-head"><div class="crumb"><a href="#/jelajah">Jelajah</a><span class="sep">›</span><a href="#/segera/${b.kel}">${esc(S.data.kelompok[b.kel])}</a></div><h1 class="title">${esc(b.title)}</h1><div class="chips">${sifatChip(b)}${refChip(b)}<span class="chip soon">Segera hadir</span></div></div><div class="callout">${ic('info')}<div>Butir ini belum dibuka pada tahap 1 (perjalanan dinas).</div></div>` };
+    const bb = babOfButir(id);
+    const it = bb?.items.find((x) => x.butir === id);
+    return { html: `<div class="page-head"><div class="crumb"><a href="#/bab/${bb.key}">${esc(bb.name)}</a></div>
+      <div class="bab-title"><span class="bab-ico">${ic(it?.icon || bb.icon)}</span><div><h1 class="title">${esc(it?.n || b.title)}</h1><p class="bab-desc">${esc(b.title)}</p></div></div>
+      <div class="chips">${sifatChipTip(b)}${refChip(b)}<span class="chip soon">Segera hadir</span></div></div>
+      <div class="callout soon-call">${ic('sparkles')}<div><b>Segera hadir.</b> Butir ini belum dibuka pada tahap 1 (perjalanan dinas). Tabel dan penjelasannya akan tampil saat bab ${esc(bb.name)} diaktifkan.</div></div>
+      <div class="actions" style="margin-top:14px"><a class="btn" href="#/bab/${bb.key}">${ic(bb.icon)} Lihat bab ${esc(bb.name)}</a><a class="btn" href="${pdfLink(b)}" target="_blank" rel="noopener">${ic('file')} Buka PDF ${pageRange(b)}</a></div>` };
   }
   const ents = entriesOf(id);
   let ti = Math.max(0, Math.min(Number(params.t || 0), b.tables.length - 1));
@@ -396,7 +738,7 @@ function viewButir(id, params, anchor) {
   const title = id === 'L1-25' ? e.name : e.name;
   const html = `
   <div class="page-head">
-    <div class="crumb"><a href="#/jelajah">Jelajah</a><span class="sep">›</span>${esc(g.name)}</div>
+    <div class="crumb"><a href="#/bab/perjadin">Perjalanan Dinas</a><span class="sep">›</span>${esc(g.short)}</div>
     <h1 class="title">${esc(title)}</h1>
     <p class="subtitle">${esc(b.title)}</p>
     <div class="chips">${sifatChipTip(b)}${refChip(b)}<a class="chip" href="${pdfLink(b)}" target="_blank" rel="noopener">${ic('file')} PDF ${pageRange(b)}</a></div>
@@ -504,7 +846,7 @@ function updateResults(q) {
   if (r.menus.length) html += `<div class="res-group"><div class="res-title">Jenis satuan biaya</div><div class="card list">${r.menus.map((x) => li(x, sifatChip(x.ref) + refChip(x.ref))).join('')}</div></div>`;
   if (r.rows.length) html += `<div class="res-group"><div class="res-title">Baris tabel <span class="count muted">(${r.rows.length >= 40 ? '40+' : r.rows.length})</span></div><div class="card list">${r.rows.slice(0, 25).map((x) => li(x)).join('')}</div></div>`;
   if (r.pens.length) html += `<div class="res-group"><div class="res-title">Dalam teks aturan</div><div class="card list">${r.pens.map((x) => li({ ...x, snip: true }, `<span class="chip">${esc(x.src)}</span>`)).join('')}</div></div>`;
-  if (r.soon.length) html += `<div class="res-group"><div class="res-title">Belum tersedia di versi ini</div><div class="card list">${r.soon.map((b) => `<a class="li soon" href="#/segera/${b.kel}"><div class="grow"><div class="t">${esc(b.title)}</div><div class="d">${esc(S.data.kelompok[b.kel])} · ${lampShort(b)}</div></div><span class="chip soon">Segera</span></a>`).join('')}</div></div>`;
+  if (r.soon.length) html += `<div class="res-group"><div class="res-title">Belum tersedia di versi ini</div><div class="card list">${r.soon.map((b) => `<a class="li soon" href="#/b/${b.id}"><div class="grow"><div class="t">${esc(b.title)}</div><div class="d">${esc(babByKel(b.kel)?.name || '')} · ${lampShort(b)}</div></div><span class="chip soon">Segera</span></a>`).join('')}</div></div>`;
   if (!html || (!r.best.length && !r.menus.length && !r.rows.length && !r.pens.length && !r.soon.length)) {
     html += `<div class="empty">Tidak ada hasil untuk <b>${esc(q)}</b>.<br><span class="small">Coba kata lain, mis. nama provinsi, kota, atau jenis biaya.</span></div>`;
   }
@@ -754,6 +1096,7 @@ function viewMore(sub) {
         <tr><td>Isi</td><td>Lampiran I (batas tertinggi) beserta Penjelasan, Lampiran II (dapat dilampaui) beserta Penjelasan. ${M.kmk.halaman} halaman.</td></tr>
       </tbody></table><div class="actions"><a class="btn" href="docs/kmk-296-2026.pdf" target="_blank" rel="noopener">${ic('download')} PDF KMK 296/2026</a></div></div>
       <div class="card card-pad"><table class="plain"><tbody><tr><th colspan="2">Data wilayah (fitur Rute)</th></tr><tr><td>Sumber</td><td>idn-area-data v4.0.1 oleh Fityan Nugroho, dari data wilayah administrasi Kemendagri. Dilisensikan dengan Open Database License (ODbL).</td></tr><tr><td>Isi</td><td>38 provinsi dan 514 kabupaten/kota, dipetakan ke baris KMK (transport darat, Bodetabek) dan kota tiket. Pemetaan nama yang berbeda dicatat di Catatan atas dokumen.</td></tr></tbody></table></div>
+      <div class="card card-pad"><table class="plain"><tbody><tr><th colspan="2">Ikon</th></tr><tr><td>Sumber</td><td>Lucide (lucide.dev), lucide-static v1.75.0. Dilisensikan dengan ISC License, © Lucide Contributors. Disematkan di aplikasi agar berfungsi tanpa internet.</td></tr></tbody></table></div>
       <div class="callout">${ic('info')}<div>Seluruh angka diambil langsung dari tabel PDF KMK 296/2026 dan dicek silang dengan ekstraksi teks kedua (3.168 baris bernomor cocok). Aplikasi ini alat bantu baca; untuk keperluan formal, rujuk dokumen aslinya.</div></div>
     </div>` };
   }
@@ -800,7 +1143,7 @@ function viewMore(sub) {
     ${isStandalone ? '<div class="muted">Aplikasi sudah terpasang di perangkat ini.</div>' : `<div class="row" style="justify-content:space-between"><div class="row"><b>Pasang di perangkat</b>${tip('Buka lebih cepat dan tetap bisa dipakai tanpa internet.')}</div><button class="btn primary" id="installBtn">${ic('phone')} Pasang</button></div><div class="muted small" id="installHelp" style="margin-top:10px;display:none">Di Chrome HP: ketuk menu ⋮ lalu pilih <b>Tambahkan ke layar utama</b> / <b>Instal aplikasi</b>. Di PC: klik ikon pasang di kolom alamat.</div>`}
   </div>
   <div class="group-title">Cakupan</div>
-  <div class="card list">${KEL_ORDER.map((k) => `<a class="li${k === 'C' ? '' : ' soon'}" href="${k === 'C' ? '#/jelajah' : '#/segera/' + k}"><div class="grow"><div class="t">${esc(S.data.kelompok[k])}</div><div class="d">${S.data.butir.filter((b) => b.kel === k).length} butir</div></div>${k === 'C' ? '<span class="chip dl">Tersedia</span>' : '<span class="chip soon">Segera</span>'}</a>`).join('')}</div>`;
+  <div class="card list">${BABS.map((b) => `<a class="li${b.active ? '' : ' soon'}" href="#/bab/${b.key}"><span class="li-ico">${ic(b.icon)}</span><div class="grow"><div class="t">${esc(b.name)}</div><div class="d">${b.count} ${b.active ? 'jenis satuan biaya' : 'butir'}</div></div>${b.active ? '<span class="chip ok">Tersedia</span>' : '<span class="chip soon">Segera</span>'}</a>`).join('')}</div>`;
   const after = () => {
     $$('[data-th]').forEach((b) => b.onclick = () => { store.set('theme', b.dataset.th); applyTheme(); $$('[data-th]').forEach((x) => x.classList.toggle('on', x === b)); });
     const ib = $('#installBtn');

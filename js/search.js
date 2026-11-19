@@ -170,6 +170,26 @@ export function search(qRaw) {
       return { ...out, tokens: [] };
     }
   }
+  // Rute tanpa "ke": dua nama tempat berurutan, mis. "jakarta bojonegoro"
+  {
+    const tk = q.split(' ');
+    const strict = (seg) => {
+      if (seg.length < 3 || /^(kab|kabupaten|kota|prov|provinsi|kep|kepulauan)$/.test(seg.split(' ')[0]) && seg.split(' ').length === 1) return null;
+      const p = matchPlace(seg);
+      if (!p) return null;
+      const words = norm([p.n, ...(p.a || [])].join(' ')).split(' ');
+      return seg.split(' ').every((w) => words.some((x) => x.startsWith(w))) ? p : null;
+    };
+    const whole = tk.length > 1 ? strict(q) : null;
+    for (let i = 1; !whole && i < tk.length && tk.length <= 5; i++) {
+      const a = strict(tk.slice(0, i).join(' ')), b = strict(tk.slice(i).join(' '));
+      if (/^(kab|kota|kabupaten)$/.test(tk[i - 1])) continue;
+      if (a && b && a.id !== b.id && !(a.id === 'jakarta' && /^31\./.test(b.id))) {
+        out.best.push({ t: `Rute perjadin ${a.n} → ${b.n}`, d: 'Taksi, tiket, transport darat, uang harian, penginapan, dan paket rapat untuk rute ini.', href: `#/rute?dari=${encodeURIComponent(a.id)}&ke=${encodeURIComponent(b.id)}`, kind: 'Rute' });
+        break;
+      }
+    }
+  }
 
   const pr = takePhrases(q, IDX.provPhrases);
   const er = takePhrases(pr.rest, IDX.entryPhrases);
@@ -188,7 +208,7 @@ export function search(qRaw) {
   }
   ents = [...new Set(ents)];
   if (/(^| )perjadin|perjalanan dinas( |$)/.test(q) && !ents.length && !provs.length) {
-    out.best.push({ t: 'Perjalanan Dinas', d: 'Semua jenis satuan biaya perjalanan dinas: dalam negeri, luar negeri, dan pindah.', href: '#/jelajah', kind: 'Jelajah' });
+    out.best.push({ t: 'Perjalanan Dinas', d: 'Semua jenis satuan biaya perjalanan dinas: dalam negeri, luar negeri, dan pindah.', href: '#/bab/perjadin', kind: 'Bab' });
     ents = ENTRIES.map((e) => e.key);
   }
 

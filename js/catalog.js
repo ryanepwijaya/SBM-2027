@@ -21,7 +21,7 @@ export const ENTRIES = [
     ],
   },
   {
-    key: 'representasi', group: 'dn', butir: 'L1-25', table: 1, icon: 'badge',
+    key: 'representasi', group: 'dn', butir: 'L1-25', table: 1, icon: 'award',
     name: 'Uang Representasi', desc: 'Pejabat negara/wamen, eselon I, eselon II — berlaku nasional',
     syn: ['representasi', 'uang representasi', 'eselon i', 'eselon ii', 'pejabat negara', 'wamen', 'wakil menteri'],
     points: [
@@ -30,7 +30,7 @@ export const ENTRIES = [
     ],
   },
   {
-    key: 'penginapan', group: 'dn', butir: 'L1-27', table: 0, icon: 'bed',
+    key: 'penginapan', group: 'dn', butir: 'L1-27', table: 0, icon: 'hotel',
     name: 'Penginapan (Hotel)', desc: 'Tarif hotel per provinsi untuk 4 tingkat jabatan',
     syn: ['penginapan', 'hotel', 'inap', 'menginap', 'nginap', 'akomodasi', 'kamar', 'losmen', 'tarif hotel', 'golongan iii', 'golongan iv', 'gol iii', 'gol iv'],
     points: [
@@ -41,7 +41,7 @@ export const ENTRIES = [
     ],
   },
   {
-    key: 'tiket-dn', group: 'dn', butir: 'L2-6', table: 0, icon: 'plane',
+    key: 'tiket-dn', group: 'dn', butir: 'L2-6', table: 0, icon: 'plane-takeoff',
     name: 'Tiket Pesawat Dalam Negeri', desc: '316 rute pergi pulang, kelas bisnis dan ekonomi',
     syn: ['tiket', 'pesawat', 'penerbangan', 'tiket pesawat', 'flight', 'maskapai', 'bisnis', 'ekonomi', 'pp', 'pulang pergi', 'pergi pulang', 'rute'],
     points: [
@@ -52,7 +52,7 @@ export const ENTRIES = [
     appNote: 'KMK mencantumkan setiap rute satu kali (kota asal – kota tujuan). Pencarian di aplikasi ini mencocokkan kedua arah.',
   },
   {
-    key: 'taksi', group: 'dn', butir: 'L2-5', table: 0, icon: 'taxi',
+    key: 'taksi', group: 'dn', butir: 'L2-5', table: 0, icon: 'car-taxi-front',
     name: 'Taksi ke/dari Bandara, Stasiun, Terminal', desc: 'Sekali jalan per provinsi, metode lumpsum',
     syn: ['taksi', 'taxi', 'bandara', 'airport', 'stasiun', 'terminal', 'pelabuhan', 'transport bandara', 'transportasi bandara', 'antar jemput'],
     points: [
@@ -63,7 +63,7 @@ export const ENTRIES = [
     appNote: 'Tabel KMK hanya memuat 34 provinsi. Papua Barat Daya, Papua Tengah, Papua Selatan, dan Papua Pegunungan tidak tercantum.',
   },
   {
-    key: 'darat', group: 'dn', butir: 'L2-2', table: 0, icon: 'bus',
+    key: 'darat', group: 'dn', butir: 'L2-2', table: 0, icon: 'bus-front',
     name: 'Transport Darat Ibu Kota Provinsi ke Kabupaten/Kota', desc: 'Sekali jalan, 361 rute di 31 provinsi',
     syn: ['transport darat', 'transportasi darat', 'darat', 'kabupaten', 'kab', 'kota tujuan', 'antar kota', 'antarkota', 'travel', 'bus', 'ibu kota provinsi', 'ibukota'],
     points: [
@@ -73,7 +73,7 @@ export const ENTRIES = [
     appNote: 'Tabel KMK memuat 31 provinsi. DKI Jakarta diatur tersendiri (transport ke Bodetabek); Kalimantan Utara, Maluku, Papua Barat Daya, Papua Tengah, Papua Selatan, dan Papua Pegunungan tidak tercantum.',
   },
   {
-    key: 'bodetabek', group: 'dn', butir: 'L2-3', table: 0, icon: 'route',
+    key: 'bodetabek', group: 'dn', butir: 'L2-3', table: 0, icon: 'signpost',
     name: 'Transport Jakarta ke Bodetabek', desc: 'Bogor, Depok, Bekasi, Tangerang, Tangsel, Kep. Seribu',
     syn: ['bodetabek', 'jabodetabek', 'bekasi', 'bogor', 'depok', 'tangerang', 'tangsel', 'tangerang selatan', 'kepulauan seribu', 'pulau seribu', 'kota sekitar'],
     points: [
@@ -82,7 +82,7 @@ export const ENTRIES = [
     ],
   },
   {
-    key: 'dalam-kota', group: 'dn', butir: 'L2-4', table: 0, icon: 'pin',
+    key: 'dalam-kota', group: 'dn', butir: 'L2-4', table: 0, icon: 'map-pin',
     name: 'Transpor Kegiatan Dalam Kota (PP)', desc: 'Pergi pulang dalam satu kabupaten/kota — berlaku nasional',
     syn: ['transpor lokal', 'transport lokal', 'dalam kota', 'transpor kegiatan', 'transport kegiatan', 'transpor dalam kota', 'pp dalam kota'],
     points: [
@@ -94,7 +94,7 @@ export const ENTRIES = [
     ],
   },
   {
-    key: 'rapat', group: 'dn', butir: 'L1-29', table: 0, icon: 'people',
+    key: 'rapat', group: 'dn', butir: 'L1-29', table: 0, icon: 'users',
     name: 'Rapat/Pertemuan di Luar Kantor', desc: 'Paket halfday, fullday, fullboard + uang harian fullboard',
     syn: ['rapat', 'paket meeting', 'meeting', 'paket rapat', 'fullboard', 'full board', 'fullday', 'full day', 'halfday', 'half day', 'konsinyering', 'konsinyasi', 'pertemuan', 'rapat luar kantor', 'fb', 'fd', 'hd'],
     points: [
@@ -118,7 +118,7 @@ export const ENTRIES = [
     ],
   },
   {
-    key: 'tiket-ln', group: 'ln', butir: 'L2-7', table: 0, icon: 'plane',
+    key: 'tiket-ln', group: 'ln', butir: 'L2-7', table: 0, icon: 'plane-landing',
     name: 'Tiket Pesawat Luar Negeri', desc: 'Dalam US$, PP dari Jakarta, eksekutif/bisnis/ekonomi',
     syn: ['tiket luar negeri', 'tiket ln', 'pesawat luar negeri', 'eksekutif', 'first class'],
     points: [
@@ -128,7 +128,7 @@ export const ENTRIES = [
     ],
   },
   {
-    key: 'pengepakan', group: 'pindah', butir: 'L1-24', table: 0, icon: 'box',
+    key: 'pengepakan', group: 'pindah', butir: 'L1-24', table: 0, icon: 'package-open',
     name: 'Pengepakan & Angkutan Barang Pindah DN', desc: 'Kereta api, truk, angkutan laut/sungai',
     syn: ['pindah', 'mutasi', 'pengepakan', 'angkutan barang', 'barang pindahan', 'pindahan', 'truk', 'kereta api', 'penggudangan'],
     points: [
@@ -137,7 +137,7 @@ export const ENTRIES = [
     ],
   },
   {
-    key: 'tiket-pindah-ln', group: 'pindah', butir: 'L1-28', table: 0, icon: 'plane',
+    key: 'tiket-pindah-ln', group: 'pindah', butir: 'L1-28', table: 0, icon: 'luggage',
     name: 'Tiket Pindah Luar Negeri (One Way)', desc: 'Dalam US$, Jakarta ⇄ 132 perwakilan',
     syn: ['tiket pindah', 'pindah luar negeri', 'one way', 'perwakilan', 'cross posting', 'cross-posting', 'published', 'business', 'first'],
     points: [

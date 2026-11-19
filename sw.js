@@ -1,9 +1,9 @@
 // Service worker: aplikasi tetap bisa dibuka tanpa internet
-const VERSION = 'sbm27-v4-202611181732';
+const VERSION = 'sbm27-v5-202611191400';
 const SHELL = [
   './', 'index.html', 'css/app.css', 'manifest.webmanifest',
   'js/app.js', 'js/store.js', 'js/search.js', 'js/catalog.js', 'js/icons.js',
-  'data/sbm.json', 'data/wilayah.json', 'js/rute.js',
+  'data/sbm.json', 'data/wilayah.json', 'js/rute.js', 'js/bab.js',
   'icons/icon-192.png', 'icons/icon-512.png', 'icons/maskable-512.png', 'icons/apple-touch-icon.png', 'icons/favicon-64.png',
 ];
 
