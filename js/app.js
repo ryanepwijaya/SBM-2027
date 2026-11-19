@@ -60,7 +60,7 @@ const pdfBtn = (b) => `<a class="btn sm pdf-btn" href="${pdfLink(b)}" target="_b
 // Pilihan tahun anggaran (memuat ulang aplikasi dengan data tahun terpilih)
 function yearSwitch(where) {
   const ys = Object.keys(YEARS).map(Number).sort((a, b) => b - a);
-  return `<div class="yr yr-${where}" role="group" aria-label="Tahun anggaran">${where === 'side' ? '<span class="yr-lbl">TA</span>' : ''}${ys.map((y) => `<button type="button" class="yr-b${y === Y.y ? ' on' : ''}" data-year="${y}" aria-pressed="${y === Y.y}" title="Standar Biaya Masukan TA ${y} (${YEARS[y].src})">${where === 'top' || where === 'side' ? y : `TA ${y}`}</button>`).join('')}</div>`;
+  return `<div class="yr yr-${where}" role="group" aria-label="Tahun anggaran">${ys.map((y) => `<button type="button" class="yr-b${y === Y.y ? ' on' : ''}" data-year="${y}" aria-pressed="${y === Y.y}" title="Standar Biaya Masukan TA ${y} (${YEARS[y].src})"${where === 'side' ? ` data-tip="TA ${y}"` : ''}>${where === 'top' || where === 'side' ? `<span class="yr-y">${y}</span>` : `TA ${y}`}${where === 'side' ? `<small>${YEARS[y].src}</small>` : ''}</button>`).join('')}</div>`;
 }
 function bindYearSwitch(root) {
   root.addEventListener('click', (e) => {
@@ -99,6 +99,7 @@ function shell() {
   $('#app').innerHTML = `
   <aside class="sidebar" aria-label="Navigasi">
     ${brand}
+    <div class="side-year"><div class="side-year-lbl">Tahun Anggaran</div>${yearSwitch('side')}</div>
     <div class="side-scroll" id="sideScroll">${sideHtml()}</div>
     <div class="side-foot">
       <button class="side-btn" id="sideTheme" data-theme-ico aria-label="Ganti tema" data-tip="Ganti tema"></button>
@@ -109,9 +110,9 @@ function shell() {
   <div class="content">
     <header class="topbar">
       ${brand}
+      ${yearSwitch('top')}
       <nav class="crumbs" id="crumbs" aria-label="Lokasi"></nav>
       <span class="spacer"></span>
-      ${yearSwitch('top')}
       <button class="top-search" id="topSearch" type="button" aria-label="Cari">${ic('search')}<span>Cari satuan biaya, kota, atau aturan…</span><kbd>${isMac ? '⌘' : 'Ctrl'} K</kbd></button>
       <button class="icon-btn" id="themeBtn" data-theme-ico aria-label="Ganti tema"></button>
     </header>
@@ -511,7 +512,6 @@ function viewHome() {
   <section class="hero hero-u">
     <div class="hero-eyebrow">${ic('sparkles')} Standar Biaya Masukan</div>
     <h1>Tahun Anggaran ${Y.y} ${tip(`Baca ${Y.y === 2026 ? 'PMK 32/2025' : 'PMK 54/2026 dan KMK 296/2026'} tanpa membuka PDF. Semua angka diambil dari tabel ${Y.srcKind} dan dicek silang.`)}</h1>
-    <div class="hero-year">${yearSwitch('hero')}</div>
     <label class="hero-search" for="hq">${ic('search')}<input id="hq" type="search" placeholder="Cari satuan biaya, provinsi, kota, atau aturan…" autocomplete="off" enterkeyhint="search"><kbd class="hide-sm">${isMac ? '⌘' : 'Ctrl'} K</kbd></label>
     <div class="hero-tags">${HOME_HINTS.map((h) => `<a href="#/cari?q=${encodeURIComponent(h)}" data-q="${esc(h)}">${esc(h)}</a>`).join('')}</div>
     <div class="hero-law">
