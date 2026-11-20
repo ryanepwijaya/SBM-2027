@@ -1,4 +1,4 @@
-// Perubahan SBM TA 2026 → TA 2027 dan Unduh Tabel Biaya (Excel).
+// Perubahan SBM (tahun sebelumnya → tahun terpilih) dan Unduh Tabel Biaya (Excel).
 // Perubahan: baris dicocokkan per butir/tabel memakai provinsi atau teks uraian (kode butir berbeda antartahun);
 // sisa baris yang uraiannya berubah dipasangkan berurutan bila jumlahnya sama.
 import { S, Y, YEARS, esc, fmt, norm, valueCols, shortCol, unitCol, store, tip } from './store.js';
@@ -53,9 +53,9 @@ function pairRows(ta, tb) {
   return { pairs, onlyA: leftA, onlyB: leftB };
 }
 let DIFF = null;
-async function buildDiff() {
-  if (DIFF) return DIFF;
-  const [A, B] = await Promise.all([loadYear(2026), loadYear(2027)]);
+async function buildDiff(y) {
+  if (DIFF && DIFF.y === y) return DIFF.items;
+  const [A, B] = await Promise.all([loadYear(y - 1), loadYear(y)]);
   const a = Object.fromEntries(A.butir.map((x) => [x.id, x]));
   const items = [];
   for (const b of B.butir) {
@@ -89,7 +89,7 @@ async function buildDiff() {
       for (const y of onlyB) push(null, y);
     });
   }
-  DIFF = items;
+  DIFF = { y, items };
   return items;
 }
 const KINDS = [['ubah', 'Semua yang berubah'], ['naik', 'Naik'], ['turun', 'Turun'], ['baru', 'Baru'], ['hapus', 'Dihapus'], ['tetap', 'Tetap']];
@@ -97,14 +97,21 @@ const pctTxt = (p) => (p == null ? '' : `${p > 0 ? '+' : ''}${p.toLocaleString('
 const money = (n, cur) => (n == null ? '–' : fmt(n, cur));
 
 export function viewPerubahan(ui) {
+  // Pembanding = tahun anggaran sebelum tahun yang sedang dipilih; bila tidak ada datanya, halaman kosong
+  const prev = Y.y - 1;
+  if (!YEARS[prev]) {
+    const later = Object.keys(YEARS).map(Number).filter((y) => YEARS[y - 1]).sort().pop();
+    return { html: `<div class="page-head"><h1 class="title">Perubahan SBM</h1><p class="subtitle">Perbandingan satuan biaya dengan tahun anggaran sebelumnya.</p></div>
+      <div class="empty">${ic('git-compare')}<p><b>Belum ada pembanding untuk TA ${Y.y}.</b> Data SBM TA ${prev} tidak tersedia di aplikasi ini.</p>${later ? `<a class="btn primary" href="?tahun=${later}#/perubahan">${ic('git-compare')} Lihat perubahan TA ${later - 1} → ${later}</a>` : ''}</div>`, after: null };
+  }
   const st = { kind: 'ubah', bab: '', q: '', sort: 'bab', limit: 300, ...store.get('perubahan', {}) };
   st.limit = 300;
-  const html = `<div class="page-head"><h1 class="title">Perubahan SBM 2026 → 2027</h1><p class="subtitle">Bandingkan besaran PMK 32/2025 (TA 2026) dengan KMK 296/2026 (TA 2027): mana yang naik, turun, baru, atau dihapus, lengkap dengan selisih rupiah dan persentasenya. Baris dicocokkan per provinsi atau uraian; bila uraian berubah redaksi, baris tetap dipasangkan.</p></div>
+  const html = `<div class="page-head"><h1 class="title">Perubahan SBM</h1><p class="subtitle">Bandingkan besaran ${esc(YEARS[prev].src)} (TA ${prev}) dengan ${esc(Y.src)} (TA ${Y.y}): mana yang naik, turun, baru, atau dihapus, lengkap dengan selisih rupiah dan persentasenya. Baris dicocokkan per provinsi atau uraian; bila uraian berubah redaksi, baris tetap dipasangkan.</p></div>
   <div id="pbHost"><div class="empty small">Memuat data dua tahun anggaran…</div></div>`;
   const save = () => store.set('perubahan', { kind: st.kind, bab: st.bab, sort: st.sort });
   const after = async () => {
     let items;
-    try { items = await buildDiff(); } catch (e) { console.error(e); ui.$('#pbHost').innerHTML = '<div class="empty small">Data gagal dimuat. Periksa koneksi lalu muat ulang.</div>'; return; }
+    try { items = await buildDiff(Y.y); } catch (e) { console.error(e); ui.$('#pbHost').innerHTML = '<div class="empty small">Data gagal dimuat. Periksa koneksi lalu muat ulang.</div>'; return; }
     const host = ui.$('#pbHost');
     const count = (k) => items.filter((x) => (k === 'ubah' ? x.kind !== 'tetap' : x.kind === k)).length;
     host.innerHTML = `<div class="pb-sum">${KINDS.slice(1).map(([k, n]) => `<button type="button" class="pb-stat k-${k}" data-kind="${k}"><b>${count(k).toLocaleString('id-ID')}</b><span>${n}</span></button>`).join('')}</div>
@@ -139,15 +146,15 @@ export function viewPerubahan(ui) {
         const what = [x.prov, x.label && x.label !== x.prov ? x.label : '', x.col].filter(Boolean).join(' · ');
         return `${head}<tr class="k-${x.kind}">
           <td>${st.sort === 'bab' ? '' : `<a class="pb-n" href="#/b/${x.bid}?t=${x.ti}">${esc(x.name)}</a>`}<div class="pb-w">${esc(what || x.name)}${x.relabel ? ' <em class="pb-rel" title="Redaksi uraian berubah antartahun">uraian berubah</em>' : ''}</div></td>
-          <td class="n" data-l="TA 2026">${money(x.a, x.cur)}</td>
-          <td class="n" data-l="TA 2027">${money(x.b, x.cur)}</td>
+          <td class="n" data-l="TA ${prev}">${money(x.a, x.cur)}</td>
+          <td class="n" data-l="TA ${Y.y}">${money(x.b, x.cur)}</td>
           <td class="n pb-d" data-l="Selisih">${x.kind === 'baru' ? '<span class="pb-tag">Baru</span>' : x.kind === 'hapus' ? '<span class="pb-tag">Dihapus</span>' : x.diff ? `${x.diff > 0 ? '▲' : '▼'} ${fmt(Math.abs(x.diff), x.cur)}` : '–'}</td>
           <td class="n pb-p" data-l="%">${pctTxt(x.pct)}</td>
         </tr>`;
       }).join('');
       ui.$('#pbList').innerHTML = r.length
         ? `<div class="pb-meta muted small">${r.length.toLocaleString('id-ID')} angka${r.length > shown.length ? `, menampilkan ${shown.length}` : ''}</div>
-          <div class="tbl-wrap pb-tw"><table class="t pb-t"><thead><tr><th>Satuan biaya</th><th class="n">TA 2026</th><th class="n">TA 2027</th><th class="n">Selisih</th><th class="n">%</th></tr></thead><tbody>${rows}</tbody></table></div>
+          <div class="tbl-wrap pb-tw"><table class="t pb-t"><thead><tr><th>Satuan biaya</th><th class="n">TA ${prev}</th><th class="n">TA ${Y.y}</th><th class="n">Selisih</th><th class="n">%</th></tr></thead><tbody>${rows}</tbody></table></div>
           ${r.length > shown.length ? `<div class="pb-more"><button type="button" class="btn" id="pbMore">Tampilkan ${Math.min(300, r.length - shown.length)} lagi</button></div>` : ''}`
         : '<div class="empty small">Tidak ada angka yang cocok dengan saringan ini.</div>';
       const more = ui.$('#pbMore');
@@ -164,15 +171,15 @@ export function viewPerubahan(ui) {
     ui.$('#pbXls').onclick = async () => {
       const r = filtered();
       const X = await xlsx();
-      const aoa = [['Perubahan SBM TA 2026 (PMK 32/2025) ke TA 2027 (KMK 296/2026)'], [`Saringan: ${KINDS.find((k) => k[0] === st.kind)[1]}${st.bab ? ' · ' + BABS.find((b) => b.key === st.bab).name : ''}${st.q ? ' · cari "' + st.q + '"' : ''}`], [],
-        ['Bab', 'Satuan biaya', 'Rujukan TA 2027', 'Provinsi', 'Uraian', 'Kolom', 'Mata uang', 'TA 2026', 'TA 2027', 'Selisih', 'Perubahan (%)', 'Keterangan'],
+      const aoa = [[`Perubahan SBM TA ${prev} (${YEARS[prev].src}) ke TA ${Y.y} (${Y.src})`], [`Saringan: ${KINDS.find((k) => k[0] === st.kind)[1]}${st.bab ? ' · ' + BABS.find((b) => b.key === st.bab).name : ''}${st.q ? ' · cari "' + st.q + '"' : ''}`], [],
+        ['Bab', 'Satuan biaya', `Rujukan TA ${Y.y}`, 'Provinsi', 'Uraian', 'Kolom', 'Mata uang', `TA ${prev}`, `TA ${Y.y}`, 'Selisih', 'Perubahan (%)', 'Keterangan'],
         ...r.map((x) => [x.babN, x.name, x.ref, x.prov, x.label, x.col, x.cur === 'USD' ? 'USD' : 'IDR', x.a ?? '', x.b ?? '', x.diff ?? '', x.pct != null ? Math.round(x.pct * 10) / 10 : '', { naik: 'Naik', turun: 'Turun', baru: 'Baru', hapus: 'Dihapus', tetap: 'Tetap' }[x.kind] + (x.relabel ? ' (uraian berubah)' : '')])];
       const ws = X.utils.aoa_to_sheet(aoa);
       ws['!cols'] = [12, 40, 18, 22, 50, 18, 9, 14, 14, 14, 12, 22].map((w) => ({ wch: w }));
       numFmt(X, ws, [7, 8, 9], 4);
       ws['!autofilter'] = { ref: X.utils.encode_range({ s: { r: 3, c: 0 }, e: { r: 3 + r.length, c: 11 } }) };
       const wb = X.utils.book_new(); X.utils.book_append_sheet(wb, ws, 'Perubahan');
-      download(X, wb, 'Perubahan-SBM-2026-2027.xlsx'); ui.toast('Excel diunduh');
+      download(X, wb, `Perubahan-SBM-${prev}-${Y.y}.xlsx`); ui.toast('Excel diunduh');
     };
   };
   return { html, after };

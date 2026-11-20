@@ -26,12 +26,13 @@ const SIDE_MAIN = [
 // Alat Bantu: alat hitung cepat untuk menguji pengadaan/pembayaran
 const TOOLS = [
   {
-    k: 'rute', h: '#/rute', t: 'Rute Perjadin', i: 'route', d: 'Satuan biaya perjalanan dinas dari kota asal ke kota tujuan, dan perkiraan biayanya',
+    k: 'rute', h: '#/rute', t: 'Perjalanan Dinas', i: 'route', d: 'Satuan biaya perjalanan dinas dari kota asal ke kota tujuan, dan perkiraan biayanya',
     sub: [
       { k: 'rute', h: '#/rute', t: 'SBM Perjalanan', i: 'signpost', d: 'Dari kota X ke kota Y, semua satuan biaya perjalanan dinas langsung muncul' },
       { k: 'hitung', h: '#/hitung', t: 'Hitung Perjalanan', i: 'calculator', d: 'Perkiraan biaya dari tujuan, lama, dan pelaksana surat tugas; bisa diunduh sebagai PDF' },
       { k: 'massal', h: '#/massal', t: 'Perjadin (banyak asal)', i: 'users', d: 'Satu kegiatan di satu kota, peserta dari banyak kota asal; unduh PDF dan Excel' },
       { k: 'tujuan', h: '#/tujuan', t: 'Perjadin (banyak tujuan)', i: 'map-pin', d: 'Dari satu kota asal ke banyak kota tujuan', soon: true },
+      { k: 'pindah', h: '#/pindah', t: 'Dinas Pindah', i: 'package', d: 'Perkiraan biaya perjalanan dinas pindah: tiket, uang harian, dan angkutan barang', soon: true },
     ],
   },
   {
@@ -49,7 +50,7 @@ const TOOLS = [
   },
   { k: 'kegiatan', h: '#/alat/kegiatan', t: 'Paket Kegiatan', i: 'presentation', d: 'Biaya rapat/pertemuan: paket halfday, fullday, fullboard atau konsumsi, ditambah honor narasumber', soon: true, w: 3 },
   { k: 'lembur', h: '#/alat/lembur', t: 'Belanja Lembur', i: 'clock', d: 'Uang lembur dan uang makan lembur per golongan, hari kerja atau hari libur', soon: true, w: 4 },
-  { k: 'perubahan', h: '#/perubahan', t: 'Perubahan SBM 2026 → 2027', i: 'git-compare', d: 'Satuan biaya yang naik, turun, baru, atau dihapus, dengan selisih rupiah dan persen', w: 5 },
+  { k: 'perubahan', h: '#/perubahan', t: 'Perubahan SBM', i: 'git-compare', d: 'Satuan biaya yang naik, turun, baru, atau dihapus dibanding tahun sebelumnya, dengan selisih rupiah dan persen', w: 5 },
   { k: 'unduh', h: '#/unduh', t: 'Unduh Tabel Biaya', i: 'file-spreadsheet', d: 'Semua tabel satuan biaya SBM sebagai Excel, per tabel atau sekaligus', w: 9 },
 ];
 // Urutan Alat Bantu: Biaya Per Provinsi paling atas, Unduh Tabel Biaya paling bawah (w = bobot urutan)
@@ -103,7 +104,7 @@ function effNotice() {
   if (!items.length) return '';
   return `<div class="eff-note eff-sum" role="status">${ic('triangle-alert')}<div><b>Simulasi efisiensi aktif.</b> Angka berikut ditampilkan sebagian; besaran resmi tampil dicoret. <span class="chips">${items.join('')}</span></div><button type="button" class="btn sm" data-eff-clear>Kembali ke 100% semua</button></div>`;
 }
-// Kotak "Dibayar %" per komponen di alat Rute Perjadin: simpan saat selesai diketik (Enter atau keluar kotak)
+// Kotak "Dibayar %" per komponen di alat Perjalanan Dinas: simpan saat selesai diketik (Enter atau keluar kotak)
 document.addEventListener('change', (e) => {
   const i = e.target.closest('[data-effk]');
   if (!i) return;
@@ -526,7 +527,7 @@ function parseHash() {
 
 let lastPath = null;
 const ALAT_CRUMB = { t: 'Alat Bantu', h: '#/alat' };
-const RUTE_CRUMB = { t: 'Rute Perjadin', h: '#/rute', i: 'route' };
+const RUTE_CRUMB = { t: 'Perjalanan Dinas', h: '#/rute', i: 'route' };
 function route() {
   const { parts, params, anchor } = parseHash();
   const main = $('#main');
@@ -590,7 +591,7 @@ function route() {
         }
         else { cr[cr.length - 1] = { t: 'Alat Bantu', i: 'calculator' }; html = viewAlat(); }
         break;
-      case 'perubahan': setNav('alat'); side = ['perubahan']; cr.push(ALAT_CRUMB, { t: 'Perubahan SBM 2026 → 2027' }); ({ html, after } = viewPerubahan({ $, $$, toast })); break;
+      case 'perubahan': setNav('alat'); side = ['perubahan']; cr.push(ALAT_CRUMB, { t: 'Perubahan SBM' }); ({ html, after } = viewPerubahan({ $, $$, toast })); break;
       case 'unduh': setNav('alat'); side = ['unduh']; cr.push(ALAT_CRUMB, { t: 'Unduh Tabel Biaya' }); ({ html, after } = viewUnduh({ $, $$, toast })); break;
       case 'daerah':
         setNav('alat');
@@ -602,7 +603,7 @@ function route() {
         break;
       case 'rute': setNav('alat'); side = [null, 'tool:rute', 'rute']; cr.push(ALAT_CRUMB, RUTE_CRUMB, { t: 'SBM Perjalanan' }); ({ html, after } = viewRute(params)); break;
       case 'massal': setNav('alat'); side = [null, 'tool:massal', 'rute']; cr.push(ALAT_CRUMB, RUTE_CRUMB, { t: 'Perjadin (banyak asal)' }); ({ html, after } = viewMassal({ $, $$, toast, effNotice, placeField, attachAC })); break;
-      case 'tujuan': { setNav('alat'); const rt = TOOLS.find((x) => x.k === 'rute'); const t = rt.sub.find((x) => x.k === 'tujuan'); side = [null, 'tool:tujuan', 'rute']; cr.push(ALAT_CRUMB, RUTE_CRUMB, { t: t.t }); html = viewSoonTool(t, rt); break; }
+      case 'tujuan': case 'pindah': { setNav('alat'); const rt = TOOLS.find((x) => x.k === 'rute'); const t = rt.sub.find((x) => x.k === key); side = [null, 'tool:' + key, 'rute']; cr.push(ALAT_CRUMB, RUTE_CRUMB, { t: t.t }); html = viewSoonTool(t, rt); break; }
       case 'hitung': setNav('alat'); side = [null, 'tool:hitung', 'rute']; cr.push(ALAT_CRUMB, RUTE_CRUMB, { t: 'Hitung Perjalanan' }); ({ html, after } = viewHitung()); break;
       case 'bandingkan': {
         // Bandingkan Wilayah dilebur ke Biaya Per Provinsi
