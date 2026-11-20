@@ -11,15 +11,24 @@ const NAV = [
   { k: 'beranda', h: '#/', t: 'Beranda', i: 'house' },
   { k: 'jelajah', h: '#/jelajah', t: 'Jelajah', i: 'compass' },
   { k: 'cari', h: '#/cari', t: 'Cari', i: 'search' },
-  { k: 'daerah', h: '#/rute', t: 'Daerah', i: 'map' },
+  { k: 'alat', h: '#/alat', t: 'Alat Bantu', i: 'calculator' },
   { k: 'lainnya', h: '#/lainnya', t: 'Lainnya', i: 'menu' },
 ];
 const SIDE_MAIN = [
   { k: 'beranda', h: '#/', t: 'Beranda', i: 'house' },
-  { k: 'rute', h: '#/rute', t: 'Rute Perjadin', i: 'route' },
-  { k: 'daerah', h: '#/daerah', t: 'Daerah', i: 'map' },
-  { k: 'bandingkan', h: '#/bandingkan', t: 'Bandingkan Provinsi', i: 'scale' },
   { k: 'tersimpan', h: '#/tersimpan', t: 'Tersimpan', i: 'star' },
+];
+// Alat Bantu: alat hitung cepat untuk menguji pengadaan/pembayaran
+const TOOLS = [
+  {
+    k: 'rute', h: '#/rute', t: 'Rute Perjadin', i: 'route', d: 'Dari kota X ke kota Y, semua satuan biaya perjalanan dinas langsung muncul',
+    sub: [
+      { k: 'daerah', h: '#/daerah', t: 'Per Provinsi', i: 'map', d: 'Semua satuan biaya per provinsi, semua bab' },
+      { k: 'bandingkan', h: '#/bandingkan', t: 'Bandingkan Provinsi', i: 'scale', d: 'Sampai 3 provinsi berdampingan' },
+      { k: 'ln', h: '#/daerah/ln', t: 'Luar Negeri', i: 'globe', d: 'Uang harian per negara dan tiket per kota', hideSide: true },
+    ],
+  },
+  { k: 'pajak', h: '#/alat/pajak', t: 'Perpajakan', i: 'percent', d: 'PPN dan PPh atas pembayaran oleh bendahara', soon: true },
 ];
 const isDesk = () => window.matchMedia('(min-width: 1024px)').matches;
 const isMac = /Mac|iPhone|iPad/.test(navigator.platform || '');
@@ -231,8 +240,14 @@ function sideHtml() {
     return acc(b.key, b.name, b.icon, badge, stagger(parts), b.active ? '' : ' soon');
   }).join('');
   const refBody = stagger([`<div class="fly-h">${ic('library')}Referensi</div>`, ...REF_LINKS.map((r) => `<a class="acc-it" href="${r.h}" data-item="ref:${r.h}">${ic(r.icon)}<span>${esc(r.n)}</span></a>`)]);
+  const toolLinks = TOOLS.map((t) => {
+    const one = (x, sub) => `<a class="side-link${sub ? ' sub' : ''}" href="${x.h}" data-side="${x.k}" data-tip="${esc(x.t)}">${ic(x.i)}<span>${esc(x.t)}</span>${x.soon ? '<em class="side-soon">Segera</em>' : ''}</a>`;
+    return one(t) + (t.sub || []).filter((x) => !x.hideSide).map((x) => one(x, true)).join('');
+  }).join('');
   return `
     <nav class="side-main">${main}</nav>
+    <div class="side-label">Alat bantu</div>
+    <nav class="side-main" aria-label="Alat bantu">${toolLinks}</nav>
     <div class="side-label">Bab satuan biaya</div>
     <div class="side-babs">${babs}</div>
     <div class="side-label">Referensi</div>
@@ -464,6 +479,7 @@ function parseHash() {
 }
 
 let lastPath = null;
+const ALAT_CRUMB = { t: 'Alat Bantu', h: '#/alat' };
 function route() {
   const { parts, params, anchor } = parseHash();
   const main = $('#main');
@@ -505,15 +521,21 @@ function route() {
         break;
       }
       case 'cari': setNav('cari'); cr.push({ t: 'Cari' }); html = viewCari(params.q || ''); after = () => afterCari(params.q || ''); break;
+      case 'alat':
+        setNav('alat');
+        cr.push({ t: 'Alat Bantu', h: '#/alat', i: 'calculator' });
+        if (parts[1] === 'pajak') { side = ['pajak']; cr.push({ t: 'Perpajakan' }); html = viewPajak(); }
+        else { cr[cr.length - 1] = { t: 'Alat Bantu', i: 'calculator' }; html = viewAlat(); }
+        break;
       case 'daerah':
-        setNav('daerah');
-        side = ['daerah'];
-        cr.push({ t: 'Daerah', h: '#/daerah', i: 'map' });
+        setNav('alat');
+        side = [parts[1] === 'ln' ? null : 'daerah'];
+        cr.push(ALAT_CRUMB, { t: 'Daerah', h: '#/daerah', i: 'map' });
         if (parts[1] === 'p') { cr.push({ t: S.prov[parts[2]]?.nama || 'Provinsi' }); ({ html, after } = viewProv(parts[2])); }
         else { cr.push({ t: parts[1] === 'ln' ? 'Luar Negeri' : 'Per Provinsi' }); ({ html, after } = viewDaerah(parts[1] === 'ln' ? 'ln' : 'dn', params)); }
         break;
-      case 'rute': setNav('daerah'); side = ['rute']; cr.push({ t: 'Rute Perjadin', i: 'route' }); ({ html, after } = viewRute(params)); break;
-      case 'bandingkan': setNav('bandingkan'); side = ['bandingkan']; cr.push({ t: 'Bandingkan Provinsi', i: 'scale' }); ({ html, after } = viewCompare(params)); break;
+      case 'rute': setNav('alat'); side = ['rute']; cr.push(ALAT_CRUMB, { t: 'Rute Perjadin', i: 'route' }); ({ html, after } = viewRute(params)); break;
+      case 'bandingkan': setNav('alat'); side = ['bandingkan']; cr.push(ALAT_CRUMB, { t: 'Bandingkan Provinsi', i: 'scale' }); ({ html, after } = viewCompare(params)); break;
       case 'tersimpan': setNav('tersimpan'); side = ['tersimpan']; cr.push({ t: 'Tersimpan', i: 'star' }); html = viewSaved(); break;
       case 'lainnya': {
         setNav('lainnya');
@@ -593,7 +615,7 @@ function viewHome() {
   </section>
   <h2 class="sec">${ic('layers-2')} Bab satuan biaya <small>${S.data.butir.length} butir ${Y.srcKind}</small></h2>
   <div class="bab-grid">${babFeature(BABS[0], 0)}<div class="bab-rest">${BABS.slice(1).map((b, i) => babCard(b, i + 1)).join('')}</div></div>
-  <h2 class="sec">${ic('compass')} Alat bantu</h2>
+  <h2 class="sec">${ic('calculator')} Alat bantu <a class="sec-more" href="#/alat">Semua alat bantu</a></h2>
   <div class="tools">
     <section class="card card-pad tool-route">
       <div class="row tr-head"><span class="tool-ico">${ic('route')}</span><div><b>Rute perjadin</b><small>Dari kota X ke kota Y, semua satuan biaya langsung muncul</small></div>${tip('Mencakup 514 kabupaten/kota dan 38 provinsi. Kota asal bawaan: Jakarta.')}</div>
@@ -603,6 +625,7 @@ function viewHome() {
       ${tool('#/daerah', 'map', 'Per provinsi', 'Semua satuan biaya per provinsi, semua bab')}
       ${tool('#/bandingkan', 'scale', 'Bandingkan provinsi', 'Sampai 3 provinsi berdampingan')}
       ${tool('#/daerah/ln', 'globe', 'Luar negeri', 'Uang harian per negara & tiket per kota')}
+      ${tool('#/alat/pajak', 'percent', 'Perpajakan <span class="chip sm">Segera</span>', 'PPN dan PPh atas pembayaran oleh bendahara')}
     </div>
   </div>
   <div class="two-col">
@@ -1242,6 +1265,27 @@ function viewCompare(params) {
 }
 
 /* ---------------- Tersimpan ---------------- */
+function viewAlat() {
+  const card = (t) => {
+    const subs = (t.sub || []).map((x) => `<a class="al-sub" href="${x.h}">${ic(x.i)}<span><b>${esc(x.t)}</b><small>${esc(x.d)}</small></span></a>`).join('');
+    return `<section class="card al-card${t.soon ? ' soon' : ''}">
+      <a class="al-head" href="${t.h}"><span class="tool-ico">${ic(t.i)}</span><span class="al-tx"><b>${esc(t.t)}</b><small>${esc(t.d)}</small></span>${t.soon ? '<span class="chip">Segera hadir</span>' : ''}</a>
+      ${subs ? `<div class="al-subs">${subs}</div>` : ''}
+    </section>`;
+  };
+  return `<div class="page-head"><h1 class="title">Alat Bantu</h1><p class="subtitle">Alat hitung cepat untuk membantu tim keuangan menguji pengadaan dan pembayaran. Angka diambil dari SBM TA ${Y.y} yang sedang dipilih.</p></div>
+  <div class="al-grid">${TOOLS.map(card).join('')}</div>`;
+}
+function viewPajak() {
+  return `<div class="page-head"><h1 class="title">Perpajakan</h1><p class="subtitle">Kalkulator pajak atas pembayaran oleh bendahara.</p></div>
+  <div class="callout">${ic('clock')}<div><b>Sedang disiapkan.</b> Ketentuan dan cara hitung tiap jenis pajak sedang disusun bersama tim Perbendaharaan, dan baru dibuka setelah diperiksa. Sampai saat itu, halaman ini belum menghitung apa pun.</div></div>
+  <div class="card card-pad" style="margin-top:14px"><div class="group-title" style="margin:0 0 8px">Rencana isi</div>
+    <ul class="plan-list">
+      <li>PPN</li><li>PPh Pasal 21</li><li>PPh Pasal 22</li><li>PPh Pasal 23</li><li>PPh Pasal 4 ayat (2)</li>
+    </ul>
+  </div>
+  <div class="actions" style="margin-top:14px"><a class="btn" href="#/alat">${ic('calculator')} Alat bantu lain</a></div>`;
+}
 function viewSaved() {
   const sv = saved().map(entry).filter(Boolean);
   return `<div class="page-head"><h1 class="title">Tersimpan</h1><p class="subtitle">Jenis satuan biaya yang Anda simpan. Tersimpan di perangkat ini.</p></div>
