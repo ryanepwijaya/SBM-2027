@@ -649,8 +649,10 @@ function footer() {
     ? 'PMK Nomor 32 Tahun 2025 tentang Standar Biaya Masukan Tahun Anggaran 2026.'
     : 'PMK Nomor 54 Tahun 2026 tentang Standar Biaya Masukan dan KMK Nomor 296 Tahun 2026 tentang Rincian Besaran Standar Biaya Masukan (TA 2027).';
   return `<footer class="foot">
-    <p class="foot-disc">${ic('info')}<span>Aplikasi ini alat bantu baca, bukan dokumen resmi. Selalu cek ulang ke ketentuan aslinya, dan konsultasikan kebijakan internal satker dengan pejabat perbendaharaan di satker Anda. <a href="#/lainnya/tentang">Selengkapnya</a></span></p>
-    <p class="foot-meta"><span>Sumber: ${Y.sources} ${tip(about)}</span><span class="dot">·</span><span>© 2026 Dibuat oleh ${authorLink()}</span></p>
+    <div class="foot-row">
+      <p class="foot-disc">${ic('info')}<span>Aplikasi ini alat bantu baca, bukan dokumen resmi. Selalu cek ulang ke ketentuan aslinya, dan konsultasikan kebijakan internal satker dengan pejabat perbendaharaan di satker Anda. <a href="#/lainnya/tentang">Selengkapnya</a></span></p>
+      <div class="foot-meta"><span>Sumber: ${Y.sources} ${tip(about)}</span><span>© 2026 Dibuat oleh ${authorLink()}</span></div>
+    </div>
   </footer>`;
 }
 // Penafian lengkap (halaman Tentang)
@@ -706,10 +708,15 @@ function viewHome() {
     { h: '#/daerah', i: 'map', t: 'Biaya Per Provinsi', d: 'Semua satuan biaya satu provinsi, bisa dibandingkan' },
   ];
   return `
-  <section class="hero hero-u">
-    <h1>Cari satuan biaya ${tip(`Baca ${Y.y === 2026 ? 'PMK 32/2025' : 'PMK 54/2026 dan KMK 296/2026'} tanpa membuka PDF. Semua angka diambil dari tabel ${Y.srcKind} dan dicek silang.`)}</h1>
-    <label class="hero-search" for="hq">${ic('search')}<input id="hq" type="search" placeholder="Cari satuan biaya, provinsi, kota, atau aturan…" autocomplete="off" enterkeyhint="search"><kbd class="hide-sm">${isMac ? '⌘' : 'Ctrl'} K</kbd></label>
-    <div class="hero-tags">${HOME_HINTS.map((h) => `<a href="#/cari?q=${encodeURIComponent(h)}" data-q="${esc(h)}">${esc(h)}</a>`).join('')}</div>
+  <section class="hero hero-u hero-x">
+    <div class="hx-bg" aria-hidden="true"><span class="hx-grid"></span><span class="hx-glow g1"></span><span class="hx-glow g2"></span><span class="hx-glow g3"></span></div>
+    <div class="hx-in">
+      <h1>Cari satuan biaya ${tip(`Baca ${Y.y === 2026 ? 'PMK 32/2025' : 'PMK 54/2026 dan KMK 296/2026'} tanpa membuka PDF. Semua angka diambil dari tabel ${Y.srcKind} dan dicek silang.`)}</h1>
+      <p class="hx-sub">Honorarium, perjalanan dinas, konsumsi, sewa, dan lainnya, langsung dari tabel ${Y.srcKind} TA ${Y.y}.</p>
+      <label class="hero-search" for="hq">${ic('search')}<input id="hq" type="search" placeholder="Cari satuan biaya, provinsi, kota, atau aturan…" autocomplete="off" enterkeyhint="search"><kbd class="hide-sm">${isMac ? '⌘' : 'Ctrl'} K</kbd></label>
+      <div class="hero-tags"><span class="hx-try">Coba:</span>${HOME_HINTS.map((h) => `<a href="#/cari?q=${encodeURIComponent(h)}" data-q="${esc(h)}">${esc(h)}</a>`).join('')}</div>
+      <div class="hx-stats"><span><b>${Y.rows}</b> baris data</span><span><b>${Object.keys(S.butir).length}</b> butir</span><span><b>${S.provList.length}</b> provinsi</span><span><b>${W.data ? W.data.places.length : 514}</b> kab/kota</span></div>
+    </div>
   </section>
   <h2 class="sec">${ic('star')} Akses cepat ${tip(`Favorit Anda tampil di sini (maksimal 8, yang terbaru dulu). Bila belum 8, sisanya diisi rekomendasi. Tambah favorit dengan tombol ${ic('star')} Jadikan favorit di halaman satuan biaya.`)}${fav.length ? `<a class="sec-more" href="#/tersimpan">Semua favorit (${saved().length})</a>` : ''}</h2>
   <div class="qa-grid">${fav.map((e) => qa(e, true)).join('')}${rec.map((e) => qa(e, false)).join('')}</div>
