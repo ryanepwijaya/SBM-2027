@@ -1503,19 +1503,6 @@ function viewAlat() {
   return `<div class="page-head"><h1 class="title">Alat Bantu</h1><p class="subtitle">Alat untuk membaca dan menghitung dengan satuan biaya SBM. Angka diambil dari SBM TA ${Y.y} yang sedang dipilih.</p></div>
   <div class="al-grid">${TOOLS.map(card).join('')}</div>`;
 }
-const SOON_PLAN = {
-  pajak: ['PPN', 'PPh Pasal 21', 'PPh Pasal 22', 'PPh Pasal 23', 'PPh Pasal 4 ayat (2)'],
-};
-function viewSoonTool(t, parent) {
-  const plan = SOON_PLAN[t.k];
-  const others = parent ? parent.sub.filter((x) => x.k !== t.k) : TOOLS.filter((x) => x.k !== t.k);
-  const where = parent ? parent.t : 'Alat Bantu';
-  return `<div class="page-head"><h1 class="title">${esc(t.t)}</h1><p class="subtitle">${esc(t.d)}. Bagian dari ${esc(where)}.</p></div>
-  <div class="callout">${ic('clock')}<div><b>Segera hadir.</b> Alat ini sedang disiapkan bersama tim Perbendaharaan dan baru dibuka setelah cara hitungnya diperiksa. Sampai saat itu, halaman ini belum menghitung apa pun.</div></div>
-  ${plan ? `<div class="card card-pad" style="margin-top:14px"><div class="group-title" style="margin:0 0 8px">Rencana isi</div><ul class="plan-list">${plan.map((x) => `<li>${esc(x)}</li>`).join('')}</ul></div>` : ''}
-  <div class="group-title">Alat lain di ${esc(where)}</div>
-  <div class="card list">${others.map((x) => `<a class="li" href="${x.h}"><span class="li-ico">${ic(x.i)}</span><div class="grow"><div class="t">${esc(x.t)}</div><div class="d">${esc(x.d)}</div></div>${x.soon ? '<span class="chip soon">Segera</span>' : ''}${ic('chev', 'chev')}</a>`).join('')}</div>`;
-}
 function viewSaved() {
   const sv = saved().map(entry).filter(Boolean);
   return `<div class="page-head"><h1 class="title">Favorit</h1><p class="subtitle">Jenis satuan biaya yang Anda jadikan favorit, terbaru di atas. Delapan favorit terakhir tampil di Beranda. Tersimpan di perangkat ini.</p></div>

@@ -48,7 +48,10 @@
           while (b.length % 4) b += '=';
           var obj = JSON.parse(decodeURIComponent(escape(atob(b))));
           // Data yang sudah ada di alamat baru tidak ditimpa
-          for (var key in obj) if (key.indexOf('sbm27:') === 0 && localStorage.getItem(key) === null) localStorage.setItem(key, obj[key]);
+          for (var key in obj) {
+            if (!/^sbm27:[a-z0-9:-]+$/.test(key) || typeof obj[key] !== 'string' || localStorage.getItem(key) !== null) continue;
+            try { JSON.parse(obj[key]); localStorage.setItem(key, obj[key]); } catch (e2) { /* lewati nilai rusak */ }
+          }
           u.searchParams.delete('pindah');
           history.replaceState(null, '', u.pathname + (u.search || '') + u.hash);
         }

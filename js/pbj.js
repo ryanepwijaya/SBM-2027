@@ -1,5 +1,5 @@
 // Pengadaan Barang/Jasa: Hitung Invoice (daftar barang) dan Kalkulator Pajak.
-// Rumus pajak mengikuti Mesin Pengujian Tagihan (pengujian-spd): semua dibulatkan ke rupiah terdekat.
+// Rumus pajak: semua hasil dibulatkan ke rupiah terdekat.
 // Isian tersimpan di localStorage perangkat ini.
 import { esc, fmt, store, tip } from './store.js';
 import { ic } from './icons.js';
@@ -347,6 +347,8 @@ const SRC = { invoice: { t: 'Hitung Invoice', h: '#/alat/invoice' } };
 export function viewPajak(ui, params) {
   if (params.n != null) store.set('pajak', { ...store.get('pajak', {}), n: parseRp(params.n), dari: SRC[params.dari] ? params.dari : null });
   const P = store.get('pajak', { n: 0, dari: null });
+  P.n = Math.max(0, Number(P.n) || 0);
+  if (!SRC[P.dari]) P.dari = null;
 
   const src = P.dari && SRC[P.dari] ? `<div class="tx-src">${ic('corner-down-left')} Diambil dari <a href="${SRC[P.dari].h}">${SRC[P.dari].t}</a>. Ubah angkanya di sini atau kembali ke sumbernya.</div>` : '';
   const html = `<div class="page-head"><h1 class="title">Kalkulator Pajak</h1><p class="subtitle">Isi nilai (N) langsung, atau buka Hitung Invoice lalu tekan Hitung pajak. PPN, PPh 22, PPh 23, dan PPh 4(2) langsung dihitung dengan rumusnya. Klik angka untuk menyalin. Semua hasil dibulatkan ke rupiah terdekat.</p></div>
@@ -362,7 +364,7 @@ export function viewPajak(ui, params) {
     </div>
   </div>
   <div class="tx-grid" id="txOut"></div>
-  <div class="kp-foot muted small tx-foot">Rumus mengikuti Mesin Pengujian Tagihan. Ini alat bantu hitung, bukan penetapan pajak: jenis pajak, tarif, dan DPP yang berlaku tetap mengikuti ketentuan perpajakan dan status penyedia (misalnya NPWP, UMKM, sertifikat konstruksi).</div>`;
+  <div class="kp-foot muted small tx-foot">Semua hasil dibulatkan ke rupiah terdekat. Ini alat bantu hitung, bukan penetapan pajak: jenis pajak, tarif, dan DPP yang berlaku tetap mengikuti ketentuan perpajakan dan status penyedia (misalnya NPWP, UMKM, sertifikat konstruksi).</div>`;
   const { $, $$, toast } = ui;
   const draw = () => {
     const N = P.n;

@@ -137,8 +137,10 @@ export { pctTxt };
 
 export function fmt(n, cur) {
   if (n == null) return '';
-  if (cur === 'USD') return 'US$' + n.toLocaleString('en-US');
-  return 'Rp' + n.toLocaleString('id-ID');
+  const v = Number(n); // selalu angka, agar isian tersimpan yang rusak tidak ikut tercetak sebagai teks
+  if (!Number.isFinite(v)) return '';
+  if (cur === 'USD') return 'US$' + v.toLocaleString('en-US');
+  return 'Rp' + v.toLocaleString('id-ID');
 }
 
 // Kolom nilai = kolom yang berisi angka

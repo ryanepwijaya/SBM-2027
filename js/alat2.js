@@ -156,7 +156,7 @@ function secHtml(sec, Q, months) {
       <td class="n qt-a" data-l="Jumlah">–</td></tr>`;
   }).join('');
   return `<section class="card qt-card" data-sec="${sec.k}">
-    <div class="qt-h"><h2>${ic(sec.icon)}<span>${esc(sec.t)}</span></h2>${effMini(sec.items.map((it) => tableKey(it.t)))}${sec.months ? `<label class="qt-m">Bulan <input class="iv-in qt-mi" data-sec="${sec.k}" inputmode="numeric" maxlength="2" value="${months[sec.k] ?? 12}" aria-label="Jumlah bulan ${esc(sec.t)}"> ${tip('Untuk pagu kurang dari setahun, misalnya kendaraan baru dipakai 6 bulan. Satuan biaya per tahun dikali bulan/12.')}</label>` : ''}</div>
+    <div class="qt-h"><h2>${ic(sec.icon)}<span>${esc(sec.t)}</span></h2>${effMini(sec.items.map((it) => tableKey(it.t)))}${sec.months ? `<label class="qt-m">Bulan <input class="iv-in qt-mi" data-sec="${sec.k}" inputmode="numeric" maxlength="2" value="${Math.min(12, Math.max(0, Number(months[sec.k] ?? 12) || 0))}" aria-label="Jumlah bulan ${esc(sec.t)}"> ${tip('Untuk pagu kurang dari setahun, misalnya kendaraan baru dipakai 6 bulan. Satuan biaya per tahun dikali bulan/12.')}</label>` : ''}</div>
     ${sec.note ? `<p class="qt-note muted small">${sec.note}</p>` : ''}
     <div class="tbl-wrap qt-tw"><table class="t qt" style="--qc:${2 + vols.length}"><thead><tr><th>Uraian</th><th class="n">Satuan biaya</th>${vols.map((v) => `<th>${esc(v.t)}</th>`).join('')}<th class="n">Jumlah</th></tr></thead><tbody>${rows}</tbody>
       <tfoot><tr><td colspan="${2 + vols.length}">Subtotal ${esc(sec.t.toLowerCase())}</td><td class="n qt-st">–</td></tr></tfoot></table></div>
