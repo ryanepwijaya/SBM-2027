@@ -1238,4 +1238,7 @@ table.t.pv-t tr.pv-lrow td { padding-top: 0; }
   table.t.pv-t.cmp th.n { min-width: 118px; }
   table.t.pv-t.cmp tr.grp td { position: sticky; left: 0; }
 }
+.acc-it.soon-it:not(.on) { color: rgba(255,255,255,.62); }
+.al-sub .chip { margin-left: auto; align-self: center; flex: none; }
 
+@media (min-width: 1024px) { .side-tools .acc-it span { white-space: normal; line-height: 1.25; } }

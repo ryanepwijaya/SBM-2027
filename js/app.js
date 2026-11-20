@@ -22,7 +22,7 @@ const SIDE_MAIN = [
 // Alat Bantu: alat hitung cepat untuk menguji pengadaan/pembayaran
 const TOOLS = [
   {
-    k: 'rute', h: '#/rute', t: 'Rute Perjadin', i: 'route', d: 'Satuan biaya perjalanan dinas dari kota asal ke kota tujuan, per provinsi, dan perbandingannya',
+    k: 'rute', h: '#/rute', t: 'Rute Perjadin', i: 'route', d: 'Satuan biaya perjalanan dinas dari kota asal ke kota tujuan, dan perkiraan biayanya',
     sub: [
       { k: 'rute', h: '#/rute', t: 'Buat Perjalanan', i: 'signpost', d: 'Dari kota X ke kota Y, semua satuan biaya perjalanan dinas langsung muncul' },
       { k: 'hitung', h: '#/hitung', t: 'Kalkulator Perjadin', i: 'calculator', d: 'Perkiraan biaya dari tujuan, lama, dan pelaksana surat tugas; bisa diunduh sebagai PDF' },
@@ -32,7 +32,14 @@ const TOOLS = [
     k: 'provinsi', h: '#/daerah', t: 'Biaya Per Provinsi', i: 'map', d: 'Semua satuan biaya SBM yang ditetapkan per provinsi, dikelompokkan per jenis biaya; bisa dibandingkan sampai 3 provinsi',
     sub: [{ k: 'ln', h: '#/daerah/ln', t: 'Luar Negeri', i: 'globe', d: 'Uang harian per negara dan tiket per kota' }], flat: true,
   },
-  { k: 'pajak', h: '#/alat/pajak', t: 'Perpajakan', i: 'percent', d: 'PPN dan PPh atas pembayaran oleh bendahara', soon: true },
+  {
+    k: 'pbj', h: '#/alat/honor', t: 'Pengadaan Barang/Jasa', i: 'shopping-cart', d: 'Alat hitung untuk honorarium, invoice barang/jasa, dan pajaknya', soon: true,
+    sub: [
+      { k: 'honor', h: '#/alat/honor', t: 'Hitung Honorarium', i: 'hand-coins', d: 'Honorarium kegiatan sesuai SBM', soon: true },
+      { k: 'invoice', h: '#/alat/invoice', t: 'Hitung Invoice Barang/Jasa', i: 'receipt', d: 'Rincian nilai invoice pengadaan barang/jasa', soon: true },
+      { k: 'pajak', h: '#/alat/pajak', t: 'Perpajakan', i: 'percent', d: 'PPN dan PPh atas pembayaran oleh bendahara', soon: true },
+    ],
+  },
 ];
 const isDesk = () => window.matchMedia('(min-width: 1024px)').matches;
 const isMac = /Mac|iPhone|iPad/.test(navigator.platform || '');
@@ -246,7 +253,7 @@ function sideHtml() {
   const refBody = stagger([`<div class="fly-h">${ic('library')}Referensi</div>`, ...REF_LINKS.map((r) => `<a class="acc-it" href="${r.h}" data-item="ref:${r.h}">${ic(r.icon)}<span>${esc(r.n)}</span></a>`)]);
   const toolLinks = TOOLS.map((t) => {
     if (t.sub && !t.flat) {
-      const body = stagger([`<div class="fly-h">${ic(t.i)}${esc(t.t)}</div>`, ...t.sub.filter((x) => !x.hideSide).map((x) => `<a class="acc-it" href="${x.h}" data-item="tool:${x.k}">${ic(x.i)}<span>${esc(x.t)}</span></a>`)]);
+      const body = stagger([`<div class="fly-h">${ic(t.i)}${esc(t.t)}</div>`, ...t.sub.filter((x) => !x.hideSide).map((x) => `<a class="acc-it${x.soon ? ' soon-it' : ''}" href="${x.h}" data-item="tool:${x.k}" title="${esc(x.t)}${x.soon ? ' (segera hadir)' : ''}">${ic(x.i)}<span>${esc(x.t)}</span>${x.soon ? ic('clock', 'lk') : ''}</a>`)]);
       return acc(t.k, t.t, t.i, '', body);
     }
     return `<a class="side-link" href="${t.h}" data-side="${t.k}" data-tip="${esc(t.t)}">${ic(t.i)}<span>${esc(t.t)}</span>${t.soon ? '<em class="side-soon">Segera</em>' : ''}</a>`;
@@ -533,7 +540,12 @@ function route() {
       case 'alat':
         setNav('alat');
         cr.push({ t: 'Alat Bantu', h: '#/alat', i: 'calculator' });
-        if (parts[1] === 'pajak') { side = ['pajak']; cr.push({ t: 'Perpajakan' }); html = viewPajak(); }
+        if (['honor', 'invoice', 'pajak'].includes(parts[1])) {
+          const t = TOOLS.find((x) => x.k === 'pbj').sub.find((x) => x.k === parts[1]);
+          side = [null, 'tool:' + t.k, 'pbj'];
+          cr.push({ t: 'Pengadaan Barang/Jasa', h: '#/alat/honor', i: 'shopping-cart' }, { t: t.t });
+          html = viewSoonTool(t);
+        }
         else { cr[cr.length - 1] = { t: 'Alat Bantu', i: 'calculator' }; html = viewAlat(); }
         break;
       case 'daerah':
@@ -641,7 +653,7 @@ function viewHome() {
       ${tool('#/daerah', 'map', 'Biaya per provinsi', 'Semua satuan biaya per provinsi; bisa dibandingkan')}
       ${tool('#/hitung', 'calculator', 'Kalkulator perjadin', 'Perkiraan biaya dari tujuan, lama, dan pelaksana')}
       ${tool('#/daerah/ln', 'globe', 'Luar negeri', 'Uang harian per negara & tiket per kota')}
-      ${tool('#/alat/pajak', 'percent', 'Perpajakan <span class="chip sm">Segera</span>', 'PPN dan PPh atas pembayaran oleh bendahara')}
+      ${tool('#/alat/honor', 'shopping-cart', 'Pengadaan barang/jasa <span class="chip sm">Segera</span>', 'Hitung honorarium, invoice barang/jasa, dan perpajakan')}
     </div>
   </div>
   <div class="two-col">
@@ -1353,7 +1365,7 @@ function viewHitung() {
 
 function viewAlat() {
   const card = (t) => {
-    const subs = (t.sub || []).map((x) => `<a class="al-sub" href="${x.h}">${ic(x.i)}<span><b>${esc(x.t)}</b><small>${esc(x.d)}</small></span></a>`).join('');
+    const subs = (t.sub || []).map((x) => `<a class="al-sub" href="${x.h}">${ic(x.i)}<span><b>${esc(x.t)}</b><small>${esc(x.d)}</small></span>${x.soon ? '<span class="chip sm soon">Segera</span>' : ''}</a>`).join('');
     return `<section class="card al-card${t.soon ? ' soon' : ''}">
       <a class="al-head" href="${t.h}"><span class="tool-ico">${ic(t.i)}</span><span class="al-tx"><b>${esc(t.t)}</b><small>${esc(t.d)}</small></span>${t.soon ? '<span class="chip">Segera hadir</span>' : ''}</a>
       ${subs ? `<div class="al-subs">${subs}</div>` : ''}
@@ -1362,15 +1374,17 @@ function viewAlat() {
   return `<div class="page-head"><h1 class="title">Alat Bantu</h1><p class="subtitle">Alat hitung cepat untuk membantu tim keuangan menguji pengadaan dan pembayaran. Angka diambil dari SBM TA ${Y.y} yang sedang dipilih.</p></div>
   <div class="al-grid">${TOOLS.map(card).join('')}</div>`;
 }
-function viewPajak() {
-  return `<div class="page-head"><h1 class="title">Perpajakan</h1><p class="subtitle">Kalkulator pajak atas pembayaran oleh bendahara.</p></div>
-  <div class="callout">${ic('clock')}<div><b>Sedang disiapkan.</b> Ketentuan dan cara hitung tiap jenis pajak sedang disusun bersama tim Perbendaharaan, dan baru dibuka setelah diperiksa. Sampai saat itu, halaman ini belum menghitung apa pun.</div></div>
-  <div class="card card-pad" style="margin-top:14px"><div class="group-title" style="margin:0 0 8px">Rencana isi</div>
-    <ul class="plan-list">
-      <li>PPN</li><li>PPh Pasal 21</li><li>PPh Pasal 22</li><li>PPh Pasal 23</li><li>PPh Pasal 4 ayat (2)</li>
-    </ul>
-  </div>
-  <div class="actions" style="margin-top:14px"><a class="btn" href="#/alat">${ic('calculator')} Alat bantu lain</a></div>`;
+const SOON_PLAN = {
+  pajak: ['PPN', 'PPh Pasal 21', 'PPh Pasal 22', 'PPh Pasal 23', 'PPh Pasal 4 ayat (2)'],
+};
+function viewSoonTool(t) {
+  const plan = SOON_PLAN[t.k];
+  const others = TOOLS.find((x) => x.k === 'pbj').sub.filter((x) => x.k !== t.k);
+  return `<div class="page-head"><h1 class="title">${esc(t.t)}</h1><p class="subtitle">${esc(t.d)}. Bagian dari Pengadaan Barang/Jasa.</p></div>
+  <div class="callout">${ic('clock')}<div><b>Segera hadir.</b> Alat ini sedang disiapkan bersama tim Perbendaharaan dan baru dibuka setelah cara hitungnya diperiksa. Sampai saat itu, halaman ini belum menghitung apa pun.</div></div>
+  ${plan ? `<div class="card card-pad" style="margin-top:14px"><div class="group-title" style="margin:0 0 8px">Rencana isi</div><ul class="plan-list">${plan.map((x) => `<li>${esc(x)}</li>`).join('')}</ul></div>` : ''}
+  <div class="group-title">Alat lain di Pengadaan Barang/Jasa</div>
+  <div class="card list">${others.map((x) => `<a class="li" href="${x.h}"><span class="li-ico">${ic(x.i)}</span><div class="grow"><div class="t">${esc(x.t)}</div><div class="d">${esc(x.d)}</div></div><span class="chip soon">Segera</span>${ic('chev', 'chev')}</a>`).join('')}</div>`;
 }
 function viewSaved() {
   const sv = saved().map(entry).filter(Boolean);
