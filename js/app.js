@@ -27,7 +27,8 @@ const TOOLS = [
     sub: [
       { k: 'rute', h: '#/rute', t: 'Buat Perjalanan', i: 'signpost', d: 'Dari kota X ke kota Y, semua satuan biaya perjalanan dinas langsung muncul' },
       { k: 'hitung', h: '#/hitung', t: 'Kalkulator Perjadin', i: 'calculator', d: 'Perkiraan biaya dari tujuan, lama, dan pelaksana surat tugas; bisa diunduh sebagai PDF' },
-      { k: 'massal', h: '#/massal', t: 'Kalkulator Perjadin (massal)', i: 'users', d: 'Satu kegiatan, peserta dari banyak kota asal; unduh PDF dan Excel' },
+      { k: 'massal', h: '#/massal', t: 'Perjadin (banyak asal)', i: 'users', d: 'Satu kegiatan di satu kota, peserta dari banyak kota asal; unduh PDF dan Excel' },
+      { k: 'tujuan', h: '#/tujuan', t: 'Perjadin (banyak tujuan)', i: 'map-pin', d: 'Dari satu kota asal ke banyak kota tujuan', soon: true },
     ],
   },
   {
@@ -431,7 +432,7 @@ function renderPalette(q) {
       item({ href: '#/rute', t: 'Buat Perjalanan', d: 'Dari kota X ke kota Y: semua satuan biaya yang relevan', i: 'signpost' }),
       item({ href: '#/daerah', t: 'Biaya Per Provinsi', d: 'Semua satuan biaya per provinsi; bisa dibandingkan sampai 3 provinsi', i: 'map' }),
       item({ href: '#/hitung', t: 'Kalkulator Perjadin', d: 'Perkiraan biaya dari tujuan, lama, dan pelaksana', i: 'calculator' }),
-      item({ href: '#/massal', t: 'Kalkulator Perjadin (massal)', d: 'Satu kegiatan, peserta dari banyak kota asal; PDF dan Excel', i: 'users' }),
+      item({ href: '#/massal', t: 'Perjadin (banyak asal)', d: 'Satu kegiatan, peserta dari banyak kota asal; PDF dan Excel', i: 'users' }),
       item({ href: '#/daerah/ln', t: 'Luar Negeri', d: 'Uang harian per negara dan tiket per kota', i: 'globe' }),
     ] });
     const hist = store.get('qhist', []).slice(0, 5);
@@ -549,7 +550,7 @@ function route() {
           const t = TOOLS.find((x) => x.k === 'pbj').sub.find((x) => x.k === parts[1]);
           side = [null, 'tool:' + t.k, 'pbj'];
           cr.push({ t: 'Pengadaan Barang/Jasa', h: '#/alat/honor', i: 'shopping-cart' }, { t: t.t });
-          html = viewSoonTool(t);
+          html = viewSoonTool(t, TOOLS.find((x) => x.k === 'pbj'));
         }
         else { cr[cr.length - 1] = { t: 'Alat Bantu', i: 'calculator' }; html = viewAlat(); }
         break;
@@ -562,7 +563,8 @@ function route() {
         else { cr.push({ t: 'Biaya Per Provinsi', i: 'map' }); ({ html, after } = viewDaerah('dn', params)); }
         break;
       case 'rute': setNav('alat'); side = [null, 'tool:rute', 'rute']; cr.push(ALAT_CRUMB, RUTE_CRUMB, { t: 'Buat Perjalanan' }); ({ html, after } = viewRute(params)); break;
-      case 'massal': setNav('alat'); side = [null, 'tool:massal', 'rute']; cr.push(ALAT_CRUMB, RUTE_CRUMB, { t: 'Kalkulator Perjadin (massal)' }); ({ html, after } = viewMassal({ $, $$, toast, effNotice, placeField, attachAC })); break;
+      case 'massal': setNav('alat'); side = [null, 'tool:massal', 'rute']; cr.push(ALAT_CRUMB, RUTE_CRUMB, { t: 'Perjadin (banyak asal)' }); ({ html, after } = viewMassal({ $, $$, toast, effNotice, placeField, attachAC })); break;
+      case 'tujuan': { setNav('alat'); const rt = TOOLS.find((x) => x.k === 'rute'); const t = rt.sub.find((x) => x.k === 'tujuan'); side = [null, 'tool:tujuan', 'rute']; cr.push(ALAT_CRUMB, RUTE_CRUMB, { t: t.t }); html = viewSoonTool(t, rt); break; }
       case 'hitung': setNav('alat'); side = [null, 'tool:hitung', 'rute']; cr.push(ALAT_CRUMB, RUTE_CRUMB, { t: 'Kalkulator Perjadin' }); ({ html, after } = viewHitung()); break;
       case 'bandingkan': {
         // Bandingkan Wilayah dilebur ke Biaya Per Provinsi
@@ -1422,14 +1424,14 @@ function viewAlat() {
 const SOON_PLAN = {
   pajak: ['PPN', 'PPh Pasal 21', 'PPh Pasal 22', 'PPh Pasal 23', 'PPh Pasal 4 ayat (2)'],
 };
-function viewSoonTool(t) {
+function viewSoonTool(t, parent) {
   const plan = SOON_PLAN[t.k];
-  const others = TOOLS.find((x) => x.k === 'pbj').sub.filter((x) => x.k !== t.k);
-  return `<div class="page-head"><h1 class="title">${esc(t.t)}</h1><p class="subtitle">${esc(t.d)}. Bagian dari Pengadaan Barang/Jasa.</p></div>
+  const others = parent.sub.filter((x) => x.k !== t.k);
+  return `<div class="page-head"><h1 class="title">${esc(t.t)}</h1><p class="subtitle">${esc(t.d)}. Bagian dari ${esc(parent.t)}.</p></div>
   <div class="callout">${ic('clock')}<div><b>Segera hadir.</b> Alat ini sedang disiapkan bersama tim Perbendaharaan dan baru dibuka setelah cara hitungnya diperiksa. Sampai saat itu, halaman ini belum menghitung apa pun.</div></div>
   ${plan ? `<div class="card card-pad" style="margin-top:14px"><div class="group-title" style="margin:0 0 8px">Rencana isi</div><ul class="plan-list">${plan.map((x) => `<li>${esc(x)}</li>`).join('')}</ul></div>` : ''}
-  <div class="group-title">Alat lain di Pengadaan Barang/Jasa</div>
-  <div class="card list">${others.map((x) => `<a class="li" href="${x.h}"><span class="li-ico">${ic(x.i)}</span><div class="grow"><div class="t">${esc(x.t)}</div><div class="d">${esc(x.d)}</div></div><span class="chip soon">Segera</span>${ic('chev', 'chev')}</a>`).join('')}</div>`;
+  <div class="group-title">Alat lain di ${esc(parent.t)}</div>
+  <div class="card list">${others.map((x) => `<a class="li" href="${x.h}"><span class="li-ico">${ic(x.i)}</span><div class="grow"><div class="t">${esc(x.t)}</div><div class="d">${esc(x.d)}</div></div>${x.soon ? '<span class="chip soon">Segera</span>' : ''}${ic('chev', 'chev')}</a>`).join('')}</div>`;
 }
 function viewSaved() {
   const sv = saved().map(entry).filter(Boolean);

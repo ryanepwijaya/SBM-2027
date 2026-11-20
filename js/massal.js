@@ -1,4 +1,4 @@
-// Kalkulator Perjadin (massal): perkiraan biaya satu kegiatan dengan peserta dari banyak kota asal.
+// Perjadin (banyak asal): perkiraan biaya satu kegiatan dengan peserta dari banyak kota asal.
 // Memakai mesin hitung Kalkulator Perjadin per kota asal, lalu menjumlahkan. Hanya menampilkan angka SBM × volume.
 // Isian tersimpan di localStorage perangkat ini saja (tanpa akun, tanpa server).
 import { S, Y, esc, fmt, store, tip, effPct, pctTxt } from './store.js';
@@ -330,7 +330,7 @@ function applyPaste(p) {
 
 /* ---------------- View ---------------- */
 export function viewMassal(ui) {
-  const html = `<div class="page-head"><h1 class="title">Kalkulator Perjadin (massal)</h1><p class="subtitle">Perkiraan biaya satu kegiatan di kota tertentu dengan peserta dari banyak kota asal. Hasilnya bisa diunduh sebagai PDF (ringkasan di halaman pertama, lalu rincian) dan Excel. Isian tersimpan otomatis di perangkat ini saja, tanpa akun dan tidak dikirim ke mana pun.</p></div>
+  const html = `<div class="page-head"><h1 class="title">Perjadin (banyak asal)</h1><p class="subtitle">Perkiraan biaya satu kegiatan di kota tertentu dengan peserta dari banyak kota asal. Hasilnya bisa diunduh sebagai PDF (ringkasan di halaman pertama, lalu rincian) dan Excel. Isian tersimpan otomatis di perangkat ini saja, tanpa akun dan tidak dikirim ke mana pun.</p></div>
   <div id="msNav"></div><div id="msBody"></div>`;
   const { $, $$, toast, effNotice } = ui;
   const go = (s) => { MS.step = s; save(); render(); window.scrollTo({ top: 0 }); };
@@ -568,7 +568,7 @@ export function viewMassal(ui) {
 }
 
 /* ---------------- PDF ---------------- */
-const fileBase = (res) => `Perkiraan-Perjadin-Massal-${plain(labelOf(MS.ke)).replace(/[^\w]+/g, '-')}-${MS.hari}hari-TA${Y.y}`.replace(/-+/g, '-');
+const fileBase = (res) => `Perkiraan-Perjadin-Banyak-Asal-${plain(labelOf(MS.ke)).replace(/[^\w]+/g, '-')}-${MS.hari}hari-TA${Y.y}`.replace(/-+/g, '-');
 const kelasTxt = (res) => TINGKAT.filter((t) => res.byT[t.k]).map((t) => `${SHORT[t.k]}: ${MS.kelas[t.k] === 'bis' ? 'Bisnis' : 'Ekonomi'}`).join('; ');
 const unitTxt = (l) => { if (l.n == null) return 'Tidak tercantum'; const p = effPct(l.t); return p < 100 ? `${fmt(l.unit)}\n(${pctTxt(p)} dari ${fmt(l.n)})` : fmt(l.n); };
 
