@@ -134,26 +134,29 @@ export function viewInvoice(ui) {
 }
 
 /* ---------------- Kalkulator Pajak ---------------- */
+// Kelompok pajak; d = keterangan singkat jenis pajak (ringkasan, cek ke ketentuan yang berlaku)
 const TAX = [
-  { k: 'umum', t: 'Pajak umum', i: 'receipt', rows: [
-    { k: 'dpp', n: 'DPP PPN', f: 'N × 11/12', c: (N) => Math.round(N * 11 / 12) },
-    { k: 'ppn', n: 'PPN', f: 'DPP PPN × 12%', c: (N, R) => Math.round(R.dpp * 0.12) },
-    { k: 'pph22', n: 'PPh 22', f: 'N × 1,5%', c: (N) => Math.round(N * 0.015) },
-    { k: 'pph23', n: 'PPh 23', f: 'N × 2%', c: (N) => Math.round(N * 0.02) },
-    { k: 'pph42', n: 'PPh 4(2) UMKM', f: 'N × 0,5%', c: (N) => Math.round(N * 0.005) },
-    { k: 'ppn1', n: 'PPN 1%', f: 'PPN × 10%', c: (N, R) => Math.round(R.ppn * 0.10) },
-    { k: 'ppn12', n: 'PPN 12%', f: 'N × 12%', c: (N) => Math.round(N * 0.12) },
-    { k: 'pnbp', n: 'PNBP 0,3%', f: 'N × 0,3%', c: (N) => Math.round(N * 0.003) },
-  ], total: { n: 'Total nilai', f: 'N + PPN', c: (N, R) => N + R.ppn } },
+  { k: 'ppn', t: 'Pajak Pertambahan Nilai (PPN)', i: 'receipt', rows: [
+    { k: 'dpp', n: 'DPP PPN', d: 'Dasar pengenaan pajak dengan nilai lain, 11/12 dari nilai', f: 'N × 11/12', c: (N) => Math.round(N * 11 / 12) },
+    { k: 'ppn', n: 'PPN', d: 'Dipungut bendahara selaku pemungut PPN atas penyerahan barang/jasa kena pajak', f: 'DPP PPN × 12%', c: (N, R) => Math.round(R.dpp * 0.12) },
+    { k: 'ppn1', n: 'PPN 1%', d: 'Sepersepuluh dari PPN', f: 'PPN × 10%', c: (N, R) => Math.round(R.ppn * 0.10) },
+    { k: 'ppn12', n: 'PPN 12%', d: 'Tarif 12% langsung dari nilai, tanpa DPP nilai lain', f: 'N × 12%', c: (N) => Math.round(N * 0.12) },
+  ], total: { n: 'Total nilai', d: 'Nilai ditambah PPN', f: 'N + PPN' } },
+  { k: 'pot', t: 'Pajak pemotongan dan pemungutan', i: 'hand-coins', rows: [
+    { k: 'pph22', n: 'PPh 22', d: 'Dipungut bendahara atas pembayaran pembelian barang', f: 'N × 1,5%', c: (N) => Math.round(N * 0.015) },
+    { k: 'pph23', n: 'PPh 23', d: 'Dipotong atas imbalan jasa dan sewa harta selain tanah/bangunan', f: 'N × 2%', c: (N) => Math.round(N * 0.02) },
+    { k: 'pph42', n: 'PPh 4(2) UMKM', d: 'PPh final bagi penyedia UMKM yang memiliki surat keterangan', f: 'N × 0,5%', c: (N) => Math.round(N * 0.005) },
+    { k: 'pnbp', n: 'PNBP 0,3%', d: 'Penerimaan negara bukan pajak, bukan PPh', f: 'N × 0,3%', c: (N) => Math.round(N * 0.003) },
+  ] },
   { k: 'kons', t: 'PPh konstruksi dan konsultasi', i: 'building', rows: [
-    { k: 'kk', n: 'Konstruksi (kecil)', f: 'N × 1,75%', c: (N) => Math.round(N * 0.0175) },
-    { k: 'ksk', n: 'Konstruksi (selain kecil)', f: 'N × 2,65%', c: (N) => Math.round(N * 0.0265) },
-    { k: 'kb', n: 'Konsultasi (bersertifikat)', f: 'N × 3,5%', c: (N) => Math.round(N * 0.035) },
+    { k: 'kk', n: 'Konstruksi (kecil)', d: 'PPh final Pasal 4(2) jasa pelaksanaan konstruksi, penyedia kualifikasi kecil', f: 'N × 1,75%', c: (N) => Math.round(N * 0.0175) },
+    { k: 'ksk', n: 'Konstruksi (selain kecil)', d: 'PPh final Pasal 4(2) jasa pelaksanaan konstruksi, kualifikasi menengah/besar', f: 'N × 2,65%', c: (N) => Math.round(N * 0.0265) },
+    { k: 'kb', n: 'Konsultasi (bersertifikat)', d: 'PPh final Pasal 4(2) jasa konsultansi konstruksi oleh penyedia bersertifikat', f: 'N × 3,5%', c: (N) => Math.round(N * 0.035) },
   ] },
   { k: 'p21', t: 'PPh 21', i: 'users', rows: [
-    { k: 't5', n: 'Tarif 5%', f: 'N × 5%', c: (N) => Math.round(N * 0.05) },
-    { k: 't15', n: 'Tarif 15%', f: 'N × 15%', c: (N) => Math.round(N * 0.15) },
-    { k: 't25', n: 'Tarif 2,5%', f: 'N × 2,5%', c: (N) => Math.round(N * 0.025) },
+    { k: 't5', n: 'Tarif 5%', d: 'Dipotong atas honorarium/imbalan dari APBN/APBD untuk PNS golongan III', f: 'N × 5%', c: (N) => Math.round(N * 0.05) },
+    { k: 't15', n: 'Tarif 15%', d: 'Dipotong atas honorarium/imbalan untuk PNS golongan IV dan pejabat negara', f: 'N × 15%', c: (N) => Math.round(N * 0.15) },
+    { k: 't25', n: 'Tarif 2,5%', d: 'Bukan pegawai: 50% dari nilai × tarif Pasal 17 lapisan pertama (5%)', f: 'N × 2,5%', c: (N) => Math.round(N * 0.025) },
   ] },
 ];
 export function computeTax(N) {
@@ -189,11 +192,11 @@ export function viewPajak(ui, params) {
     const R = computeTax(N);
     const card = (g) => `<section class="card tx-g">
       <h2 class="tx-gh">${ic(g.i)}<span>${esc(g.t)}</span></h2>
-      <div class="tx-rows">${g.rows.map((r) => `<button type="button" class="tx-r" data-copy="${R[r.k]}" title="Salin ${esc(r.n)}"><span class="tx-n"><b>${esc(r.n)}</b><small>${esc(r.f)}</small></span><span class="tx-v">${fmt(R[r.k])}</span>${ic('copy', 'tx-c')}</button>`).join('')}</div>
-      ${g.total ? `<button type="button" class="tx-r tx-total" data-copy="${R.total}" title="Salin total nilai"><span class="tx-n"><b>${esc(g.total.n)}</b><small>${esc(g.total.f)}</small></span><span class="tx-v">${fmt(R.total)}</span>${ic('copy', 'tx-c')}</button>` : ''}
+      <div class="tx-rows">${g.rows.map((r) => `<button type="button" class="tx-r" data-copy="${R[r.k]}" title="Salin ${esc(r.n)}"><span class="tx-n"><b>${esc(r.n)}</b><small class="tx-d">${esc(r.d)}</small><small class="tx-f">${esc(r.f)}</small></span><span class="tx-v">${fmt(R[r.k])}</span>${ic('copy', 'tx-c')}</button>`).join('')}</div>
+      ${g.total ? `<button type="button" class="tx-r tx-total" data-copy="${R.total}" title="Salin total nilai"><span class="tx-n"><b>${esc(g.total.n)}</b><small class="tx-d">${esc(g.total.d)}</small><small class="tx-f">${esc(g.total.f)}</small></span><span class="tx-v">${fmt(R.total)}</span>${ic('copy', 'tx-c')}</button>` : ''}
     </section>`;
-    // Pajak umum di kiri; dua kelompok lain bertumpuk di kanan (PC)
-    $('#txOut').innerHTML = card(TAX[0]) + `<div class="tx-side">${TAX.slice(1).map(card).join('')}</div>`;
+    // PC: PPN dan pemotongan/pemungutan di kiri, konstruksi dan PPh 21 di kanan
+    $('#txOut').innerHTML = `<div class="tx-side">${TAX.slice(0, 2).map(card).join('')}</div><div class="tx-side">${TAX.slice(2).map(card).join('')}</div>`;
   };
   const after = () => {
     draw();
