@@ -1789,3 +1789,63 @@ tr.k-turun .pb-d, tr.k-turun .pb-p { color: var(--red); }
   [data-theme="dark"] .topbar .top-search { background: rgba(255, 215, 13, .1); border-color: var(--gold-2); color: var(--text); box-shadow: none; }
   [data-theme="dark"] .topbar .top-search svg { color: var(--gold-2); }
 }
+
+/* ===== Hitung Lembur / Pemeliharaan / Paket Kegiatan ===== */
+.lb-grid .iv-h, .lb-grid .iv-r { grid-template-columns: 40px minmax(250px, 330px) 80px 96px 96px minmax(180px, 1fr) 36px; }
+.lb-rr { grid-template-columns: minmax(0, 1.8fr) 80px repeat(3, minmax(0, 1fr)); }
+.qt-top { display: flex; align-items: flex-end; gap: 14px 18px; flex-wrap: wrap; padding: 16px 18px; margin-bottom: 16px; position: sticky; top: calc(var(--topbar, 60px) + 8px); z-index: 5; }
+.qt-top .kp-fld { margin: 0; min-width: 220px; flex: 0 1 280px; }
+.qt-top .kp-seg { margin: 0; }
+.qt-top .btn { height: 40px; }
+.qt-grand { margin-left: auto; display: flex; flex-direction: column; align-items: flex-end; gap: 1px; }
+.qt-grand span { font-size: 12.5px; font-weight: 700; color: var(--muted); }
+.qt-grand b { font-size: 26px; font-weight: 800; color: var(--navy); font-variant-numeric: tabular-nums; letter-spacing: -.01em; line-height: 1.1; }
+[data-theme="dark"] .qt-grand b { color: var(--gold-2); }
+.qt-card { margin-bottom: 16px; overflow: hidden; }
+.qt-h { display: flex; align-items: center; gap: 10px 16px; flex-wrap: wrap; padding: 14px 18px 10px; }
+.qt-h h2 { display: inline-flex; align-items: center; gap: 9px; margin: 0 auto 0 0; font-size: 16.5px; font-weight: 750; }
+.qt-h h2 svg { width: 19px; height: 19px; color: var(--navy); }
+[data-theme="dark"] .qt-h h2 svg { color: var(--gold-2); }
+.qt-h .eff-mini { margin: 0; }
+.qt-m { display: inline-flex; align-items: center; gap: 7px; font-size: 13px; font-weight: 650; color: var(--muted); }
+.qt-m .iv-in { width: 54px; height: 34px; text-align: center; padding: 0 4px; }
+.qt-note { margin: 0 18px 10px; }
+.qt-tw { border: 0; border-top: 1px solid var(--border-2); border-radius: 0; max-height: none; }
+table.t.qt td { vertical-align: middle; }
+table.t.qt td:first-child { min-width: 220px; }
+.qt-l { display: block; font-weight: 650; }
+table.t.qt td small { display: block; color: var(--muted); font-size: 12px; margin-top: 1px; }
+.qt-v { width: 118px; }
+.qt-v .iv-in { height: 36px; }
+.qt-a { min-width: 120px; color: var(--faint); }
+tr.on .qt-a { color: var(--text); font-weight: 750; }
+table.t.qt tr.grp.sep td { padding: 3px; background: var(--surface-2); }
+table.t.qt tfoot td { font-weight: 750; background: color-mix(in srgb, var(--gold) 10%, var(--surface)); border-top: 2px solid var(--gold); border-bottom: 0; }
+table.t.qt tfoot td.n { font-size: 15px; }
+table.t.qt tr.miss td { color: var(--muted); }
+.pk-body { padding: 0 18px 14px; }
+.pk-row { margin-bottom: 12px; }
+.pk-row .kp-seg { margin: 0; }
+.pk-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 10px 12px; margin-bottom: 10px; }
+.pk-f { display: flex; flex-direction: column; gap: 5px; font-size: 13px; font-weight: 650; color: var(--muted); }
+.pk-f .iv-in { color: var(--text); }
+.pk-body .qt-note { margin: 2px 0 10px; }
+.pk-ged { margin: 4px 0 10px; }
+@media (max-width: 767px) {
+  .qt-top { position: static; padding: 14px; }
+  .qt-top .kp-fld { flex: 1 1 100%; }
+  .qt-grand { margin-left: 0; align-items: flex-start; flex: 1 1 100%; }
+  .qt-top .btn { flex: 1 1 40%; justify-content: center; }
+  table.t.qt thead { display: none; }
+  table.t.qt, table.t.qt > tbody, table.t.qt > tfoot { display: block; }
+  table.t.qt > tbody > tr:not(.grp) { display: grid; grid-template-columns: repeat(var(--qc, 3), minmax(0, 1fr)); gap: 6px 10px; padding: 10px 12px; border-bottom: 1px solid var(--border-2); align-items: end; }
+  table.t.qt > tbody > tr:not(.grp) > td.qt-a { text-align: right; }
+  table.t.qt > tbody > tr:not(.grp) > td { border: 0; padding: 0; text-align: left; width: auto; min-width: 0; }
+  table.t.qt > tbody > tr:not(.grp) > td:first-child { grid-column: 1 / -1; }
+  table.t.qt > tbody > tr > td[data-l]::before { content: attr(data-l); display: block; font-size: 11.5px; font-weight: 600; color: var(--muted); margin-bottom: 2px; }
+  table.t.qt > tbody > tr.grp { display: block; }
+  table.t.qt > tbody > tr.grp > td { display: block; }
+  table.t.qt > tfoot > tr { display: flex; }
+  table.t.qt > tfoot > tr > td { border-top: 2px solid var(--gold); flex: 1 1 auto; }
+  .qt-v { width: auto; }
+}
