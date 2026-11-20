@@ -1667,6 +1667,13 @@ function initTips() {
     });
   }
   window.addEventListener('hashchange', () => closeAll());
+  document.addEventListener('keydown', (e) => {
+    if (e.key !== 'Escape') return;
+    const open = $('.tip.open') || $('.tip.hover');
+    if (!open) return;
+    closeAll(); $$('.tip.hover').forEach((t) => t.classList.remove('hover'));
+    open.querySelector('.tip-btn')?.focus();
+  });
   // posisi fixed tidak ikut tergulir: tutup saat halaman/area digulir, atur ulang saat ukuran berubah
   window.addEventListener('scroll', () => { closeAll(); $$('.tip.hover').forEach((t) => t.classList.remove('hover')); }, { capture: true, passive: true });
   window.addEventListener('resize', () => $$('.tip.open, .tip.hover').forEach(placeTip));

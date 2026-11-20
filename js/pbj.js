@@ -9,7 +9,9 @@ const digits = (s) => String(s ?? '').replace(/\D/g, '');
 const parseRp = (s) => Number(digits(s)) || 0;
 const fmtRp = (n) => (n ? Math.round(n).toLocaleString('id-ID') : '');
 // Angka desimal gaya Indonesia: 1.250,5 → 1250.5
-const parseDec = (s) => { const t = String(s ?? '').trim().replace(/\./g, '').replace(',', '.'); const v = Number(t); return Number.isFinite(v) ? v : 0; };
+// "1.5" atau "2.25" (titik + 1–2 digit, tanpa koma) dibaca desimal; titik lain dianggap pemisah ribuan
+const decNorm = (s) => { const t = String(s ?? '').trim(); return !t.includes(',') && /^\d+\.\d{0,2}$/.test(t) ? t.replace('.', ',') : t; };
+const parseDec = (s) => { const t = decNorm(s).replace(/\./g, '').replace(',', '.'); const v = Number(t); return Number.isFinite(v) ? v : 0; };
 const fmtDec = (n) => (n || n === 0 ? n.toLocaleString('id-ID', { maximumFractionDigits: 4 }) : '');
 // Format ribuan saat mengetik tanpa membuat kursor melompat
 function liveRp(inp) {
@@ -21,7 +23,7 @@ function liveRp(inp) {
   while (i < out.length && seen < before) { if (/\d/.test(out[i])) seen++; i++; }
   try { inp.setSelectionRange(i, i); } catch { /* abaikan */ }
 }
-const cleanDec = (inp) => { inp.value = inp.value.replace(/[^\d,]/g, '').replace(/,(?=.*,)/g, ''); };
+const cleanDec = (inp) => { inp.value = decNorm(inp.value.replace(/[^\d,.]/g, '')).replace(/\./g, '').replace(/,(?=.*,)/g, ''); };
 
 /* ---------------- Invoice ---------------- */
 const INV_KEY = 'invoice';

@@ -971,6 +971,7 @@ table.t td.unit abbr { text-decoration: none; border-bottom: 1px dotted var(--fa
   background: transparent; color: inherit; font: inherit; text-align: left; cursor: pointer;
 }
 .yr-opt:hover, .yr-opt:focus-visible { background: var(--surface-2); outline: none; }
+.yr-opt:focus-visible { box-shadow: inset 0 0 0 2px var(--gold); }
 .yr-opt.on { background: color-mix(in srgb, var(--gold) 18%, transparent); }
 .yr-opt-t { flex: 1; display: flex; flex-direction: column; line-height: 1.25; }
 .yr-opt-t b { font-size: 15.5px; font-variant-numeric: tabular-nums; }
@@ -1588,6 +1589,8 @@ table.t.ms-dt tr.miss td { color: var(--muted); }
 .tx-r { display: flex; align-items: center; gap: 12px; width: 100%; padding: 11px 18px; border: 0; border-bottom: 1px solid var(--border-2); background: transparent; color: var(--text); font: inherit; text-align: left; cursor: copy; }
 .tx-rows .tx-r:last-child { border-bottom: 0; }
 .tx-r:hover, .tx-r:focus-visible { background: var(--surface-2); outline: none; }
+.tx-r:focus-visible { box-shadow: inset 0 0 0 2px var(--navy); }
+[data-theme="dark"] .tx-r:focus-visible { box-shadow: inset 0 0 0 2px var(--gold-2); }
 .tx-n { flex: 1; display: flex; flex-direction: column; gap: 1px; min-width: 0; }
 .tx-n b { font-size: 14.5px; font-weight: 650; }
 .tx-n small { font-size: 12px; color: var(--muted); }
@@ -1628,6 +1631,8 @@ table.t.ms-dt tr.miss td { color: var(--muted); }
 .tx-dd { margin: 6px 0 2px; width: 100%; max-width: 360px; height: 36px; font-size: 13.5px; font-weight: 600; }
 .tx-vb { display: inline-flex; align-items: center; gap: 12px; align-self: center; border: 0; background: transparent; color: var(--text); font: inherit; cursor: copy; padding: 6px 0 6px 8px; border-radius: 8px; }
 .tx-vb:hover, .tx-vb:focus-visible { background: var(--surface-2); outline: none; }
+.tx-vb:focus-visible { box-shadow: inset 0 0 0 2px var(--navy); }
+[data-theme="dark"] .tx-vb:focus-visible { box-shadow: inset 0 0 0 2px var(--gold-2); }
 .tx-vb:hover .tx-c { opacity: 1; color: var(--navy-700); }
 
 /* Hitung Honorarium */
@@ -1980,3 +1985,10 @@ table.t.qt tr.miss td { color: var(--muted); }
 .tabs { flex-wrap: wrap; overflow: visible; }
 .kp-p .kp-kelas { width: 108px; }
 .tabs { z-index: 3; }
+
+/* Target sentuh minimal 44px di layar sentuh (tampilan tetap; area tekan diperluas) */
+@media (pointer: coarse) {
+  .tab, .btn.sm { min-height: 44px; }
+  .icon-btn.sm, .tip-btn, .stp button { position: relative; }
+  .icon-btn.sm::after, .tip-btn::after, .stp button::after { content: ""; position: absolute; left: 50%; top: 50%; width: 44px; height: 44px; transform: translate(-50%, -50%); }
+}

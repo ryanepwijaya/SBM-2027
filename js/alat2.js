@@ -5,8 +5,9 @@ import { S, Y, esc, fmt, store, tip, valueCols, shortCol, unitCol, UNIT, effVal,
 import { ic } from './icons.js';
 
 const digits = (s) => String(s ?? '').replace(/\D/g, '');
-const num = (s) => { const t = String(s ?? '').trim().replace(/\./g, '').replace(',', '.'); const v = Number(t); return Number.isFinite(v) && v > 0 ? v : 0; };
-const cleanDec = (v) => v.replace(/[^\d,]/g, '').replace(/,(?=.*,)/g, '');
+const decNorm = (s) => { const t = String(s ?? '').trim(); return !t.includes(',') && /^\d+\.\d{0,2}$/.test(t) ? t.replace('.', ',') : t; };
+const num = (s) => { const t = decNorm(s).replace(/\./g, '').replace(',', '.'); const v = Number(t); return Number.isFinite(v) && v > 0 ? v : 0; };
+const cleanDec = (v) => decNorm(v.replace(/[^\d,.]/g, '')).replace(/\./g, '').replace(/,(?=.*,)/g, '');
 const lampRef = (bid) => { const b = S.butir[bid]; return `${b.lamp === 1 ? 'Lamp. I' : 'Lamp. II'} angka ${b.no}`; };
 const unitTxt = (u) => UNIT[u] || u || '';
 const provSel = (id, cur) => `<select class="sel" id="${id}" aria-label="Provinsi">${S.provList.map((p) => `<option value="${p.id}"${p.id === cur ? ' selected' : ''}>${esc(p.nama)}</option>`).join('')}</select>`;
