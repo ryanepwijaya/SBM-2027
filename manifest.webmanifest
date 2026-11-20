@@ -1,7 +1,7 @@
 {
-  "name": "SBM · Standar Biaya Masukan",
+  "name": "Cek SBM · Standar Biaya Masukan",
   "short_name": "SBM",
-  "description": "Baca Standar Biaya Masukan TA 2027 dan TA 2026 tanpa membuka PDF.",
+  "description": "Baca Standar Biaya Masukan tanpa membuka PDF, lengkap dengan alat hitung.",
   "lang": "id",
   "start_url": "./#/",
   "scope": "./",

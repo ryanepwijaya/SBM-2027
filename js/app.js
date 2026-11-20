@@ -1656,7 +1656,7 @@ function initTips() {
 /* ---------------- Mulai ---------------- */
 async function start() {
   applyYear(initYear());
-  document.title = `SBM ${Y.y} · Standar Biaya Masukan TA ${Y.y}`;
+  document.title = 'Standar Biaya Masukan · Cek SBM';
   shell();
   initTips();
   $('#main').innerHTML = `<div class="empty">Memuat data…</div>`;
