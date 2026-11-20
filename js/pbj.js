@@ -29,22 +29,30 @@ const newRow = () => ({ v: '', h: '', f: '1' });
 function loadInv() {
   const d = store.get(INV_KEY, null);
   const rows = Array.isArray(d?.rows) && d.rows.length ? d.rows.map((r) => ({ v: String(r.v ?? ''), h: String(r.h ?? ''), f: String(r.f ?? '1') })) : [newRow()];
-  return { rows, lock: !!d?.lock };
+  const ord = Array.isArray(d?.order) && d.order.length === 3 && ['v', 'h', 'f'].every((k) => d.order.includes(k)) ? d.order : ['v', 'h', 'f'];
+  return { rows, lock: !!d?.lock, order: ord };
 }
+// Kolom isian yang urutannya bisa digeser mengikuti format invoice yang diterima
+const COLS = {
+  v: { t: 'Vol', w: '130px' },
+  h: { t: 'Harga satuan (Rp)', s: 'Harga satuan', w: 'minmax(170px, 1fr)' },
+  f: { t: 'Frek', w: '100px' },
+};
 const saveInv = (I) => store.set(INV_KEY, I);
 const rowJumlah = (r, lock) => Math.round(parseDec(r.v) * parseRp(r.h) * (lock ? 1 : parseDec(r.f || '1')));
 export function invoiceTotal(I = loadInv()) { return I.rows.reduce((a, r) => a + rowJumlah(r, I.lock), 0); }
 
 export function viewInvoice(ui) {
   const I = loadInv();
-  const html = `<div class="page-head"><h1 class="title">Hitung Invoice Barang/Jasa</h1><p class="subtitle">Isi daftar barang/jasa: volume, harga satuan, dan frekuensi. Semua bisa diisi tanpa mouse: tekan Tab untuk pindah kolom, dan Tab di kolom terakhir baris terakhir membuat baris baru. Totalnya bisa langsung dihitung pajaknya. Isian tersimpan di perangkat ini.</p></div>
+  const html = `<div class="page-head"><h1 class="title">Hitung Invoice Barang/Jasa</h1><p class="subtitle">Isi daftar barang/jasa: volume, harga satuan, dan frekuensi. Urutan kolom bisa digeser mengikuti format invoice yang diterima. Semua bisa diisi tanpa mouse: tekan Tab untuk pindah kolom, dan Tab di kolom terakhir baris terakhir membuat baris baru. Totalnya bisa langsung dihitung pajaknya. Isian tersimpan di perangkat ini.</p></div>
   <div class="card iv">
     <div class="iv-bar">
       <label class="iv-lock"><input type="checkbox" id="ivLock"${I.lock ? ' checked' : ''}><span>Kunci semua frekuensi = 1 <small>(kolom Frek dilewati saat Tab)</small></span></label>
       <button type="button" class="btn sm" id="ivReset">${ic('history')} Reset</button>
     </div>
+    <div class="iv-ord" id="ivOrd"></div>
     <div class="iv-grid${I.lock ? ' locked' : ''}" id="ivGrid" role="table" aria-label="Daftar barang/jasa">
-      <div class="iv-h" role="row"><span role="columnheader">No</span><span role="columnheader">Vol</span><span role="columnheader">Harga satuan (Rp)</span><span role="columnheader">Frek</span><span role="columnheader" class="n">Jumlah</span><span role="columnheader"><span class="sr">Hapus</span></span></div>
+      <div class="iv-h" role="row" id="ivHead"></div>
       <div id="ivRows"></div>
     </div>
     <div class="iv-add"><button type="button" class="btn sm" id="ivAdd">${ic('plus')} Tambah baris</button><span class="muted small">${ic('command')} Tab: kolom berikutnya · Enter: baris berikutnya · Shift+Tab: mundur</span></div>
@@ -54,15 +62,32 @@ export function viewInvoice(ui) {
     </div>
   </div>`;
   const { $, $$, toast } = ui;
+  const cell = (r, i, k) => k === 'v'
+    ? `<span class="c-v" role="cell" data-l="Vol"><input class="iv-in" data-f="v" inputmode="decimal" autocomplete="off" value="${esc(r.v)}" placeholder="0" aria-label="Volume baris ${i + 1}"></span>`
+    : k === 'h'
+      ? `<span class="c-h" role="cell" data-l="Harga satuan"><span class="iv-rp"><b>Rp</b><input class="iv-in" data-f="h" inputmode="numeric" autocomplete="off" value="${esc(r.h)}" placeholder="0" aria-label="Harga satuan baris ${i + 1}"></span></span>`
+      : `<span class="c-f" role="cell" data-l="Frek"><input class="iv-in" data-f="f" inputmode="decimal" autocomplete="off" value="${I.lock ? '1' : esc(r.f)}" aria-label="Frekuensi baris ${i + 1}"${I.lock ? ' tabindex="-1" readonly' : ''}></span>`;
   const rowHtml = (r, i) => `<div class="iv-r" role="row" data-i="${i}">
-      <span class="iv-no" role="cell">${i + 1}</span>
-      <span role="cell" data-l="Vol"><input class="iv-in" data-f="v" inputmode="decimal" autocomplete="off" value="${esc(r.v)}" placeholder="0" aria-label="Volume baris ${i + 1}"></span>
-      <span role="cell" data-l="Harga satuan"><span class="iv-rp"><b>Rp</b><input class="iv-in" data-f="h" inputmode="numeric" autocomplete="off" value="${esc(r.h)}" placeholder="0" aria-label="Harga satuan baris ${i + 1}"></span></span>
-      <span role="cell" data-l="Frek"><input class="iv-in" data-f="f" inputmode="decimal" autocomplete="off" value="${I.lock ? '1' : esc(r.f)}" aria-label="Frekuensi baris ${i + 1}"${I.lock ? ' tabindex="-1" readonly' : ''}></span>
-      <span class="iv-j n" role="cell" data-l="Jumlah">${fmt(rowJumlah(r, I.lock))}</span>
-      <span role="cell"><button type="button" class="icon-btn sm" data-del="${i}" tabindex="-1" aria-label="Hapus baris ${i + 1}">${ic('x')}</button></span>
+      <span class="iv-no c-no" role="cell">${i + 1}</span>
+      ${I.order.map((k, j) => cell(r, i, k).replace('role="cell"', `role="cell" data-p="${j}"`)).join('')}
+      <span class="iv-j n c-j" role="cell" data-l="Jumlah">${fmt(rowJumlah(r, I.lock))}</span>
+      <span class="c-x" role="cell"><button type="button" class="icon-btn sm" data-del="${i}" tabindex="-1" aria-label="Hapus baris ${i + 1}">${ic('x')}</button></span>
     </div>`;
+  const mvBtns = (k, j) => `<span class="iv-mv"><button type="button" data-mv="${k}" data-d="-1" aria-label="Geser ${COLS[k].t} ke kiri"${j === 0 ? ' disabled' : ''}>${ic('chevron-left')}</button><button type="button" data-mv="${k}" data-d="1" aria-label="Geser ${COLS[k].t} ke kanan"${j === 2 ? ' disabled' : ''}>${ic('chevron-right')}</button></span>`;
+  function drawHead() {
+    $('#ivGrid').style.setProperty('--ivcols', `44px ${I.order.map((k) => COLS[k].w).join(' ')} minmax(140px, 180px) 40px`);
+    $('#ivHead').innerHTML = `<span role="columnheader">No</span>${I.order.map((k, j) => `<span role="columnheader" class="iv-hc" draggable="true" data-col="${k}" title="Seret untuk menggeser kolom">${ic('grip-vertical', 'iv-grip')}<span>${COLS[k].t}</span>${mvBtns(k, j)}</span>`).join('')}<span role="columnheader" class="n">Jumlah</span><span role="columnheader"><span class="sr">Hapus</span></span>`;
+    $('#ivOrd').innerHTML = `<span class="muted small">Urutan kolom</span>${I.order.map((k, j) => `<span class="iv-oc">${esc(COLS[k].s || COLS[k].t)}${mvBtns(k, j)}</span>`).join('')}`;
+  }
+  function moveCol(k, to) {
+    const from = I.order.indexOf(k);
+    if (from < 0 || to < 0 || to > 2 || from === to) return;
+    I.order.splice(from, 1); I.order.splice(to, 0, k);
+    saveInv(I); drawHead(); drawRows();
+    ui.toast(`Urutan kolom: ${I.order.map((x) => COLS[x].s || COLS[x].t).join(', ')}`);
+  }
   function drawRows(focus) {
+    if (!$('#ivHead').innerHTML) drawHead();
     $('#ivRows').innerHTML = I.rows.map(rowHtml).join('');
     $('#ivGrid').classList.toggle('locked', I.lock);
     totals();
@@ -75,9 +100,12 @@ export function viewInvoice(ui) {
     $('#ivMeta').textContent = `${filled} baris terisi`;
     $('#ivPajak').disabled = !t;
   }
-  const lastField = () => (I.lock ? 'h' : 'f');
+  const active = () => I.order.filter((k) => !(I.lock && k === 'f'));
+  const lastField = () => active()[active().length - 1];
+  const firstField = () => active()[0];
+  const sameOrFirst = (f) => (active().includes(f) ? f : firstField());
   const isEmpty = (r) => !digits(r.v) && !digits(r.h);
-  function addRow(focusF = 'v') { I.rows.push(newRow()); saveInv(I); drawRows({ i: I.rows.length - 1, f: focusF }); }
+  function addRow(focusF) { I.rows.push(newRow()); saveInv(I); drawRows({ i: I.rows.length - 1, f: focusF || firstField() }); }
   const after = () => {
     drawRows();
     const grid = $('#ivGrid');
@@ -100,8 +128,8 @@ export function viewInvoice(ui) {
       if (e.key === 'Tab' && !e.shiftKey && last && f === lastField() && !isEmpty(I.rows[i])) { e.preventDefault(); addRow(); return; }
       if (e.key === 'Enter') {
         e.preventDefault();
-        if (last) { if (!isEmpty(I.rows[i])) addRow(f === 'f' && I.lock ? 'v' : f); else $('#ivPajak').focus(); }
-        else drawRows({ i: i + 1, f: f === 'f' && I.lock ? 'v' : f });
+        if (last) { if (!isEmpty(I.rows[i])) addRow(sameOrFirst(f)); else $('#ivPajak').focus(); }
+        else drawRows({ i: i + 1, f: sameOrFirst(f) });
       }
       if (e.key === 'ArrowDown' && !last) { e.preventDefault(); drawRows({ i: i + 1, f }); }
       if (e.key === 'ArrowUp' && i > 0) { e.preventDefault(); drawRows({ i: i - 1, f }); }
@@ -119,16 +147,32 @@ export function viewInvoice(ui) {
       if (I.rows.length > 1) I.rows.splice(i, 1); else I.rows[0] = newRow();
       saveInv(I); drawRows();
     });
+    // Geser kolom: tombol panah (header dan bar HP) atau seret judul kolom (PC)
+    const card = $('.iv');
+    card.addEventListener('click', (e) => {
+      const b = e.target.closest('[data-mv]');
+      if (!b) return;
+      e.preventDefault();
+      const k = b.dataset.mv;
+      moveCol(k, I.order.indexOf(k) + Number(b.dataset.d));
+    });
+    let dragK = null;
+    const head = $('#ivHead');
+    head.addEventListener('dragstart', (e) => { const h = e.target.closest('[data-col]'); if (!h) return; dragK = h.dataset.col; h.classList.add('drag'); e.dataTransfer.effectAllowed = 'move'; try { e.dataTransfer.setData('text/plain', dragK); } catch { /* abaikan */ } });
+    head.addEventListener('dragover', (e) => { const h = e.target.closest('[data-col]'); if (!h || !dragK) return; e.preventDefault(); $$('.iv-hc', head).forEach((x) => x.classList.toggle('over', x === h && x.dataset.col !== dragK)); });
+    head.addEventListener('dragleave', (e) => { const h = e.target.closest('[data-col]'); if (h && !h.contains(e.relatedTarget)) h.classList.remove('over'); });
+    head.addEventListener('drop', (e) => { const h = e.target.closest('[data-col]'); if (!h || !dragK) return; e.preventDefault(); const k = dragK; dragK = null; moveCol(k, I.order.indexOf(h.dataset.col)); });
+    head.addEventListener('dragend', () => { dragK = null; $$('.iv-hc', head).forEach((x) => x.classList.remove('drag', 'over')); });
     $('#ivLock').onchange = (e) => { I.lock = e.target.checked; saveInv(I); drawRows(); toast(I.lock ? 'Frekuensi dikunci 1 dan dilewati saat Tab' : 'Frekuensi bisa diisi per baris'); };
     $('#ivAdd').onclick = () => addRow();
     let armed = 0;
     $('#ivReset').onclick = () => {
       if (invoiceTotal(I) && Date.now() - armed > 3000) { armed = Date.now(); toast('Tekan Reset sekali lagi untuk mengosongkan daftar'); return; }
-      I.rows = [newRow()]; saveInv(I); drawRows({ i: 0, f: 'v' }); toast('Daftar dikosongkan');
+      I.rows = [newRow()]; saveInv(I); drawRows({ i: 0, f: firstField() }); toast('Daftar dikosongkan');
     };
     $('#ivCopy').onclick = () => ui.copy(String(invoiceTotal(I)), 'Total disalin');
     $('#ivPajak').onclick = () => { const t = invoiceTotal(I); if (t) location.hash = `#/alat/pajak?n=${t}&dari=invoice`; };
-    if (I.rows.length === 1 && isEmpty(I.rows[0])) setTimeout(() => $('.iv-in[data-f="v"]')?.focus(), 60);
+    if (I.rows.length === 1 && isEmpty(I.rows[0])) setTimeout(() => $(`.iv-in[data-f="${firstField()}"]`)?.focus(), 60);
   };
   return { html, after };
 }
@@ -195,8 +239,8 @@ export function viewPajak(ui, params) {
       <div class="tx-rows">${g.rows.map((r) => `<button type="button" class="tx-r" data-copy="${R[r.k]}" title="Salin ${esc(r.n)}"><span class="tx-n"><b>${esc(r.n)}</b><small class="tx-d">${esc(r.d)}</small><small class="tx-f">${esc(r.f)}</small></span><span class="tx-v">${fmt(R[r.k])}</span>${ic('copy', 'tx-c')}</button>`).join('')}</div>
       ${g.total ? `<button type="button" class="tx-r tx-total" data-copy="${R.total}" title="Salin total nilai"><span class="tx-n"><b>${esc(g.total.n)}</b><small class="tx-d">${esc(g.total.d)}</small><small class="tx-f">${esc(g.total.f)}</small></span><span class="tx-v">${fmt(R.total)}</span>${ic('copy', 'tx-c')}</button>` : ''}
     </section>`;
-    // PC: PPN dan pemotongan/pemungutan di kiri, konstruksi dan PPh 21 di kanan
-    $('#txOut').innerHTML = `<div class="tx-side">${TAX.slice(0, 2).map(card).join('')}</div><div class="tx-side">${TAX.slice(2).map(card).join('')}</div>`;
+    // PC: baris atas PPN dan pemotongan/pemungutan (paling sering dipakai), baris bawah konstruksi dan PPh 21
+    $('#txOut').innerHTML = TAX.map(card).join('');
   };
   const after = () => {
     draw();
