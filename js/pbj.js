@@ -190,6 +190,7 @@ const TAX = [
     { k: 'pph22', n: 'PPh 22', d: 'Dipungut bendahara atas pembayaran pembelian barang', f: 'N × 1,5%', c: (N) => Math.round(N * 0.015) },
     { k: 'pph23', n: 'PPh 23', d: 'Dipotong atas imbalan jasa dan sewa harta selain tanah/bangunan', f: 'N × 2%', c: (N) => Math.round(N * 0.02) },
     { k: 'pph42', n: 'PPh 4(2) UMKM', d: 'PPh final bagi penyedia UMKM yang memiliki surat keterangan', f: 'N × 0,5%', c: (N) => Math.round(N * 0.005) },
+    { k: 'pph42n', n: 'PPh 4(2) non-UMKM', sel: true, c: (N, R, S) => Math.round(N * P42N[S.p42n].r) },
     { k: 'pnbp', n: 'PNBP 0,3%', d: 'Penerimaan negara bukan pajak, bukan PPh', f: 'N × 0,3%', c: (N) => Math.round(N * 0.003) },
   ] },
   { k: 'kons', t: 'PPh konstruksi dan konsultasi', i: 'building', rows: [
@@ -203,16 +204,28 @@ const TAX = [
     { k: 't25', n: 'Tarif 2,5%', d: 'Bukan pegawai: 50% dari nilai × tarif Pasal 17 lapisan pertama (5%)', f: 'N × 2,5%', c: (N) => Math.round(N * 0.025) },
   ] },
 ];
-export function computeTax(N) {
+// PPh final Pasal 4(2) selain UMKM yang lazim pada belanja pemerintah (objek khusus orang pribadi tidak dimasukkan).
+// Konstruksi bersertifikat (kecil, selain kecil, konsultansi) ada di kelompok sendiri.
+export const P42N = {
+  sewa: { n: 'Sewa tanah dan/atau bangunan', r: 0.10, p: '10%', d: 'Termasuk sewa gedung, ruang rapat/aula, gudang, dan kantor' },
+  kon4: { n: 'Pekerjaan konstruksi tanpa sertifikat', r: 0.04, p: '4%', d: 'Penyedia tanpa sertifikat badan usaha/kompetensi kerja' },
+  int265: { n: 'Pekerjaan konstruksi terintegrasi bersertifikat', r: 0.0265, p: '2,65%', d: 'Rancang bangun (desain dan pelaksanaan sekaligus)' },
+  int4: { n: 'Pekerjaan konstruksi terintegrasi tanpa sertifikat', r: 0.04, p: '4%', d: 'Rancang bangun oleh penyedia tanpa sertifikat' },
+  kons6: { n: 'Konsultansi konstruksi tanpa sertifikat', r: 0.06, p: '6%', d: 'Perencanaan/pengawasan konstruksi oleh penyedia tanpa sertifikat' },
+  undian: { n: 'Hadiah undian', r: 0.25, p: '25%', d: 'Misalnya doorprize undian pada kegiatan' },
+  alih: { n: 'Pengalihan hak atas tanah dan/atau bangunan', r: 0.025, p: '2,5%', d: 'Disetor sendiri oleh penjual; pengadaan tanah untuk kepentingan umum 0%' },
+};
+export function computeTax(N, S = { p42n: 'sewa' }) {
+  if (!P42N[S.p42n]) S = { ...S, p42n: 'sewa' };
   const R = {};
-  for (const g of TAX) for (const r of g.rows) R[r.k] = r.c(N, R);
+  for (const g of TAX) for (const r of g.rows) R[r.k] = r.c(N, R, S);
   R.total = N + R.ppn;
   return R;
 }
 const SRC = { invoice: { t: 'Hitung Invoice', h: '#/alat/invoice' }, honor: { t: 'Hitung Honorarium', h: '#/alat/honor' } };
 
 export function viewPajak(ui, params) {
-  if (params.n != null) store.set('pajak', { n: parseRp(params.n), dari: SRC[params.dari] ? params.dari : null });
+  if (params.n != null) store.set('pajak', { ...store.get('pajak', {}), n: parseRp(params.n), dari: SRC[params.dari] ? params.dari : null });
   const P = store.get('pajak', { n: 0, dari: null });
   const inv = invoiceTotal();
   const src = P.dari && SRC[P.dari] ? `<div class="tx-src">${ic('corner-down-left')} Diambil dari <a href="${SRC[P.dari].h}">${SRC[P.dari].t}</a>. Ubah angkanya di sini atau kembali ke sumbernya.</div>` : '';
@@ -233,10 +246,18 @@ export function viewPajak(ui, params) {
   const { $, $$, toast } = ui;
   const draw = () => {
     const N = P.n;
-    const R = computeTax(N);
+    if (!P42N[P.p42n]) P.p42n = 'sewa';
+    const R = computeTax(N, P);
+    const o = P42N[P.p42n];
+    const selRow = (r) => `<div class="tx-r tx-sel">
+        <span class="tx-n"><b>${esc(r.n)}</b>
+          <select class="sel sm tx-dd" id="txP42" aria-label="PPh 4(2) non-UMKM atas">${Object.entries(P42N).map(([k, x]) => `<option value="${k}"${k === P.p42n ? ' selected' : ''}>${esc(x.n)} (${x.p})</option>`).join('')}</select>
+          <small class="tx-d">PPh final Pasal 4(2) atas ${esc(o.n.toLowerCase())}. ${esc(o.d)}</small><small class="tx-f">N × ${o.p}</small></span>
+        <button type="button" class="tx-vb" data-copy="${R[r.k]}" title="Salin ${esc(r.n)}"><span class="tx-v">${fmt(R[r.k])}</span>${ic('copy', 'tx-c')}</button>
+      </div>`;
     const card = (g) => `<section class="card tx-g">
       <h2 class="tx-gh">${ic(g.i)}<span>${esc(g.t)}</span></h2>
-      <div class="tx-rows">${g.rows.map((r) => `<button type="button" class="tx-r" data-copy="${R[r.k]}" title="Salin ${esc(r.n)}"><span class="tx-n"><b>${esc(r.n)}</b><small class="tx-d">${esc(r.d)}</small><small class="tx-f">${esc(r.f)}</small></span><span class="tx-v">${fmt(R[r.k])}</span>${ic('copy', 'tx-c')}</button>`).join('')}</div>
+      <div class="tx-rows">${g.rows.map((r) => r.sel ? selRow(r) : `<button type="button" class="tx-r" data-copy="${R[r.k]}" title="Salin ${esc(r.n)}"><span class="tx-n"><b>${esc(r.n)}</b><small class="tx-d">${esc(r.d)}</small><small class="tx-f">${esc(r.f)}</small></span><span class="tx-v">${fmt(R[r.k])}</span>${ic('copy', 'tx-c')}</button>`).join('')}</div>
       ${g.total ? `<button type="button" class="tx-r tx-total" data-copy="${R.total}" title="Salin total nilai"><span class="tx-n"><b>${esc(g.total.n)}</b><small class="tx-d">${esc(g.total.d)}</small><small class="tx-f">${esc(g.total.f)}</small></span><span class="tx-v">${fmt(R.total)}</span>${ic('copy', 'tx-c')}</button>` : ''}
     </section>`;
     // PC: baris atas PPN dan pemotongan/pemungutan (paling sering dipakai), baris bawah konstruksi dan PPh 21
@@ -247,10 +268,11 @@ export function viewPajak(ui, params) {
     const inp = $('#txN');
     inp.addEventListener('input', () => { liveRp(inp); P.n = parseRp(inp.value); P.dari = null; store.set('pajak', P); const s = $('.tx-src'); if (s) s.remove(); draw(); });
     inp.addEventListener('focus', () => inp.select());
-    $('#txOut').addEventListener('click', (e) => { const b = e.target.closest('[data-copy]'); if (b) ui.copy(b.dataset.copy, `${b.querySelector('b').textContent} disalin`); });
+    $('#txOut').addEventListener('click', (e) => { const b = e.target.closest('[data-copy]'); if (b) ui.copy(b.dataset.copy, `${(b.querySelector('b') || b.closest('.tx-r').querySelector('b')).textContent} disalin`); });
+    $('#txOut').addEventListener('change', (e) => { if (e.target.id !== 'txP42') return; P.p42n = e.target.value; store.set('pajak', P); draw(); $('#txP42').focus(); });
     const ib = $('#txInv');
     if (ib) ib.onclick = () => { location.hash = `#/alat/pajak?n=${invoiceTotal()}&dari=invoice`; };
-    $('#txClear').onclick = () => { P.n = 0; P.dari = null; store.set('pajak', P); history.replaceState(null, '', '#/alat/pajak'); ui.route(); };
+    $('#txClear').onclick = () => { P.n = 0; P.dari = null; /* pilihan dropdown dipertahankan */ store.set('pajak', P); history.replaceState(null, '', '#/alat/pajak'); ui.route(); };
     // Bersihkan ?n= dari alamat agar muat ulang tidak menimpa angka yang sudah diubah
     if (params.n != null) history.replaceState(null, '', '#/alat/pajak');
     if (!P.n) setTimeout(() => inp.focus(), 60);
