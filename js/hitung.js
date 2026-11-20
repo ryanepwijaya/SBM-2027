@@ -97,27 +97,29 @@ export function compute(state = KP) {
   return { ready: true, O, D, r, lines, people, total, perPerson, grand, alt, hasTiket, effOn, missing: lines.filter((l) => l.missing) };
 }
 
-const stepper = (id, val, min, max, label) => `<div class="stp" data-stp="${id}" data-min="${min}" data-max="${max}"><button type="button" data-d="-1" aria-label="Kurangi ${esc(label)}"${val <= min ? ' disabled' : ''}>−</button><output aria-live="polite">${val}</output><button type="button" data-d="1" aria-label="Tambah ${esc(label)}"${val >= max ? ' disabled' : ''}>+</button></div>`;
+const stepper = (id, val, min, max, label) => `<div class="stp" data-stp="${id}" data-min="${min}" data-max="${max}"><button type="button" data-d="-1" aria-label="Kurangi ${esc(label)}"${val <= min ? ' disabled' : ''}>−</button><input class="stp-in" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="3" value="${val}" aria-label="Jumlah ${esc(label)}"><button type="button" data-d="1" aria-label="Tambah ${esc(label)}"${val >= max ? ' disabled' : ''}>+</button></div>`;
+export const KP_DEFAULT = JSON.parse(JSON.stringify(KP));
+export function resetKP() { Object.assign(KP, JSON.parse(JSON.stringify(KP_DEFAULT))); }
 
 export function formHtml(routeForm) {
   const seg = (name, opts, cur) => `<div class="kp-seg" role="radiogroup">${opts.map((o) => `<button type="button" role="radio" aria-checked="${o.v === cur}" class="${o.v === cur ? 'on' : ''}" data-${name}="${o.v}"${o.soon ? ' disabled' : ''}>${esc(o.t)}${o.soon ? ' <em>Segera</em>' : ''}</button>`).join('')}</div>`;
   return `<div class="card card-pad kp-form">
-    <div class="kp-step"><h2 class="kp-h"><span class="step">1</span>Tujuan surat tugas</h2>
+    <div class="kp-step"><h2 class="kp-h"><span class="step">1</span>Tujuan surat tugas<button type="button" class="btn sm kp-reset" id="kpReset">${ic('history')} Reset</button></h2>
       ${seg('lingkup', [{ v: 'dn', t: 'Dalam negeri, luar kota' }, { v: 'dk', t: 'Dalam kota', soon: true }, { v: 'ln', t: 'Luar negeri', soon: true }], 'dn')}
       ${routeForm(KP.dari, KP.ke)}
       <div class="kp-row"><span class="kp-lbl">Uang harian</span>${seg('jenis', [{ v: 'lk', t: 'Luar kota' }, { v: 'diklat', t: 'Diklat' }], KP.jenis)}</div>
     </div>
     <div class="kp-step"><h2 class="kp-h"><span class="step">2</span>Lama perjalanan</h2>
-      <div class="kp-row"><span class="kp-lbl">Hari</span>${stepper('hari', KP.hari, 1, 60, 'hari')}</div>
+      <div class="kp-row"><span class="kp-lbl">Hari</span>${stepper('hari', KP.hari, 1, 365, 'hari')}</div>
       <div class="kp-row"><span class="kp-lbl">Malam menginap ${tip('Bawaan jumlah hari dikurangi satu. Bisa diubah dari 0 sampai sama dengan jumlah hari.')}</span>${stepper('malam', KP.malam, 0, KP.hari, 'malam')}</div>
     </div>
     <div class="kp-step"><h2 class="kp-h"><span class="step">3</span>Pelaksana</h2>
       <div class="kp-people">${TINGKAT.map((t) => `<div class="kp-p">
         <span class="kp-pn">${esc(t.n)}</span>
         <select class="sel kp-kelas" data-kelas="${t.k}" aria-label="Kelas tiket ${esc(t.n)}"><option value="eko"${KP.kelas[t.k] === 'eko' ? ' selected' : ''}>Ekonomi</option><option value="bis"${KP.kelas[t.k] === 'bis' ? ' selected' : ''}>Bisnis</option></select>
-        ${stepper('org:' + t.k, KP.org[t.k], 0, 99, 'pelaksana ' + t.n)}
+        ${stepper('org:' + t.k, KP.org[t.k], 0, 999, 'pelaksana ' + t.n)}
       </div>`).join('')}</div>
-      <div class="muted small kp-note">Kelas tiket dipilih per tingkat dan hanya dipakai bila rutenya memakai tiket pesawat.</div>
+      <div class="muted small kp-note">Jumlah bisa diketik langsung (sampai 999 orang). Kelas tiket dipilih per tingkat dan hanya dipakai bila rutenya memakai tiket pesawat.</div>
     </div>
   </div>`;
 }
@@ -148,7 +150,7 @@ export function resultHtml(res, effNotice) {
   return `${effNotice()}
   <div class="card kp-res">
     <div class="kp-res-h"><div><div class="kp-title">Perkiraan biaya perjalanan dinas</div><div class="muted small">${sum}</div></div>
-      <div class="kp-actions"><button type="button" class="btn" id="kpPdf">${ic('download')} Unduh PDF</button><button type="button" class="btn" id="kpShare" hidden>${ic('share-2')} Bagikan PDF</button></div></div>
+      <div class="kp-actions"><button type="button" class="btn" id="kpPdf">${ic('download')} Unduh PDF</button></div></div>
     <div class="tbl-wrap kp-tbl"><table class="t kp-t">
       <thead><tr><th>Komponen</th><th class="n">Satuan biaya</th><th>Volume</th><th class="n">Jumlah</th></tr></thead>
       <tbody>${rows}</tbody>

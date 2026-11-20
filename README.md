@@ -46,7 +46,8 @@ python3 build_data.py /tmp/tables26.json /tmp/text26.json map.json ../../data/sb
 
 ## Alat Bantu
 
-- **Rute Perjadin**: Buat Perjalanan (`#/rute`), Cek Per Provinsi (`#/daerah`), Bandingkan Wilayah (`#/bandingkan`), Kalkulator Perjadin (`#/hitung`, `js/hitung.js`).
+- **Rute Perjadin**: Buat Perjalanan (`#/rute`) dan Kalkulator Perjadin (`#/hitung`, `js/hitung.js`).
+- **Biaya Per Provinsi** (`#/daerah`, `#/daerah/p/<id>?vs=<id>,<id>`): semua satuan biaya per provinsi dikelompokkan per bab (tertutup secara bawaan), bisa dibandingkan sampai 3 provinsi. `#/bandingkan` lama dialihkan ke sini.
 - Kalkulator Perjadin hanya mengalikan satuan biaya SBM dengan volume (hari, malam, orang); aturan PMK Perjalanan Dinas tidak diterapkan. PDF dibuat di peramban dengan jsPDF + jspdf-autotable (`vendor/`, lisensi MIT).
 - **Perpajakan** (`#/alat/pajak`): penanda "Sedang disiapkan".
 

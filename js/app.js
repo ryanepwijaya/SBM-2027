@@ -3,7 +3,7 @@ import { S, Y, YEARS, switchYear, initYear, loadData, entry, entriesOf, esc, nor
 import { search, buildIndex, SEARCH_HINTS } from './search.js';
 import { ic } from './icons.js';
 import { loadWilayah, suggest, resolve, routeHtml, placeLabel, routeHints, W } from './rute.js';
-import { KP, compute, formHtml, resultHtml, buildPdf } from './hitung.js';
+import { KP, compute, formHtml, resultHtml, buildPdf, resetKP } from './hitung.js';
 import { BABS, REF_LINKS, babByKey, babByKel, babOfButir } from './bab.js';
 
 const $ = (s, el = document) => el.querySelector(s);
@@ -25,11 +25,12 @@ const TOOLS = [
     k: 'rute', h: '#/rute', t: 'Rute Perjadin', i: 'route', d: 'Satuan biaya perjalanan dinas dari kota asal ke kota tujuan, per provinsi, dan perbandingannya',
     sub: [
       { k: 'rute', h: '#/rute', t: 'Buat Perjalanan', i: 'signpost', d: 'Dari kota X ke kota Y, semua satuan biaya perjalanan dinas langsung muncul' },
-      { k: 'daerah', h: '#/daerah', t: 'Cek Per Provinsi', i: 'map', d: 'Semua satuan biaya per provinsi, semua bab' },
-      { k: 'bandingkan', h: '#/bandingkan', t: 'Bandingkan Wilayah', i: 'scale', d: 'Sampai 3 provinsi berdampingan' },
       { k: 'hitung', h: '#/hitung', t: 'Kalkulator Perjadin', i: 'calculator', d: 'Perkiraan biaya dari tujuan, lama, dan pelaksana surat tugas; bisa diunduh sebagai PDF' },
-      { k: 'ln', h: '#/daerah/ln', t: 'Luar Negeri', i: 'globe', d: 'Uang harian per negara dan tiket per kota', hideSide: true },
     ],
+  },
+  {
+    k: 'provinsi', h: '#/daerah', t: 'Biaya Per Provinsi', i: 'map', d: 'Semua satuan biaya SBM yang ditetapkan per provinsi, dikelompokkan per jenis biaya; bisa dibandingkan sampai 3 provinsi',
+    sub: [{ k: 'ln', h: '#/daerah/ln', t: 'Luar Negeri', i: 'globe', d: 'Uang harian per negara dan tiket per kota' }], flat: true,
   },
   { k: 'pajak', h: '#/alat/pajak', t: 'Perpajakan', i: 'percent', d: 'PPN dan PPh atas pembayaran oleh bendahara', soon: true },
 ];
@@ -244,7 +245,7 @@ function sideHtml() {
   }).join('');
   const refBody = stagger([`<div class="fly-h">${ic('library')}Referensi</div>`, ...REF_LINKS.map((r) => `<a class="acc-it" href="${r.h}" data-item="ref:${r.h}">${ic(r.icon)}<span>${esc(r.n)}</span></a>`)]);
   const toolLinks = TOOLS.map((t) => {
-    if (t.sub) {
+    if (t.sub && !t.flat) {
       const body = stagger([`<div class="fly-h">${ic(t.i)}${esc(t.t)}</div>`, ...t.sub.filter((x) => !x.hideSide).map((x) => `<a class="acc-it" href="${x.h}" data-item="tool:${x.k}">${ic(x.i)}<span>${esc(x.t)}</span></a>`)]);
       return acc(t.k, t.t, t.i, '', body);
     }
@@ -320,7 +321,7 @@ function initSidebar() {
     if (!h) return;
     const acc = h.closest('.acc');
     const key = acc.dataset.acc;
-    const tool = TOOLS.find((t) => t.k === key && t.sub);
+    const tool = TOOLS.find((t) => t.k === key && t.sub && !t.flat);
     const target = babByKey(key) ? '#/bab/' + key : tool ? tool.h : null; // Referensi tidak punya halaman ringkasan
     const onTarget = target && location.hash.split('?')[0] === target;
     if (document.documentElement.dataset.rail === '1') {
@@ -417,8 +418,7 @@ function renderPalette(q) {
     secs.push({ t: 'Buka bab', items: BABS.map((b) => item({ href: `#/bab/${b.key}`, t: b.name, d: b.desc, i: b.icon, k: b.active ? `${b.count} jenis` : 'Segera' })) });
     secs.push({ t: 'Alat', items: [
       item({ href: '#/rute', t: 'Buat Perjalanan', d: 'Dari kota X ke kota Y: semua satuan biaya yang relevan', i: 'signpost' }),
-      item({ href: '#/daerah', t: 'Cek Per Provinsi', d: 'Semua satuan biaya per provinsi, semua bab', i: 'map' }),
-      item({ href: '#/bandingkan', t: 'Bandingkan Wilayah', d: 'Sampai 3 provinsi berdampingan', i: 'scale' }),
+      item({ href: '#/daerah', t: 'Biaya Per Provinsi', d: 'Semua satuan biaya per provinsi; bisa dibandingkan sampai 3 provinsi', i: 'map' }),
       item({ href: '#/hitung', t: 'Kalkulator Perjadin', d: 'Perkiraan biaya dari tujuan, lama, dan pelaksana', i: 'calculator' }),
       item({ href: '#/daerah/ln', t: 'Luar Negeri', d: 'Uang harian per negara dan tiket per kota', i: 'globe' }),
     ] });
@@ -538,14 +538,20 @@ function route() {
         break;
       case 'daerah':
         setNav('alat');
-        side = [null, parts[1] === 'ln' ? null : 'tool:daerah', 'rute'];
-        cr.push(ALAT_CRUMB, RUTE_CRUMB);
-        if (parts[1] === 'p') { cr.push({ t: 'Cek Per Provinsi', h: '#/daerah' }, { t: S.prov[parts[2]]?.nama || 'Provinsi' }); ({ html, after } = viewProv(parts[2])); }
-        else { cr.push({ t: parts[1] === 'ln' ? 'Luar Negeri' : 'Cek Per Provinsi' }); ({ html, after } = viewDaerah(parts[1] === 'ln' ? 'ln' : 'dn', params)); }
+        side = ['provinsi'];
+        cr.push(ALAT_CRUMB);
+        if (parts[1] === 'p') { cr.push({ t: 'Biaya Per Provinsi', h: '#/daerah', i: 'map' }, { t: S.prov[parts[2]]?.nama || 'Provinsi' }); ({ html, after } = viewProv(parts[2], params)); }
+        else if (parts[1] === 'ln') { cr.push({ t: 'Biaya Per Provinsi', h: '#/daerah', i: 'map' }, { t: 'Luar Negeri' }); ({ html, after } = viewDaerah('ln', params)); }
+        else { cr.push({ t: 'Biaya Per Provinsi', i: 'map' }); ({ html, after } = viewDaerah('dn', params)); }
         break;
       case 'rute': setNav('alat'); side = [null, 'tool:rute', 'rute']; cr.push(ALAT_CRUMB, RUTE_CRUMB, { t: 'Buat Perjalanan' }); ({ html, after } = viewRute(params)); break;
       case 'hitung': setNav('alat'); side = [null, 'tool:hitung', 'rute']; cr.push(ALAT_CRUMB, RUTE_CRUMB, { t: 'Kalkulator Perjadin' }); ({ html, after } = viewHitung()); break;
-      case 'bandingkan': setNav('alat'); side = [null, 'tool:bandingkan', 'rute']; cr.push(ALAT_CRUMB, RUTE_CRUMB, { t: 'Bandingkan Wilayah' }); ({ html, after } = viewCompare(params)); break;
+      case 'bandingkan': {
+        // Bandingkan Wilayah dilebur ke Biaya Per Provinsi
+        const ps = (params.p || '').split(',').filter((x) => S.prov[x]);
+        location.replace(ps.length ? `#/daerah/p/${ps[0]}${ps.length > 1 ? '?vs=' + ps.slice(1, 3).join(',') : ''}` : '#/daerah');
+        return;
+      }
       case 'tersimpan': setNav('tersimpan'); side = ['tersimpan']; cr.push({ t: 'Tersimpan', i: 'star' }); html = viewSaved(); break;
       case 'lainnya': {
         setNav('lainnya');
@@ -632,8 +638,7 @@ function viewHome() {
       ${routeForm('jakarta', '', true)}
     </section>
     <div class="tool-list card">
-      ${tool('#/daerah', 'map', 'Cek per provinsi', 'Semua satuan biaya per provinsi, semua bab')}
-      ${tool('#/bandingkan', 'scale', 'Bandingkan wilayah', 'Sampai 3 provinsi berdampingan')}
+      ${tool('#/daerah', 'map', 'Biaya per provinsi', 'Semua satuan biaya per provinsi; bisa dibandingkan')}
       ${tool('#/hitung', 'calculator', 'Kalkulator perjadin', 'Perkiraan biaya dari tujuan, lama, dan pelaksana')}
       ${tool('#/daerah/ln', 'globe', 'Luar negeri', 'Uang harian per negara & tiket per kota')}
       ${tool('#/alat/pajak', 'percent', 'Perpajakan <span class="chip sm">Segera</span>', 'PPN dan PPh atas pembayaran oleh bendahara')}
@@ -692,8 +697,7 @@ function viewBab(bab) {
   const groups = bab.groups.map((g) => `${g.t ? `<div class="group-title">${esc(g.t)} <span class="count">${g.items.length}</span></div>` : ''}<div class="ent-grid">${g.items.map((it) => card(it, n++)).join('')}</div>`).join('');
   const tools = bab.key === 'perjadin' ? `<div class="bab-tools">
       <a href="#/rute">${ic('signpost')}<span><b>Buat perjalanan</b><small>Kota X ke kota Y</small></span></a>
-      <a href="#/daerah">${ic('map')}<span><b>Cek per provinsi</b><small>Semua biaya satu provinsi</small></span></a>
-      <a href="#/bandingkan">${ic('scale')}<span><b>Bandingkan wilayah</b><small>Sampai 3 provinsi</small></span></a>
+      <a href="#/daerah">${ic('map')}<span><b>Biaya per provinsi</b><small>Semua biaya, bisa dibandingkan</small></span></a>
       <a href="#/hitung">${ic('calculator')}<span><b>Kalkulator perjadin</b><small>Perkiraan biaya + PDF</small></span></a>
       <a href="#/daerah/ln">${ic('globe')}<span><b>Luar negeri</b><small>Per negara & kota</small></span></a>
     </div>` : '';
@@ -1042,7 +1046,7 @@ function updateResults(q) {
 
 /* ---------------- Daerah ---------------- */
 function daerahSeg(mode) {
-  return `<div class="seg"><a href="#/rute" class="${mode === 'rute' ? 'on' : ''}">Buat Perjalanan</a><a href="#/daerah" class="${mode === 'dn' ? 'on' : ''}">Cek Per Provinsi</a><a href="#/daerah/ln" class="${mode === 'ln' ? 'on' : ''}">Luar Negeri</a></div>`;
+  return `<div class="seg"><a href="#/daerah" class="${mode === 'dn' ? 'on' : ''}">Dalam negeri (per provinsi)</a><a href="#/daerah/ln" class="${mode === 'ln' ? 'on' : ''}">Luar negeri (per negara)</a></div>`;
 }
 
 /* ---------------- Rute ---------------- */
@@ -1087,7 +1091,6 @@ function viewRute(params) {
   const hints = routeHints();
   const html = `
   <div class="page-head"><h1 class="title">Buat Perjalanan</h1><p class="subtitle">Pilih kota asal dan tujuan. Semua satuan biaya yang relevan muncul berurutan: taksi, tiket, transport darat, uang harian, penginapan. Rekomendasi mencakup 514 kabupaten/kota dan 38 provinsi. Contoh tujuan: ${hints.map((h) => esc(h.n)).join(', ')}.</p></div>
-  ${daerahSeg('rute')}
   <div class="card card-pad">${routeForm(dari, ke)}
   </div>
   <div id="routeHost" style="margin-top:16px">${O && D ? effNotice() + routeHtml(O, D) : `<div class="empty small">Pilih tujuan untuk melihat satuan biayanya.</div>`}</div>`;
@@ -1105,9 +1108,9 @@ function viewDaerah(mode, params) {
   const seg = daerahSeg(mode);
   if (mode === 'dn') {
     const html = `
-    <div class="page-head"><h1 class="title">Cek Per Provinsi</h1><p class="subtitle">Pilih provinsi untuk melihat semua satuan biaya yang ditetapkan per provinsi (perjalanan dinas dan bab lain) dalam satu halaman.</p></div>
+    <div class="page-head"><h1 class="title">Biaya Per Provinsi</h1><p class="subtitle">Pilih provinsi untuk melihat semua satuan biaya SBM yang ditetapkan per provinsi, dikelompokkan per jenis biaya. Di halaman provinsi, Anda bisa menambahkan sampai 2 provinsi pembanding.</p></div>
     ${seg}
-    <div class="tbl-tools"><label class="field">${ic('search')}<input id="pq" type="search" placeholder="Cari provinsi atau kota, mis. jatim, surabaya…"></label><a class="btn" href="#/bandingkan">${ic('compare')} Bandingkan provinsi</a></div>
+    <div class="tbl-tools"><label class="field">${ic('search')}<input id="pq" type="search" placeholder="Cari provinsi atau kota, mis. jatim, surabaya…"></label></div>
     <div class="prov-grid" id="provGrid">${S.provList.map((p) => `<a class="prov" href="#/daerah/p/${p.id}" data-s="${esc(norm([p.nama, ...p.alias, ...p.kota].join(' ')))}"><b>${esc(p.nama)}</b><small>${esc(p.kota[0])}</small></a>`).join('')}</div>`;
     const after = () => {
       const pq = $('#pq');
@@ -1136,142 +1139,130 @@ function viewDaerah(mode, params) {
   return { html, after };
 }
 
-function viewProv(pid) {
-  const p = S.prov[pid];
-  if (!p) return { html: `<div class="empty">Provinsi tidak ditemukan.</div>` };
+// Baris satuan biaya per provinsi, dikelompokkan per bab. Satu provinsi atau dibandingkan sampai 3.
+const SPECIAL_PROV = new Set(['L2-2', 'L2-3', 'L2-6']);
+function provSections(P) {
   const B = S.butir;
-  const link = (bid, t, code) => `#/b/${bid}?t=${t}${code ? '&r=' + encodeURIComponent(code) : ''}`;
-  const card = (title, b, inner, more, note) => `<section class="card card-pad dcard"><div class="head"><h3>${esc(title)} ${note ? tip(note) : ''}</h3><a class="more" href="${more}">${lampShort(b)} ›</a></div>${inner}</section>`;
-  const kv = (t, r, idxs) => `<div class="kv">${idxs.map((i) => `<div><div class="k">${esc(shortCol(t.cols[i]))}</div><div class="v">${money(t, r.n[i], r.cu || t.cur)}</div></div>`).join('')}</div>`;
-
-  // Uang harian
-  const tUH = B['L1-25'].tables[0];
-  const rUH = tUH.rows.find((r) => r.p === pid);
-  const cUH = card('Uang Harian', B['L1-25'], rUH ? kv(tUH, rUH, valueCols(tUH)) : '<p class="na">Tidak tercantum</p>', link('L1-25', 0, rUH?.c),
-    'Per orang per hari. Jika transpor lokal dibayar riil (lebih dari satu lokasi tujuan dalam kab/kota yang sama), uang harian 60%.');
-  // Penginapan
-  const tH = B['L1-27'].tables[0];
-  const rH = tH.rows.find((r) => r.p === pid);
-  const cH = card('Penginapan (Hotel)', B['L1-27'], rH ? kv(tH, rH, valueCols(tH)) : '<p class="na">Tidak tercantum</p>', link('L1-27', 0, rH?.c), 'Per orang per hari, dengan bukti pengeluaran yang sah.');
-  // Taksi
-  const tT = B['L2-5'].tables[0];
-  const rT = tT.rows.find((r) => r.p === pid);
-  const cT = card('Taksi ke/dari Bandara, Stasiun, Terminal', B['L2-5'], rT ? `<div class="kv"><div><div class="k">Sekali jalan (lumpsum)</div><div class="v">${money(tT, rT.n[3])}</div></div></div>` : `<div class="callout warn">${ic('alert')}<div>Provinsi ini tidak tercantum dalam tabel Lampiran II angka 5 KMK 296/2026.</div></div>`, link('L2-5', 0, rT?.c),
-    'Bila melebihi, dapat dibayar riil sepanjang dari/ke kantor dan bukan kendaraan pribadi.');
-  // Paket rapat
-  const tiers = rapatTiers();
-  const tR = B['L1-29'].tables[0];
-  const rapRows = tiers.map((tr) => ({ name: tr.name, r: tr.rows.find((x) => x.p === pid) }));
-  const vcR = valueCols(tR);
-  const cR = card('Paket Rapat di Luar Kantor', B['L1-29'], `<div style="overflow:auto"><table class="mini"><thead><tr><th>Tingkat peserta</th>${vcR.map((i) => `<th class="n">${esc(tR.cols[i])}</th>`).join('')}</tr></thead><tbody>${rapRows.map((x) => `<tr><td>${esc(x.name)}</td>${vcR.map((i) => `<td class="n">${x.r ? money(tR, x.r.n[i]) : '–'}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`,
-    link('L1-29', 0, rapRows[2].r?.c), 'Per orang per paket. Uang harian rapat Rp130.000/OH hanya untuk fullboard (berlaku nasional). Eselon II ke atas: fullboard dapat 1,5×.');
-  // Transport darat
-  const tD = B['L2-2'].tables[0];
-  const rD = tD.rows.filter((r) => r.v && r.p === pid);
-  const cD = card('Transport Darat dari Ibu Kota Provinsi', B['L2-2'], rD.length
-    ? `<div class="scroll-list"><table class="mini"><thead><tr><th>Dari</th><th>Kabupaten/Kota tujuan</th><th class="n">Sekali jalan</th></tr></thead><tbody>${rD.map((r) => `<tr><td>${esc(r.v[1])}</td><td><a href="${link('L2-2', 0, r.c)}">${esc(r.v[2])}</a></td><td class="n">${money(tD, r.n[4])}</td></tr>`).join('')}</tbody></table></div>`
-    : `<div class="callout">${ic('info')}<div>${pid === 'dki' ? 'DKI Jakarta diatur tersendiri: lihat Transport Jakarta ke Bodetabek di bawah.' : 'Provinsi ini tidak tercantum dalam tabel. Menurut Penjelasan, rute yang belum tercantum mengacu pada harga pasar (at cost).'}</div></div>`,
-    `#/b/L2-2?t=0&p=${pid}`, rD.length ? `${rD.length} rute. Rute yang belum tercantum mengacu pada harga pasar (at cost).` : '');
-  // Bodetabek (DKI)
-  let cB = '';
-  if (pid === 'dki') {
-    const tB = B['L2-3'].tables[0];
-    cB = card('Transport Jakarta ke Bodetabek', B['L2-3'], `<table class="mini"><tbody>${tB.rows.filter((r) => r.v).map((r) => `<tr><td>${esc(r.v[2])}</td><td class="n">${money(tB, r.n[4])}</td></tr>`).join('')}</tbody></table>`, '#/b/L2-3', 'Sekali jalan, lumpsum.');
-  }
-  // Tiket
-  const tK = B['L2-6'].tables[0];
-  const capU = p.kota[0].toUpperCase();
-  const rK = tK.rows.filter((r) => r.v && (r.pa === pid || r.pt === pid))
-    .sort((a, b) => ([b.v[1], b.v[2]].some((c) => c.toUpperCase() === capU) - [a.v[1], a.v[2]].some((c) => c.toUpperCase() === capU)));
-  const cK = card('Tiket Pesawat (PP)', B['L2-6'], rK.length
-    ? `<div class="scroll-list"><table class="mini"><thead><tr><th>Rute</th><th class="n">Bisnis</th><th class="n">Ekonomi</th></tr></thead><tbody>${rK.map((r) => `<tr><td><a href="${link('L2-6', 0, r.c)}">${esc(r.v[1])} ⇄ ${esc(r.v[2])}</a></td><td class="n">${money(tK, r.n[3])}</td><td class="n">${money(tK, r.n[4])}</td></tr>`).join('')}</tbody></table></div>`
-    : `<div class="callout">${ic('info')}<div>Tidak ada rute yang menyentuh kota di provinsi ini dalam tabel tiket ${Y.srcKind}.</div></div>`,
-    `#/b/L2-6?q=${encodeURIComponent(p.kota[0])}`, rK.length ? `${rK.length} rute yang asal atau tujuannya kota di provinsi ini. Dibayar riil.` : '');
-  // Nasional
-  const tR2 = B['L1-25'].tables[1];
-  const cN = `<section class="card card-pad dcard"><div class="head"><h3>Berlaku nasional ${pid === 'dki' ? tip('Untuk transpor kegiatan dalam kota, DKI Jakarta dihitung satu kabupaten/kota (Jakarta Pusat, Timur, Utara, Barat, Selatan).') : ''}</h3></div><table class="mini"><tbody>
-    <tr><td><a href="#/b/L2-4">Transpor kegiatan dalam kota (PP)</a></td><td class="n">${money(B['L2-4'].tables[0], firstVal(B['L2-4'].tables[0]))}</td></tr>
-    <tr><td><a href="#/b/L1-29?t=1">Uang harian rapat fullboard</a></td><td class="n">${money(B['L1-29'].tables[1], B['L1-29'].tables[1].rows.find((r) => r.v).n[3])}</td></tr>
-    ${tR2.rows.filter((r) => r.v).map((r) => `<tr><td><a href="#/b/L1-25?t=1">Representasi ${esc(r.v[1])}</a> ${tip('Luar kota / dalam kota lebih dari 8 jam')}</td><td class="n">${money(tR2, r.n[3])} / ${money(tR2, r.n[4])}</td></tr>`).join('')}
-  </tbody></table></section>`;
-
-  const html = `
-  <div class="page-head">
-    <div class="crumb"><a href="#/daerah">Daerah</a><span class="sep">›</span>Dalam Negeri</div>
-    <h1 class="title">${esc(p.nama)}</h1>
-    <p class="subtitle">Ibu kota: ${esc(p.kota[0])}. Semua satuan biaya yang ditetapkan per provinsi, sesuai ${Y.src}. Ketuk tautan Lamp. untuk melihat tabel lengkap dan penjelasannya.</p>
-    <div class="actions"><a class="btn" href="#/bandingkan?p=${pid}">${ic('compare')} Bandingkan dengan provinsi lain</a></div>
-  </div>
-  ${effNotice()}
-  <h2 class="sec">${ic('plane')} Perjalanan Dinas</h2>
-  <div class="grid grid-2">${cUH}${cH}${cR}${cT}${cK}${cD}${cB}${cN}</div>
-  <h2 class="sec">${ic('layers-2')} Satuan biaya lain di provinsi ini ${tip(`Semua tabel ${Y.srcKind} yang besarannya ditetapkan per provinsi, di luar perjalanan dinas. Ketuk judul bab untuk membuka.`)}</h2>
-  <div class="grid">${provOthers(pid)}</div>`;
-  return { html };
-}
-
-function provOthers(pid) {
-  return BABS.filter((bb) => bb.key !== 'perjadin').map((bb) => {
-    const cards = [];
+  const groupOf = (t) => { const out = []; let g = ''; for (const r of t.rows) { if (r.g) g = r.g; else if (r.v && r.p) out.push({ g, r }); } return out; };
+  return BABS.map((bb) => {
+    const blocks = [];
+    const seen = new Set();
+    let nasional = 0;
     for (const it of bb.items) {
       for (const e of entriesOf(it.butir)) {
-        if (cards.some((c) => c.key === e.key)) continue;
-        const b = S.butir[e.butir];
+        const key = e.butir + ':' + e.table;
+        if (seen.has(key)) continue;
+        seen.add(key);
+        const b = B[e.butir];
         const t = b.tables[e.table];
-        const r = t.rows.find((x) => x.v && x.p === pid);
-        if (!t.rows.some((x) => x.v && x.p)) continue;
+        if (SPECIAL_PROV.has(e.butir)) continue;
+        const pr = groupOf(t);
+        if (!pr.length) { nasional++; continue; }
+        const groups = [...new Set(pr.map((x) => x.g))];
+        const multi = groups.length > 1 && pr.filter((x) => x.r.p === pr[0].r.p).length > 1;
         const vc = valueCols(t);
         const ui = t.cols.findIndex((c) => /^satuan$/i.test(c));
-        const grp = (() => { let g = ''; for (const x of t.rows) { if (x.g) g = x.g; if (x === r) return g; } return ''; })();
-        const inner = r ? `<div class="kv">${vc.map((i) => `<div><div class="k">${esc(shortCol(t.cols[i]))}</div><div class="v">${money(t, r.n[i], r.cu || t.cur)}</div></div>`).join('')}</div>${ui >= 0 ? `<div class="kv-unit">Satuan: ${esc(r.v[ui])}${grp && !/^Rapat Biasa$/i.test(grp) ? '' : ''}</div>` : ''}` : '<p class="na">Tidak tercantum</p>';
-        cards.push({ key: e.key, html: `<section class="card card-pad dcard"><div class="head"><h3>${ic(e.icon)} ${esc(e.name)}</h3><a class="more" href="#/b/${b.id}?t=${e.table}${r ? '&r=' + encodeURIComponent(r.c) : ''}">${lampShort(b)} ›</a></div>${inner}</section>` });
+        const rows = [];
+        for (const g of multi ? groups : ['']) {
+          const cells = P.map((pid) => pr.find((x) => x.r.p === pid && (!multi || x.g === g))?.r || null);
+          for (const i of vc) rows.push({ label: [multi ? g : '', vc.length > 1 ? shortCol(t.cols[i]) : (multi ? '' : shortCol(t.cols[i]))].filter(Boolean).join(' · '), vals: cells.map((r) => (r && r.n[i] != null ? money(t, r.n[i], r.cu || t.cur) : null)) });
+        }
+        const r0 = pr.find((x) => x.r.p === P[0])?.r;
+        blocks.push({ e, b, t, rows, unit: ui >= 0 ? (r0 || pr[0].r).v[ui] : '', href: `#/b/${b.id}?t=${e.table}${r0 ? '&r=' + encodeURIComponent(r0.c) : ''}` });
       }
     }
-    if (!cards.length) return '';
-    return fold(`${ic(bb.icon)} ${esc(bb.name)}`, `<div class="grid grid-2">${cards.map((c) => c.html).join('')}</div>`, { meta: cards.length + ' tabel' });
-  }).join('');
+    // Perjalanan dinas: tabel yang berisi banyak baris per provinsi diringkas, ditambah yang berlaku nasional
+    if (bb.key === 'perjadin') {
+      const range = (t, rows, col) => { const ns = rows.map((r) => r.n[col]).filter((n) => n != null); if (!ns.length) return null; const lo = Math.min(...ns), hi = Math.max(...ns); return lo === hi ? money(t, lo) : `${money(t, lo)} – ${money(t, hi)}`; };
+      const tD = B['L2-2'].tables[0];
+      const dRows = (pid) => tD.rows.filter((r) => r.v && r.p === pid);
+      blocks.push({ e: { name: 'Transport darat dari ibu kota provinsi', icon: 'bus-front' }, b: B['L2-2'], t: tD, unit: 'Sekali jalan', href: '#/b/L2-2', rows: [{ label: 'Rentang besaran (jumlah rute)', vals: P.map((pid) => { const rs = dRows(pid); return rs.length ? `${range(tD, rs, 4)}<small class="pv-n">${rs.length} rute</small>` : null; }) }], list: P.length === 1 ? dRows(P[0]) : null, listKind: 'darat' });
+      const tK = B['L2-6'].tables[0];
+      const kRows = (pid) => tK.rows.filter((r) => r.v && (r.pa === pid || r.pt === pid));
+      blocks.push({ e: { name: 'Tiket pesawat (PP)', icon: 'plane' }, b: B['L2-6'], t: tK, unit: 'Orang/PP', href: '#/b/L2-6', rows: [
+        { label: 'Ekonomi, rentang (jumlah rute)', vals: P.map((pid) => { const rs = kRows(pid); return rs.length ? `${range(tK, rs, 4)}<small class="pv-n">${rs.length} rute</small>` : null; }) },
+        { label: 'Bisnis, rentang', vals: P.map((pid) => { const rs = kRows(pid); return rs.length ? range(tK, rs, 3) : null; }) },
+      ], list: P.length === 1 ? kRows(P[0]) : null, listKind: 'tiket' });
+      if (P.includes('dki')) {
+        const tB = B['L2-3'].tables[0];
+        const bRows = tB.rows.filter((r) => r.v);
+        blocks.push({ e: { name: 'Transport Jakarta ke Bodetabek', icon: 'car' }, b: B['L2-3'], t: tB, unit: 'Sekali jalan', href: '#/b/L2-3', rows: [{ label: 'Rentang besaran', vals: P.map((pid) => (pid === 'dki' ? range(tB, bRows, 4) : null)) }], list: P.length === 1 ? bRows : null, listKind: 'bode' });
+      }
+      const tR2 = B['L1-25'].tables[1];
+      const t4 = B['L2-4'].tables[0];
+      const tF = B['L1-29'].tables[1];
+      const same = (v) => P.map(() => v);
+      blocks.push({ e: { name: 'Berlaku nasional', icon: 'flag' }, b: null, nas: true, rows: [
+        { label: 'Transpor kegiatan dalam kota (PP)', href: '#/b/L2-4', vals: same(money(t4, firstVal(t4))) },
+        { label: 'Uang harian rapat fullboard', href: '#/b/L1-29?t=1', vals: same(money(tF, tF.rows.find((r) => r.v).n[3])) },
+        ...tR2.rows.filter((r) => r.v).map((r) => ({ label: `Representasi ${r.v[1]} (luar kota / dalam kota)`, href: '#/b/L1-25?t=1', vals: same(`${money(tR2, r.n[3])} / ${money(tR2, r.n[4])}`) })),
+      ] });
+      nasional = 0;
+    }
+    return { bb, blocks, nasional };
+  }).filter((x) => x.blocks.length);
 }
 
-/* ---------------- Bandingkan ---------------- */
-function metrics() {
-  const B = S.butir;
-  const uh = B['L1-25'].tables[0], h = B['L1-27'].tables[0], tx = B['L2-5'].tables[0];
-  const tiers = rapatTiers();
-  const R = B['L1-29'].tables[0];
-  const m = [];
-  valueCols(uh).forEach((i) => m.push({ t: uh, g: 'Uang harian', l: shortCol(uh.cols[i]), f: (p) => uh.rows.find((r) => r.p === p)?.n[i] }));
-  valueCols(h).forEach((i) => m.push({ t: h, g: 'Penginapan', l: shortCol(h.cols[i]), f: (p) => h.rows.find((r) => r.p === p)?.n[i] }));
-  m.push({ t: tx, g: 'Taksi', l: 'Sekali jalan', f: (p) => tx.rows.find((r) => r.p === p)?.n[3] });
-  tiers.forEach((tr, k) => valueCols(R).forEach((i) => m.push({ t: R, g: 'Paket rapat · ' + ['Menteri/Wamen', 'Eselon I–II/JF Utama', 'Eselon III ke bawah'][k], l: R.cols[i], f: (p) => tr.rows.find((r) => r.p === p)?.n[i] })));
-  return m;
+function provListHtml(blk) {
+  if (!blk.list || !blk.list.length) return '';
+  const t = blk.t;
+  const link = (code) => `#/b/${blk.b.id}?t=0&r=${encodeURIComponent(code)}`;
+  let head, body;
+  if (blk.listKind === 'darat') { head = '<th>Dari</th><th>Kabupaten/Kota tujuan</th><th class="n">Sekali jalan</th>'; body = blk.list.map((r) => `<tr><td>${esc(r.v[1])}</td><td><a href="${link(r.c)}">${esc(r.v[2])}</a></td><td class="n">${money(t, r.n[4])}</td></tr>`).join(''); }
+  else if (blk.listKind === 'tiket') { head = '<th>Rute</th><th class="n">Bisnis</th><th class="n">Ekonomi</th>'; body = blk.list.map((r) => `<tr><td><a href="${link(r.c)}">${esc(r.v[1])} ⇄ ${esc(r.v[2])}</a></td><td class="n">${money(t, r.n[3])}</td><td class="n">${money(t, r.n[4])}</td></tr>`).join(''); }
+  else { head = '<th>Tujuan</th><th class="n">Sekali jalan</th>'; body = blk.list.map((r) => `<tr><td>${esc(r.v[2])}</td><td class="n">${money(t, r.n[4])}</td></tr>`).join(''); }
+  return `<details class="pv-list"><summary>Lihat ${blk.list.length} ${blk.listKind === 'tiket' ? 'rute tiket' : 'rute'}</summary><div class="scroll-list"><table class="mini"><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table></div></details>`;
 }
-function viewCompare(params) {
-  let sel = (params.p || '').split(',').filter((x) => S.prov[x]).slice(0, 3);
+
+function viewProv(pid, params = {}) {
+  const p = S.prov[pid];
+  if (!p) return { html: `<div class="empty">Provinsi tidak ditemukan. <a href="#/daerah">Pilih provinsi</a></div>` };
+  const vs = (params.vs || '').split(',').filter((x) => S.prov[x] && x !== pid).slice(0, 2);
+  const P = [pid, ...vs];
+  const cmp = P.length > 1;
+  const secs = provSections(P);
+  const opt = (sel, except) => S.provList.filter((x) => !except.includes(x.id) || x.id === sel).map((x) => `<option value="${x.id}"${x.id === sel ? ' selected' : ''}>${esc(x.nama)}</option>`).join('');
+  const picker = `<div class="pv-pick card card-pad">
+    <label class="pv-f"><span>Provinsi</span><select class="sel" data-pv="0">${opt(pid, P)}</select></label>
+    ${[0, 1].map((k) => `<label class="pv-f"><span>Pembanding ${k + 1}</span><select class="sel" data-pv="${k + 1}"><option value="">Tidak ada</option>${opt(vs[k] || '', P)}</select></label>`).join('')}
+    <button type="button" class="btn" id="pvAll">${ic('chevron-down')} <span>Buka semua</span></button>
+  </div>`;
+  const th = `<th>Satuan biaya</th>${P.map((x) => `<th class="n">${cmp ? `<a href="#/daerah/p/${x}">${esc(S.prov[x].nama)}</a>` : 'Besaran'}</th>`).join('')}`;
+  const cell = (v) => `<td class="n">${v == null ? '<span class="na">Tidak tercantum</span>' : v}</td>`;
+  const body = secs.map(({ bb, blocks, nasional }) => {
+    const n = blocks.reduce((a, x) => a + (x.nas ? x.rows.length : 1), 0);
+    const tbody = blocks.map((blk) => {
+      const head = blk.nas
+        ? `<tr class="grp"><td colspan="${P.length + 1}">${ic(blk.e.icon)} ${esc(blk.e.name)} <small>sama di semua provinsi</small></td></tr>`
+        : `<tr class="grp"><td colspan="${P.length + 1}"><span class="pv-gt">${ic(blk.e.icon)} ${esc(blk.e.name)}</span>${blk.unit ? `<small>${esc(blk.unit)}</small>` : ''}<a class="pv-ref" href="${blk.href}">${lampShort(blk.b)} ›</a></td></tr>`;
+      const rows = blk.rows.map((r) => `<tr><td class="lbl">${r.href ? `<a href="${r.href}">${esc(r.label)}</a>` : esc(r.label || 'Besaran')}</td>${r.vals.map(cell).join('')}</tr>`).join('');
+      const list = provListHtml(blk);
+      return head + rows + (list ? `<tr class="pv-lrow"><td colspan="${P.length + 1}">${list}</td></tr>` : '');
+    }).join('');
+    const nasNote = nasional ? `<p class="pv-nas">${nasional} jenis lain di bab ini berlaku nasional (sama di semua provinsi). <a href="#/bab/${bb.key}">Buka bab ${esc(bb.name)} ›</a></p>` : '';
+    return `<details class="pv-grp" data-bab="${bb.key}"><summary><span class="pv-ico">${ic(bb.icon)}</span><span class="pv-st"><b>${esc(bb.name)}</b><small>${esc(bb.desc)}</small></span><span class="chip">${n} jenis</span>${ic('chevron-down', 'pv-chev')}</summary>
+      <div class="pv-body"><div class="tbl-wrap pv-tbl"><table class="t pv-t${cmp ? ' cmp' : ''}"><thead><tr>${th}</tr></thead><tbody>${tbody}</tbody></table></div>${nasNote}</div></details>`;
+  }).join('');
   const html = `
   <div class="page-head">
-  <h1 class="title">Bandingkan Wilayah</h1><p class="subtitle">Pilih sampai 3 provinsi untuk membandingkan uang harian, penginapan, taksi, dan paket rapat. Uang harian, penginapan, dan paket rapat bersifat batas tertinggi; taksi dapat dilampaui.</p></div>
-  <div class="tbl-tools">
-    ${[0, 1, 2].map((k) => `<select class="sel" data-slot="${k}"><option value="">Pilih provinsi ${k + 1}</option>${S.provList.map((p) => `<option value="${p.id}"${sel[k] === p.id ? ' selected' : ''}>${esc(p.nama)}</option>`).join('')}</select>`).join('')}
+    <h1 class="title">${cmp ? 'Bandingkan ' + P.map((x) => esc(S.prov[x].nama)).join(', ') : esc(p.nama)}</h1>
+    <p class="subtitle">${cmp ? 'Satuan biaya yang ditetapkan per provinsi, berdampingan.' : `Ibu kota: ${esc(p.kota[0])}.`} Dikelompokkan per jenis biaya sesuai ${Y.src}; buka kelompok untuk melihat rinciannya, dan ketuk tautan Lamp. untuk tabel lengkap serta penjelasannya.</p>
   </div>
-  <div id="cmpHost"></div>`;
+  ${picker}
+  ${effNotice()}
+  <div class="pv-grps">${body}</div>`;
   const after = () => {
-    const draw = () => {
-      const ps = sel.filter(Boolean);
-      if (!ps.length) { $('#cmpHost').innerHTML = `<div class="empty">Pilih minimal satu provinsi.</div>`; return; }
-      let g = '';
-      const rows = metrics().map((m) => {
-        const head = m.g !== g ? `<tr class="grp"><td colspan="${ps.length + 1}">${esc(m.g)}</td></tr>` : '';
-        g = m.g;
-        return head + `<tr><td class="lbl">${esc(m.l)}</td>${ps.map((p) => { const v = m.f(p); return `<td class="n">${v != null ? money(m.t, v) : '<span class="na">Tidak tercantum</span>'}</td>`; }).join('')}</tr>`;
-      }).join('');
-      $('#cmpHost').innerHTML = effNotice() + `<div class="tbl-wrap"><table class="t"><thead><tr><th>Komponen</th>${ps.map((p) => `<th class="n"><a href="#/daerah/p/${p}">${esc(S.prov[p].nama)}</a></th>`).join('')}</tr></thead><tbody>${rows}</tbody></table></div>`;
+    const go = () => {
+      const v = $$('[data-pv]').map((s) => s.value);
+      const main = v[0];
+      const others = [...new Set(v.slice(1).filter((x) => x && x !== main))];
+      location.hash = `#/daerah/p/${main}${others.length ? '?vs=' + others.join(',') : ''}`;
     };
-    $$('[data-slot]').forEach((s) => s.onchange = () => {
-      sel[Number(s.dataset.slot)] = s.value;
-      history.replaceState(null, '', '#/bandingkan?p=' + sel.filter(Boolean).join(','));
-      draw();
-    });
-    draw();
+    $$('[data-pv]').forEach((s) => s.onchange = go);
+    const all = $('#pvAll');
+    const sync = () => { const open = $$('.pv-grp').every((d) => d.open); all.querySelector('span').textContent = open ? 'Tutup semua' : 'Buka semua'; all.classList.toggle('on', open); };
+    all.onclick = () => { const open = !$$('.pv-grp').every((d) => d.open); $$('.pv-grp').forEach((d) => { d.open = open; }); sync(); };
+    $$('.pv-grp').forEach((d) => d.addEventListener('toggle', sync));
   };
   return { html, after };
 }
@@ -1299,16 +1290,6 @@ function viewHitung() {
         document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1500);
         toast('PDF diunduh');
       };
-      const sh = $('#kpShare');
-      const probe = typeof File === 'function' ? new File([''], 'x.pdf', { type: 'application/pdf' }) : null;
-      if (sh && probe && navigator.canShare && navigator.canShare({ files: [probe] })) {
-        sh.hidden = false;
-        sh.onclick = async () => {
-          const out = await make(sh);
-          if (!out) return;
-          try { await navigator.share({ files: [new File([out.blob], out.name, { type: 'application/pdf' })], title: 'Perkiraan biaya perjalanan dinas' }); } catch (e) { /* dibatalkan */ }
-        };
-      }
     };
     attachAC('rDari', (it) => { KP.dari = it.id; draw(); });
     attachAC('rKe', (it) => { KP.ke = it.id; draw(); });
@@ -1319,27 +1300,49 @@ function viewHitung() {
       $$('[data-jenis]').forEach((x) => { x.classList.toggle('on', x === b); x.setAttribute('aria-checked', String(x === b)); });
       draw();
     });
-    const setStp = (id, v) => {
+    const setStp = (id, v, keepText = false) => {
       const el = $(`[data-stp="${id}"]`);
       const min = Number(el.dataset.min), max = Number(el.dataset.max);
-      v = Math.max(min, Math.min(max, v));
-      el.querySelector('output').textContent = v;
+      v = Math.max(min, Math.min(max, Number.isFinite(v) ? v : min));
+      const inp = el.querySelector('input');
+      if (!keepText) inp.value = v;
       el.querySelector('[data-d="-1"]').disabled = v <= min;
       el.querySelector('[data-d="1"]').disabled = v >= max;
       return v;
     };
+    const applyStp = (id, v, keepText) => {
+      if (id === 'hari') {
+        KP.hari = setStp('hari', v, keepText);
+        const m = $('[data-stp="malam"]'); m.dataset.max = KP.hari;
+        KP.malam = setStp('malam', KP.malamManual ? Math.min(KP.malam, KP.hari) : KP.hari - 1);
+      } else if (id === 'malam') { KP.malamManual = true; KP.malam = setStp('malam', v, keepText); }
+      else if (id.startsWith('org:')) { const k = id.slice(4); KP.org[k] = setStp(id, v, keepText); }
+      draw();
+    };
+    $('.kp-form').addEventListener('input', (e) => {
+      const inp = e.target.closest('.stp-in');
+      if (!inp) return;
+      inp.value = inp.value.replace(/\D/g, '');
+      if (inp.value === '') return;
+      applyStp(inp.closest('.stp').dataset.stp, Number(inp.value), true);
+    });
+    $('.kp-form').addEventListener('focusout', (e) => {
+      const inp = e.target.closest('.stp-in');
+      if (!inp) return;
+      const id = inp.closest('.stp').dataset.stp;
+      const cur = id === 'hari' ? KP.hari : id === 'malam' ? KP.malam : KP.org[id.slice(4)];
+      applyStp(id, inp.value === '' ? cur : Number(inp.value));
+    });
+    $('.kp-form').addEventListener('focusin', (e) => { const inp = e.target.closest('.stp-in'); if (inp) inp.select(); });
+    $('.kp-form').addEventListener('keydown', (e) => { const inp = e.target.closest('.stp-in'); if (inp && e.key === 'Enter') inp.blur(); });
+    $('#kpReset').onclick = () => { resetKP(); route(); toast('Isian dikembalikan ke awal'); };
     $('.kp-form').addEventListener('click', (e) => {
       const b = e.target.closest('.stp button');
       if (!b) return;
       const id = b.closest('.stp').dataset.stp;
       const d = Number(b.dataset.d);
-      if (id === 'hari') {
-        KP.hari = setStp('hari', KP.hari + d);
-        const m = $('[data-stp="malam"]'); m.dataset.max = KP.hari;
-        KP.malam = setStp('malam', KP.malamManual ? Math.min(KP.malam, KP.hari) : KP.hari - 1);
-      } else if (id === 'malam') { KP.malamManual = true; KP.malam = setStp('malam', KP.malam + d); }
-      else if (id.startsWith('org:')) { const k = id.slice(4); KP.org[k] = setStp(id, KP.org[k] + d); }
-      draw();
+      const cur = id === 'hari' ? KP.hari : id === 'malam' ? KP.malam : KP.org[id.slice(4)];
+      applyStp(id, cur + d);
     });
     $$('[data-kelas]').forEach((sel) => sel.onchange = () => { KP.kelas[sel.dataset.kelas] = sel.value; draw(); });
     draw();
@@ -1462,7 +1465,6 @@ function viewMore(sub) {
   <div class="group-title">Menu</div>
   <div class="card list">
     <a class="li" href="#/tersimpan">${ic('star', 'chev')}<div class="grow"><div class="t">Tersimpan</div></div>${ic('chev', 'chev')}</a>
-    <a class="li" href="#/bandingkan">${ic('compare', 'chev')}<div class="grow"><div class="t">Bandingkan wilayah</div></div>${ic('chev', 'chev')}</a>
     <a class="li" href="#/lainnya/catatan">${ic('list', 'chev')}<div class="grow"><div class="t">Catatan Umum ${Y.srcKind}</div></div>${ic('chev', 'chev')}</a>
     <a class="li" href="#/lainnya/singkatan">${ic('book', 'chev')}<div class="grow"><div class="t">Daftar singkatan</div></div>${ic('chev', 'chev')}</a>
     <a class="li" href="#/lainnya/dokumen">${ic('alert', 'chev')}<div class="grow"><div class="t">Catatan atas dokumen</div></div>${ic('chev', 'chev')}</a>
