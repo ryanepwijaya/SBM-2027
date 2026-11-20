@@ -50,8 +50,6 @@ const TOOLS = [
   },
   { k: 'kegiatan', h: '#/alat/kegiatan', t: 'Paket Kegiatan', i: 'presentation', d: 'Biaya rapat/pertemuan: paket halfday, fullday, fullboard atau konsumsi, ditambah honor narasumber', soon: true, w: 3 },
   { k: 'lembur', h: '#/alat/lembur', t: 'Belanja Lembur', i: 'clock', d: 'Uang lembur dan uang makan lembur per golongan, hari kerja atau hari libur', soon: true, w: 4 },
-  { k: 'perubahan', h: '#/perubahan', t: 'Perubahan SBM', i: 'git-compare', d: 'Satuan biaya yang naik, turun, baru, atau dihapus dibanding tahun sebelumnya, dengan selisih rupiah dan persen', w: 5 },
-  { k: 'unduh', h: '#/unduh', t: 'Unduh Tabel Biaya', i: 'file-spreadsheet', d: 'Semua tabel satuan biaya SBM sebagai Excel, per tabel atau sekaligus', w: 9 },
 ];
 // Urutan Alat Bantu: Biaya Per Provinsi paling atas, Unduh Tabel Biaya paling bawah (w = bobot urutan)
 TOOLS.forEach((t, i) => { t._i = i; });
@@ -591,8 +589,8 @@ function route() {
         }
         else { cr[cr.length - 1] = { t: 'Alat Bantu', i: 'calculator' }; html = viewAlat(); }
         break;
-      case 'perubahan': setNav('alat'); side = ['perubahan']; cr.push(ALAT_CRUMB, { t: 'Perubahan SBM' }); ({ html, after } = viewPerubahan({ $, $$, toast })); break;
-      case 'unduh': setNav('alat'); side = ['unduh']; cr.push(ALAT_CRUMB, { t: 'Unduh Tabel Biaya' }); ({ html, after } = viewUnduh({ $, $$, toast })); break;
+      case 'perubahan': setNav('lainnya'); side = [null, 'ref:#/perubahan', 'ref']; cr.push({ t: 'Referensi', h: '#/lainnya', i: 'library' }, { t: 'Perubahan SBM' }); ({ html, after } = viewPerubahan({ $, $$, toast })); break;
+      case 'unduh': setNav('lainnya'); side = [null, 'ref:#/unduh', 'ref']; cr.push({ t: 'Referensi', h: '#/lainnya', i: 'library' }, { t: 'Unduh Tabel Biaya' }); ({ html, after } = viewUnduh({ $, $$, toast })); break;
       case 'daerah':
         setNav('alat');
         side = ['provinsi'];
@@ -1485,7 +1483,7 @@ function viewAlat() {
       ${subs ? `<div class="al-subs">${subs}</div>` : ''}
     </section>`;
   };
-  return `<div class="page-head"><h1 class="title">Alat Bantu</h1><p class="subtitle">Alat untuk membaca, membandingkan, menghitung, dan mengunduh satuan biaya SBM. Angka diambil dari SBM TA ${Y.y} yang sedang dipilih.</p></div>
+  return `<div class="page-head"><h1 class="title">Alat Bantu</h1><p class="subtitle">Alat untuk membaca dan menghitung dengan satuan biaya SBM. Angka diambil dari SBM TA ${Y.y} yang sedang dipilih.</p></div>
   <div class="al-grid">${TOOLS.map(card).join('')}</div>`;
 }
 const SOON_PLAN = {

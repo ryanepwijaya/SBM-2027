@@ -65,6 +65,8 @@ export const BABS = [
 ];
 
 export const REF_LINKS = [
+  { h: '#/perubahan', n: 'Perubahan SBM', icon: 'git-compare' },
+  { h: '#/unduh', n: 'Unduh Tabel Biaya', icon: 'file-spreadsheet' },
   { h: '#/lainnya/catatan', n: 'Catatan Umum', icon: 'book-open' },
   { h: '#/lainnya/singkatan', n: 'Singkatan Satuan', icon: 'a-large-small' },
   { h: '#/lainnya/dokumen', n: 'Catatan atas Dokumen', icon: 'triangle-alert' },
