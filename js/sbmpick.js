@@ -88,6 +88,13 @@ export function attachSbmPicker(root, opt) {
     else { pop.style.bottom = ''; pop.style.top = (r.bottom + 4) + 'px'; }
   };
   const close = () => { pop.hidden = true; items = []; };
+  // Dipanggil saat halaman digulir: ikuti kotak isian, tutup bila kotaknya sudah keluar layar
+  const follow = () => {
+    if (!cur || !document.body.contains(cur)) { close(); return; }
+    const r = cur.getBoundingClientRect();
+    if (r.bottom < 0 || r.top > window.innerHeight) { close(); return; }
+    place();
+  };
   const render = () => {
     if (!cur || !cur.value.trim()) { close(); return; }
     if (!items.length) { pop.innerHTML = '<div class="sbm-empty">Tidak ada satuan biaya yang cocok. Coba kata lain, atau ketik tarif bebas.</div>'; pop.hidden = false; place(); return; }
@@ -99,6 +106,7 @@ export function attachSbmPicker(root, opt) {
   root.addEventListener('input', (e) => {
     const inp = e.target.closest(opt.selector);
     if (!inp) return;
+    window._sbmPlace = follow;
     cur = inp; items = sbmSuggest(inp.value, opt.prefer); idx = 0; render();
   });
   root.addEventListener('keydown', (e) => {
@@ -109,13 +117,22 @@ export function attachSbmPicker(root, opt) {
     else if ((e.key === 'Enter' || (e.key === 'Tab' && !e.shiftKey)) && items[idx]) { if (e.key === 'Enter') e.preventDefault(); e._sbm = true; pick(items[idx], e.key === 'Enter' ? 'enter' : 'tab'); }
     else if (e.key === 'Escape') { e._sbm = true; close(); }
   });
-  root.addEventListener('focusout', (e) => { if (e.target.closest(opt.selector)) setTimeout(() => { if (document.activeElement !== cur) close(); }, 120); });
-  pop.onmousedown = (e) => e.preventDefault();
+  root.addEventListener('focusout', (e) => {
+    if (!e.target.closest(opt.selector)) return;
+    setTimeout(() => {
+      if (pop._hold && Date.now() - pop._hold < 400) { cur?.focus(); return; }
+      if (document.activeElement !== cur) close();
+    }, 120);
+  });
+  pop.onmousedown = (e) => { if (e.target.closest('.sbm-it')) e.preventDefault(); };
+  // Klik di area daftar (termasuk batang gulir) tidak boleh membuat kotak isian kehilangan fokus
+  pop.onpointerdown = () => { pop._hold = Date.now(); };
   pop.onclick = (e) => { const b = e.target.closest('[data-i]'); if (b && items[Number(b.dataset.i)]) pick(items[Number(b.dataset.i)], 'click'); };
   if (!window._sbmPopWired) {
     window._sbmPopWired = true;
-    window.addEventListener('scroll', () => { if (!pop.hidden) close(); }, true);
-    window.addEventListener('resize', () => { if (!pop.hidden) close(); });
+    // Gulir di dalam daftar saran tidak menutupnya; gulir halaman hanya memindahkan daftar mengikuti kotak isian
+    window.addEventListener('scroll', (e) => { if (pop.hidden || pop.contains(e.target)) return; window._sbmPlace?.(); }, true);
+    window.addEventListener('resize', () => { if (!pop.hidden) window._sbmPlace?.(); });
     window.addEventListener('hashchange', () => { pop.hidden = true; });
   }
 }
