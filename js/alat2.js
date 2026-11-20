@@ -242,7 +242,7 @@ function qtWire(ui, o) {
 const TIERS = ['Menteri/Wamen', 'Eselon I dan II/JF Utama', 'Eselon III/JF Madya ke bawah'];
 export function viewPaket(ui) {
   const KEY = `paket:${Y.y}`;
-  const P = { prov: 'dki', mode: 'kantor', jenis: 'biasa', q: {}, months: {}, peserta: '', rapat: '1', makan: '1', snack: '1', paket: 'fullday', hari: '1', tier: ['', '', ''], gedung: false, ghari: '1', ...store.get(KEY, {}) };
+  const P = { prov: 'dki', mode: 'luar', jenis: 'biasa', q: {}, months: {}, peserta: '', rapat: '1', makan: '1', snack: '1', paket: 'fullboard', hari: '1', tier: ['', '', ''], gedung: false, ghari: '1', ...store.get(KEY, {}) };
   if (!Array.isArray(P.tier) || P.tier.length !== 3) P.tier = ['', '', ''];
   const save = () => store.set(KEY, P);
   const t36 = S.butir['L1-36'].tables[0];

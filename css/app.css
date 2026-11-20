@@ -567,7 +567,8 @@ thead .sticky-col { z-index: 3; background: var(--surface-2); }
 .prov small { color: var(--muted); font-size: 12.5px; }
 .seg { display: inline-flex; padding: 3px; border-radius: 12px; background: var(--surface-2); border: 1px solid var(--border); margin-bottom: 14px; }
 .seg a { padding: 7px 14px; border-radius: 9px; color: var(--muted); font-weight: 600; font-size: 14px; text-decoration: none; }
-.seg a.on { background: var(--surface); color: var(--text); box-shadow: inset 0 0 0 1px var(--border); }
+.seg a.on { background: var(--navy); color: #fff; box-shadow: 0 1px 3px rgba(20, 28, 70, .25); }
+[data-theme="dark"] .seg a.on { background: var(--gold-2); color: var(--navy-900); }
 .kv { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; }
 .kv .k { font-size: 12.5px; color: var(--muted); line-height: 1.35; }
 .kv .v { font-size: 19px; font-weight: 750; font-variant-numeric: tabular-nums; letter-spacing: -.01em; }
@@ -1138,7 +1139,9 @@ h2.sec .sec-more { margin-left: auto; font-size: 13.5px; font-weight: 600; }
 [data-theme="dark"] .kp-h .step { background: var(--gold-2); color: var(--navy-900); }
 .kp-seg { display: inline-flex; flex-wrap: wrap; gap: 4px; padding: 3px; border-radius: 11px; background: var(--surface-2); border: 1px solid var(--border); margin-bottom: 12px; }
 .kp-seg button { border: 0; background: transparent; font: inherit; font-size: 13.5px; font-weight: 600; color: var(--muted); padding: 7px 11px; border-radius: 8px; cursor: pointer; }
-.kp-seg button.on { background: var(--surface); color: var(--text); box-shadow: inset 0 0 0 1px var(--border); }
+.kp-seg button:hover:not(.on):not(:disabled) { background: color-mix(in srgb, var(--navy) 8%, transparent); color: var(--text); }
+.kp-seg button.on { background: var(--navy); color: #fff; box-shadow: 0 1px 3px rgba(20, 28, 70, .25); }
+[data-theme="dark"] .kp-seg button.on { background: var(--gold-2); color: var(--navy-900); }
 .kp-seg button:disabled { cursor: not-allowed; opacity: .75; }
 .kp-seg em { font-style: normal; font-size: 10.5px; font-weight: 700; padding: 1px 6px; border-radius: 999px; background: var(--border-2); color: var(--muted); margin-left: 2px; }
 .kp .route-form { grid-template-columns: minmax(0, 1fr); }
@@ -1515,7 +1518,7 @@ table.t.ms-dt tr.miss td { color: var(--muted); }
 .ms-eff { white-space: nowrap; }
 
 /* Hitung Invoice Barang/Jasa */
-.iv { padding: 0; overflow: hidden; max-width: 980px; }
+.iv { padding: 0; overflow: hidden; }
 .iv-bar { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; padding: 14px 18px; border-bottom: 1px solid var(--border-2); }
 .iv-lock { display: inline-flex; align-items: center; gap: 9px; font-size: 14px; font-weight: 650; cursor: pointer; }
 .iv-lock input { width: 18px; height: 18px; accent-color: var(--navy); flex: none; }
@@ -1562,7 +1565,7 @@ table.t.ms-dt tr.miss td { color: var(--muted); }
 }
 
 /* Kalkulator Pajak */
-.tx-in { padding: 18px 20px; max-width: 980px; margin-bottom: 16px; }
+.tx-in { padding: 18px 20px; margin-bottom: 16px; }
 .tx-lbl { display: block; font-size: 14px; font-weight: 700; margin-bottom: 8px; }
 .tx-box { display: flex; align-items: center; gap: 10px; height: 60px; padding: 0 16px; border: 2px solid color-mix(in srgb, var(--navy) 30%, var(--border)); border-radius: 12px; background: var(--surface); }
 .tx-box:focus-within { border-color: var(--navy); box-shadow: 0 0 0 4px color-mix(in srgb, var(--navy) 14%, transparent); }
@@ -1575,7 +1578,7 @@ table.t.ms-dt tr.miss td { color: var(--muted); }
 .tx-src svg { width: 15px; height: 15px; vertical-align: -2px; margin-right: 4px; }
 .tx-pick { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 14px; }
 .soon-em { font-style: normal; font-size: 10.5px; font-weight: 700; padding: 1px 6px; border-radius: 999px; background: var(--border-2); color: var(--muted); margin-left: 2px; }
-.tx-grid { display: grid; gap: 16px; grid-template-columns: minmax(0, 1fr); max-width: 980px; align-items: start; }
+.tx-grid { display: grid; gap: 16px; grid-template-columns: minmax(0, 1fr); align-items: start; }
 @media (min-width: 1100px) { .tx-grid { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); } }
 .tx-side { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
 .tx-g { padding: 0; overflow: hidden; }
@@ -1599,7 +1602,7 @@ table.t.ms-dt tr.miss td { color: var(--muted); }
 .tx-total .tx-v { font-size: 18px; color: var(--navy); }
 [data-theme="dark"] .tx-total .tx-v { color: var(--gold-2); }
 .tx-total:hover { background: color-mix(in srgb, var(--gold) 22%, var(--surface)); }
-.tx-foot { max-width: 980px; margin-top: 14px; padding: 0 2px; }
+.tx-foot { margin-top: 14px; padding: 0 2px; }
 
 /* Geser urutan kolom invoice */
 .iv-hc { display: flex; align-items: center; gap: 4px; min-width: 0; cursor: grab; border-radius: 6px; padding: 3px 2px; margin: -3px -2px; }
@@ -1628,7 +1631,6 @@ table.t.ms-dt tr.miss td { color: var(--muted); }
 .tx-vb:hover .tx-c { opacity: 1; color: var(--navy-700); }
 
 /* Hitung Honorarium */
-.hn { max-width: 1120px; }
 .hn-grid .iv-h, .hn-grid .iv-r { grid-template-columns: 40px minmax(210px, 270px) 80px 90px minmax(150px, 1fr) minmax(170px, 220px) 36px; gap: 10px; }
 .hn-grid .iv-r { align-items: start; }
 .hn-grid .iv-r .iv-no, .hn-grid .iv-r .c-x { padding-top: 10px; }
@@ -1880,3 +1882,12 @@ table.t.qt tr.miss td { color: var(--muted); }
 .pd .route-form { margin: 12px 0 4px; }
 .pd .kp-seg[role] + .pd-grid, .pd-grid { margin-top: 2px; }
 .pd .kp-step .kp-seg { margin-bottom: 10px; }
+
+/* Kartu atas yang menempel saat digulir: sedikit lebih gelap dan berbayang agar tidak menyatu dengan isi di bawahnya */
+.qt-top { background: color-mix(in srgb, var(--navy) 7%, var(--surface)); border-color: color-mix(in srgb, var(--navy) 18%, var(--border)); box-shadow: 0 6px 18px -8px rgba(20, 28, 70, .35); }
+[data-theme="dark"] .qt-top { background: color-mix(in srgb, var(--gold-2) 6%, var(--surface)); border-color: color-mix(in srgb, var(--gold-2) 22%, var(--border)); box-shadow: 0 6px 18px -8px rgba(0, 0, 0, .6); }
+.qt-top .kp-seg { background: var(--surface); }
+@media (max-width: 767px) { .qt-top { box-shadow: none; } }
+/* tutup celah di atas kartu yang menempel agar isi yang digulir tidak mengintip */
+.qt-top::before { content: ""; position: absolute; left: -1px; right: -1px; top: -10px; height: 10px; background: var(--bg); }
+@media (max-width: 767px) { .qt-top::before { display: none; } }
