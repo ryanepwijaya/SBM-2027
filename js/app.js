@@ -6,6 +6,7 @@ import { loadWilayah, suggest, resolve, routeHtml, placeLabel, routeHints, W } f
 import { KP, compute, formHtml, resultHtml, buildPdf, resetKP, autoMalam } from './hitung.js';
 import { viewMassal } from './massal.js';
 import { lnSuggest, negOfCity, cityOfNeg } from './ln.js';
+import { viewInvoice, viewPajak } from './pbj.js';
 import { BABS, REF_LINKS, babByKey, babByKel, babOfButir } from './bab.js';
 
 const $ = (s, el = document) => el.querySelector(s);
@@ -37,11 +38,11 @@ const TOOLS = [
     sub: [{ k: 'ln', h: '#/daerah/ln', t: 'Luar Negeri', i: 'globe', d: 'Uang harian per negara dan tiket per kota' }], flat: true, last: true,
   },
   {
-    k: 'pbj', h: '#/alat/honor', t: 'Pengadaan Barang/Jasa', i: 'shopping-cart', d: 'Alat hitung untuk honorarium, invoice barang/jasa, dan pajaknya', soon: true,
+    k: 'pbj', h: '#/alat/invoice', t: 'Pengadaan Barang/Jasa', i: 'shopping-cart', d: 'Hitung invoice barang/jasa dan pajaknya; honorarium menyusul',
     sub: [
       { k: 'honor', h: '#/alat/honor', t: 'Hitung Honorarium', i: 'hand-coins', d: 'Honorarium kegiatan sesuai SBM', soon: true },
-      { k: 'invoice', h: '#/alat/invoice', t: 'Hitung Invoice Barang/Jasa', i: 'receipt', d: 'Rincian nilai invoice pengadaan barang/jasa', soon: true },
-      { k: 'pajak', h: '#/alat/pajak', t: 'Perpajakan', i: 'percent', d: 'PPN dan PPh atas pembayaran oleh bendahara', soon: true },
+      { k: 'invoice', h: '#/alat/invoice', t: 'Hitung Invoice Barang/Jasa', i: 'receipt', d: 'Daftar barang/jasa: volume × harga satuan × frekuensi, bisa diisi tanpa mouse' },
+      { k: 'pajak', h: '#/alat/pajak', t: 'Kalkulator Pajak', i: 'percent', d: 'PPN, PPh 22/23/4(2), PPh konstruksi/konsultasi, dan PPh 21 dari satu nilai' },
     ],
   },
 ];
@@ -448,6 +449,8 @@ function renderPalette(q) {
       item({ href: '#/hitung', t: 'Kalkulator Perjadin', d: 'Perkiraan biaya dari tujuan, lama, dan pelaksana', i: 'calculator' }),
       item({ href: '#/massal', t: 'Perjadin (banyak asal)', d: 'Satu kegiatan, peserta dari banyak kota asal; PDF dan Excel', i: 'users' }),
       item({ href: '#/daerah/ln', t: 'Luar Negeri', d: 'Uang harian per negara dan tiket per kota', i: 'globe' }),
+      item({ href: '#/alat/invoice', t: 'Hitung Invoice Barang/Jasa', d: 'Daftar barang: volume × harga × frekuensi', i: 'receipt' }),
+      item({ href: '#/alat/pajak', t: 'Kalkulator Pajak', d: 'PPN, PPh 22/23/4(2), konstruksi, PPh 21', i: 'percent' }),
     ] });
     const hist = store.get('qhist', []).slice(0, 5);
     if (hist.length) secs.push({ t: 'Pencarian terakhir', items: hist.map((h) => item({ href: '#q:' + h, t: h, i: 'history' })) });
@@ -561,10 +564,14 @@ function route() {
         setNav('alat');
         cr.push({ t: 'Alat Bantu', h: '#/alat', i: 'calculator' });
         if (['honor', 'invoice', 'pajak'].includes(parts[1])) {
-          const t = TOOLS.find((x) => x.k === 'pbj').sub.find((x) => x.k === parts[1]);
+          const pbj = TOOLS.find((x) => x.k === 'pbj');
+          const t = pbj.sub.find((x) => x.k === parts[1]);
           side = [null, 'tool:' + t.k, 'pbj'];
-          cr.push({ t: 'Pengadaan Barang/Jasa', h: '#/alat/honor', i: 'shopping-cart' }, { t: t.t });
-          html = viewSoonTool(t, TOOLS.find((x) => x.k === 'pbj'));
+          cr.push({ t: 'Pengadaan Barang/Jasa', h: pbj.h, i: 'shopping-cart' }, { t: t.t });
+          const ui = { $, $$, toast, copy, route };
+          if (t.k === 'invoice') ({ html, after } = viewInvoice(ui));
+          else if (t.k === 'pajak') ({ html, after } = viewPajak(ui, params));
+          else html = viewSoonTool(t, pbj);
         }
         else { cr[cr.length - 1] = { t: 'Alat Bantu', i: 'calculator' }; html = viewAlat(); }
         break;
