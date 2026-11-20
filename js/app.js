@@ -30,7 +30,7 @@ const TOOLS = [
   },
   {
     k: 'provinsi', h: '#/daerah', t: 'Biaya Per Provinsi', i: 'map', d: 'Semua satuan biaya SBM yang ditetapkan per provinsi, dikelompokkan per jenis biaya; bisa dibandingkan sampai 3 provinsi',
-    sub: [{ k: 'ln', h: '#/daerah/ln', t: 'Luar Negeri', i: 'globe', d: 'Uang harian per negara dan tiket per kota' }], flat: true,
+    sub: [{ k: 'ln', h: '#/daerah/ln', t: 'Luar Negeri', i: 'globe', d: 'Uang harian per negara dan tiket per kota' }], flat: true, last: true,
   },
   {
     k: 'pbj', h: '#/alat/honor', t: 'Pengadaan Barang/Jasa', i: 'shopping-cart', d: 'Alat hitung untuk honorarium, invoice barang/jasa, dan pajaknya', soon: true,
@@ -41,6 +41,8 @@ const TOOLS = [
     ],
   },
 ];
+// Biaya Per Provinsi selalu di urutan paling bawah Alat Bantu, termasuk bila ada alat baru
+TOOLS.sort((a, b) => !!a.last - !!b.last);
 const isDesk = () => window.matchMedia('(min-width: 1024px)').matches;
 const isMac = /Mac|iPhone|iPad/.test(navigator.platform || '');
 
