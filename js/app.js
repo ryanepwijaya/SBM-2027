@@ -180,7 +180,7 @@ function shell() {
   const bottom = NAV.map((n) => n.k === 'cari'
     ? `<a href="${n.h}" data-nav="${n.k}" class="search-fab"><span class="fab">${ic('search')}</span><span class="lbl">${n.t}</span></a>`
     : `<a href="${n.h}" data-nav="${n.k}">${ic(n.i)}<span>${n.t}</span></a>`).join('');
-  const brand = `<a class="brand" href="#/"><span class="brand-mark"><span>SBM</span></span><span class="brand-text"><b>SBM ${Y.y}</b><small>${Y.sources}</small></span></a>`;
+  const brand = `<a class="brand" href="#/"><span class="brand-mark"><span>SBM</span></span><span class="brand-text"><b>Standar Biaya Masukan</b><small>${Y.sources}</small></span></a>`;
   $('#app').innerHTML = `
   <aside class="sidebar" aria-label="Navigasi">
     ${brand}
@@ -666,7 +666,7 @@ function viewHome() {
   ];
   return `
   <section class="hero hero-u">
-    <h1>Standar Biaya Masukan TA ${Y.y} ${tip(`Baca ${Y.y === 2026 ? 'PMK 32/2025' : 'PMK 54/2026 dan KMK 296/2026'} tanpa membuka PDF. Semua angka diambil dari tabel ${Y.srcKind} dan dicek silang.`)}</h1>
+    <h1>Cari satuan biaya ${tip(`Baca ${Y.y === 2026 ? 'PMK 32/2025' : 'PMK 54/2026 dan KMK 296/2026'} tanpa membuka PDF. Semua angka diambil dari tabel ${Y.srcKind} dan dicek silang.`)}</h1>
     <label class="hero-search" for="hq">${ic('search')}<input id="hq" type="search" placeholder="Cari satuan biaya, provinsi, kota, atau aturan…" autocomplete="off" enterkeyhint="search"><kbd class="hide-sm">${isMac ? '⌘' : 'Ctrl'} K</kbd></label>
     <div class="hero-tags">${HOME_HINTS.map((h) => `<a href="#/cari?q=${encodeURIComponent(h)}" data-q="${esc(h)}">${esc(h)}</a>`).join('')}</div>
   </section>
