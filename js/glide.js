@@ -41,30 +41,29 @@ function place(seg, fresh) {
   put(seg, g);
 }
 
-const pending = new Map();
-let raf = 0;
-const queue = (seg, fresh) => {
-  pending.set(seg, (pending.get(seg) || false) || fresh);
-  if (!raf) raf = requestAnimationFrame(() => { raf = 0; for (const [s, f] of pending) if (s.isConnected) place(s, f); pending.clear(); });
-};
-
 export function initGlide() {
+  // Diproses langsung di callback MutationObserver (microtask, sebelum layar digambar), bukan di frame berikutnya:
+  // bila ditunda, grup yang baru dirender sempat tampil sekali dengan sorotan bawaan di posisi akhir,
+  // lalu melompat ke posisi lama dan bergeser lagi, sehingga terlihat tersendat.
   const mo = new MutationObserver((muts) => {
+    const todo = new Map();
+    const add = (s, fresh) => todo.set(s, (todo.get(s) || false) || fresh);
     for (const m of muts) {
       if (m.type === 'attributes') {
         const p = m.target.parentElement;
-        if (p && p.matches(SEL) && m.target.matches('button, a')) queue(p, false);
+        if (p && p.matches(SEL) && m.target.matches('button, a')) add(p, false);
         continue;
       }
       for (const n of m.addedNodes) {
         if (n.nodeType !== 1) continue;
-        if (n.matches(SEL)) queue(n, true);
-        n.querySelectorAll?.(SEL).forEach((s) => queue(s, true));
+        if (n.matches(SEL)) add(n, true);
+        n.querySelectorAll?.(SEL).forEach((s) => add(s, true));
       }
     }
+    for (const [s, f] of todo) if (s.isConnected) place(s, f);
   });
   mo.observe(document.body, { subtree: true, childList: true, attributes: true, attributeFilter: ['class'] });
-  document.querySelectorAll(SEL).forEach((s) => queue(s, true));
+  document.querySelectorAll(SEL).forEach((s) => place(s, true));
   let t = 0;
   window.addEventListener('resize', () => { clearTimeout(t); t = setTimeout(() => document.querySelectorAll(SEL).forEach((s) => { const g = geo(s); if (g) still(s, () => put(s, g)); }), 120); });
 }
