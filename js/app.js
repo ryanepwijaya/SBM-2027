@@ -185,7 +185,7 @@ function shell() {
     <div class="side-scroll" id="sideScroll">${sideHtml()}</div>
     <div class="side-foot">
       <button class="side-btn" id="sideTheme" data-theme-ico aria-label="Ganti tema" data-tip="Ganti tema"></button>
-      <span class="side-ver">SBM TA ${Y.y}</span>
+      <span class="side-ver">© ${authorLink()}</span>
       <button class="side-btn" id="railBtn" aria-label="Ciutkan sidebar" data-tip="Lebarkan sidebar">${ic('panel-left-close')}</button>
     </div>
   </aside>
@@ -595,11 +595,28 @@ function route() {
   if (after) after();
 }
 
+const AUTHOR = { handle: '@ryanepwijaya', url: 'https://www.threads.com/@ryanepwijaya' };
+const authorLink = (cls = '') => `<a class="${cls}" href="${AUTHOR.url}" target="_blank" rel="noopener" title="Buka Threads ${AUTHOR.handle}">${AUTHOR.handle}</a>`;
 function footer() {
   const about = Y.y === 2026
     ? 'PMK Nomor 32 Tahun 2025 tentang Standar Biaya Masukan Tahun Anggaran 2026.'
     : 'PMK Nomor 54 Tahun 2026 tentang Standar Biaya Masukan dan KMK Nomor 296 Tahun 2026 tentang Rincian Besaran Standar Biaya Masukan (TA 2027).';
-  return `<div class="foot">Sumber: ${Y.sources} ${tip(about + ' Aplikasi bantu baca, bukan dokumen resmi. Untuk keperluan formal, rujuk dokumen aslinya.')}</div>`;
+  return `<footer class="foot">
+    <p class="foot-disc">${ic('info')}<span>Aplikasi ini alat bantu baca, bukan dokumen resmi. Selalu cek ulang ke ketentuan aslinya, dan konsultasikan kebijakan internal satker dengan pejabat perbendaharaan di satker Anda. <a href="#/lainnya/tentang">Selengkapnya</a></span></p>
+    <p class="foot-meta"><span>Sumber: ${Y.sources} ${tip(about)}</span><span class="dot">·</span><span>© 2026 Dibuat oleh ${authorLink()}</span></p>
+  </footer>`;
+}
+// Penafian lengkap (halaman Tentang)
+function disclaimerCard() {
+  return `<section class="card card-pad disc-card" id="penafian"><h2 class="disc-h">${ic('triangle-alert')} Penafian</h2>
+    <ol class="disc-list">
+      <li>Aplikasi ini adalah alat bantu baca yang disusun secara mandiri, <b>bukan dokumen atau publikasi resmi</b> Kementerian Keuangan.</li>
+      <li>Angka dan teks diambil dari ${esc(Y.src)}${Y.y === 2027 ? ' dan PMK 54/2026' : ''} dan sudah dicek silang, tetapi kesalahan ekstraksi tetap mungkin terjadi. <b>Selalu cek ulang ke ketentuan aslinya</b> sebelum dipakai untuk penyusunan anggaran, pengujian tagihan, atau pertanggungjawaban. Tombol PDF di setiap halaman membuka halaman dokumen yang dirujuk.</li>
+      <li>Hasil Kalkulator Perjadin dan simulasi persentase dibayar adalah <b>perkiraan</b>, bukan dasar pembayaran.</li>
+      <li>Satker dapat menetapkan kebijakan internal, misalnya efisiensi atau pembatasan tertentu. <b>Konsultasikan dengan pejabat perbendaharaan di satker Anda</b> (PPK, PPSPM, atau bendahara) untuk kebijakan yang berlaku di satker.</li>
+    </ol>
+    <p class="disc-by">© 2026 Dibuat oleh ${authorLink()}.</p>
+  </section>`;
 }
 
 /* ---------------- Beranda ---------------- */
@@ -1446,7 +1463,7 @@ function viewMore(sub) {
   const back = `<div class="crumb"><a href="#/lainnya">Lainnya</a></div>`;
   if (sub === 'tentang' && Y.y === 2026) {
     return { html: `<div class="page-head">${back}<h1 class="title">Tentang dasar hukum</h1><p class="subtitle">Tahun Anggaran 2026</p></div>
-    <div class="grid">
+    <div class="grid">${disclaimerCard()}
       <div class="card card-pad"><table class="plain"><tbody>
         <tr><th colspan="2">${esc(M.pmk.nomor)}</th></tr>
         <tr><td>Tentang</td><td>${esc(M.pmk.tentang)}</td></tr>
@@ -1457,13 +1474,14 @@ function viewMore(sub) {
       </tbody></table><div class="actions"><a class="btn" href="${Y.doc}" target="_blank" rel="noopener">${ic('download')} PDF PMK 32/2025</a></div></div>
       <div class="card card-pad"><table class="plain"><tbody><tr><th colspan="2">Penomoran butir</th></tr><tr><td colspan="2">Urutan butir PMK 32/2025 berbeda dengan TA 2027 (misalnya penginapan: angka 30 di TA 2026, angka 27 di TA 2027). Aplikasi memakai menu yang sama untuk kedua tahun; nomor yang tampil di tabel, rujukan, dan tombol PDF adalah nomor asli PMK 32/2025.</td></tr></tbody></table></div>
       <div class="card card-pad"><table class="plain"><tbody><tr><th colspan="2">Data wilayah (fitur Rute)</th></tr><tr><td>Sumber</td><td>idn-area-data v4.0.1 oleh Fityan Nugroho, dari data wilayah administrasi Kemendagri. Dilisensikan dengan Open Database License (ODbL).</td></tr><tr><td>Isi</td><td>38 provinsi dan 514 kabupaten/kota, dipetakan ke baris PMK (transport darat, Bodetabek) dan kota tiket.</td></tr></tbody></table></div>
+      <div class="card card-pad"><table class="plain"><tbody><tr><th colspan="2">Pembuat PDF</th></tr><tr><td>Sumber</td><td>jsPDF v2.5.2 dan jspdf-autotable v3.8.4, dilisensikan dengan MIT License. Disematkan di aplikasi untuk fitur Unduh PDF di Kalkulator Perjadin.</td></tr></tbody></table></div>
       <div class="card card-pad"><table class="plain"><tbody><tr><th colspan="2">Ikon</th></tr><tr><td>Sumber</td><td>Lucide (lucide.dev), lucide-static v1.75.0. Dilisensikan dengan ISC License, © Lucide Contributors. Disematkan di aplikasi agar berfungsi tanpa internet.</td></tr></tbody></table></div>
       <div class="callout">${ic('info')}<div>Seluruh angka diambil langsung dari tabel PDF PMK 32/2025 dan dicek silang dengan ekstraksi teks kedua (${Y.rows} baris data; semua nominal rupiah di tabel cocok dengan teks). Aplikasi ini alat bantu baca; untuk keperluan formal, rujuk dokumen aslinya.</div></div>
     </div>` };
   }
   if (sub === 'tentang') {
     return { html: `<div class="page-head">${back}<h1 class="title">Tentang dasar hukum</h1></div>
-    <div class="grid">
+    <div class="grid">${disclaimerCard()}
       <div class="card card-pad"><table class="plain"><tbody>
         <tr><th colspan="2">${esc(M.pmk.nomor)}</th></tr>
         <tr><td>Tentang</td><td>${esc(M.pmk.tentang)}</td></tr>
@@ -1480,6 +1498,7 @@ function viewMore(sub) {
         <tr><td>Isi</td><td>Lampiran I (batas tertinggi) beserta Penjelasan, Lampiran II (dapat dilampaui) beserta Penjelasan. ${M.kmk.halaman} halaman.</td></tr>
       </tbody></table><div class="actions"><a class="btn" href="docs/kmk-296-2026.pdf" target="_blank" rel="noopener">${ic('download')} PDF KMK 296/2026</a></div></div>
       <div class="card card-pad"><table class="plain"><tbody><tr><th colspan="2">Data wilayah (fitur Rute)</th></tr><tr><td>Sumber</td><td>idn-area-data v4.0.1 oleh Fityan Nugroho, dari data wilayah administrasi Kemendagri. Dilisensikan dengan Open Database License (ODbL).</td></tr><tr><td>Isi</td><td>38 provinsi dan 514 kabupaten/kota, dipetakan ke baris KMK (transport darat, Bodetabek) dan kota tiket. Pemetaan nama yang berbeda dicatat di Catatan atas dokumen.</td></tr></tbody></table></div>
+      <div class="card card-pad"><table class="plain"><tbody><tr><th colspan="2">Pembuat PDF</th></tr><tr><td>Sumber</td><td>jsPDF v2.5.2 dan jspdf-autotable v3.8.4, dilisensikan dengan MIT License. Disematkan di aplikasi untuk fitur Unduh PDF di Kalkulator Perjadin.</td></tr></tbody></table></div>
       <div class="card card-pad"><table class="plain"><tbody><tr><th colspan="2">Ikon</th></tr><tr><td>Sumber</td><td>Lucide (lucide.dev), lucide-static v1.75.0. Dilisensikan dengan ISC License, © Lucide Contributors. Disematkan di aplikasi agar berfungsi tanpa internet.</td></tr></tbody></table></div>
       <div class="callout">${ic('info')}<div>Seluruh angka diambil langsung dari tabel PDF KMK 296/2026 dan dicek silang dengan ekstraksi teks kedua (3.168 baris bernomor cocok). Aplikasi ini alat bantu baca; untuk keperluan formal, rujuk dokumen aslinya.</div></div>
     </div>` };
@@ -1548,7 +1567,10 @@ function placeTip(t) {
   if (!body) return;
   const pad = 10;
   const vw = document.documentElement.clientWidth;
-  const vh = window.innerHeight;
+  // menu bawah HP menutupi bagian bawah layar; anggap batas bawah di atasnya
+  const nav = document.querySelector('.bottomnav');
+  const navTop = nav && getComputedStyle(nav).display !== 'none' ? nav.getBoundingClientRect().top : window.innerHeight;
+  const vh = Math.min(window.innerHeight, navTop);
   const r = btn.getBoundingClientRect();
   body.style.left = '0px'; body.style.top = '0px';
   const w = body.offsetWidth, h = body.offsetHeight;

@@ -235,7 +235,7 @@ export async function buildPdf(res) {
   const stamp = new Date().toLocaleString('id-ID', { dateStyle: 'long', timeStyle: 'short' });
   for (let i = 1; i <= pages; i++) {
     doc.setPage(i); doc.setFontSize(7.5); doc.setTextColor(120, 126, 150);
-    doc.text(`Perkiraan dari aplikasi bantu baca SBM, bukan dokumen resmi. Dibuat ${stamp}.`, 14, 291);
+    doc.text(`Perkiraan dari aplikasi bantu baca SBM (cek-sbm.vercel.app, oleh @ryanepwijaya), bukan dokumen resmi. Cek ulang ke ketentuan aslinya. Dibuat ${stamp}.`, 14, 291);
     doc.text(`${i}/${pages}`, W - 14, 291, { align: 'right' });
   }
   const name = `Perkiraan-Perjadin-${plain(res.D.label).replace(/[^\w]+/g, '-')}-${KP.hari}hari-TA${Y.y}.pdf`.replace(/-+/g, '-');
