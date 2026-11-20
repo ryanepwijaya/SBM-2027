@@ -5,6 +5,7 @@ import { ic } from './icons.js';
 import { loadWilayah, suggest, resolve, routeHtml, placeLabel, routeHints, W } from './rute.js';
 import { KP, compute, formHtml, resultHtml, buildPdf, resetKP, autoMalam } from './hitung.js';
 import { viewMassal } from './massal.js';
+import { lnSuggest, negOfCity, cityOfNeg } from './ln.js';
 import { BABS, REF_LINKS, babByKey, babByKel, babOfButir } from './bab.js';
 
 const $ = (s, el = document) => el.querySelector(s);
@@ -1115,7 +1116,7 @@ function routeForm(dari, ke, compact = false) {
     ${placeField('rKe', 'Ke', ke ? placeLabel(ke) : '', 'Ketik kota tujuan, mis. Surabaya, Bojonegoro, Jawa Timur…')}
   </div>`;
 }
-function attachAC(inputId, onPick) {
+function attachAC(inputId, onPick, sugg = suggest) {
   const inp = $('#' + inputId);
   const box = $('#' + inputId + '-ac');
   let items = [], idx = -1;
@@ -1124,8 +1125,8 @@ function attachAC(inputId, onPick) {
     box.innerHTML = items.map((it, i) => `<button type="button" class="ac-it${i === idx ? ' on' : ''}" data-i="${i}"><span class="ac-t">${esc(it.n)}${it.air ? ' <span class="ac-air" title="Ada di tabel tiket pesawat ${Y.srcKind}">' + ic('plane') + '</span>' : ''}</span><span class="ac-s">${esc(it.sub)}</span><span class="ac-b">${esc(it.t)}</span></button>`).join('');
     box.classList.add('open');
   };
-  inp.addEventListener('input', () => { items = suggest(inp.value); idx = items.length ? 0 : -1; render(); });
-  inp.addEventListener('focus', () => { inp.select(); if (inp.value.trim()) { items = suggest(inp.value); idx = 0; render(); } });
+  inp.addEventListener('input', () => { items = sugg(inp.value); idx = items.length ? 0 : -1; render(); });
+  inp.addEventListener('focus', () => { inp.select(); if (inp.value.trim()) { items = sugg(inp.value); idx = 0; render(); } });
   inp.addEventListener('keydown', (e) => {
     if (!box.classList.contains('open')) return;
     if (e.key === 'ArrowDown') { idx = Math.min(items.length - 1, idx + 1); render(); e.preventDefault(); }
@@ -1329,13 +1330,16 @@ function viewProv(pid, params = {}) {
 /* ---------------- Favorit ---------------- */
 /* ---------------- Kalkulator Perjadin ---------------- */
 function viewHitung() {
-  const html = `<div class="page-head"><h1 class="title">Kalkulator Perjadin</h1><p class="subtitle">Isi tujuan surat tugas, lama perjalanan, dan pelaksananya. Perkiraan biaya muncul dari satuan biaya SBM TA ${Y.y}, lengkap dengan rujukan tabelnya. Persentase dibayar yang diatur di tiap tabel ikut dipakai.</p></div>
-  <div class="kp">${formHtml(routeForm)}<div id="kpHost"></div></div>`;
+  if (!KP.kurs) KP.kurs = Number(store.get('kurs', 0)) || 0;
+  const html = `<div class="page-head"><h1 class="title">Kalkulator Perjadin</h1><p class="subtitle">Isi tujuan surat tugas, lama perjalanan, dan pelaksananya: dalam negeri luar kota, dalam kota, atau luar negeri. Perkiraan biaya muncul dari satuan biaya SBM TA ${Y.y}, lengkap dengan rujukan tabelnya. Persentase dibayar yang diatur di tiap tabel ikut dipakai.</p></div>
+  <div class="kp">${formHtml({ routeForm, placeField, placeLabel })}<div id="kpHost"></div></div>`;
   const after = () => {
     const draw = () => {
       const res = compute();
       $('.kp-form').classList.toggle('no-tiket', !(res.ready && res.hasTiket));
       $('#kpHost').innerHTML = resultHtml(res, effNotice);
+      const toDk = $('[data-to-dk]');
+      if (toDk) toDk.onclick = () => { KP.lingkup = 'dk'; route(); };
       const pdf = $('#kpPdf');
       if (!pdf) return;
       const make = async (btn) => {
@@ -1350,9 +1354,32 @@ function viewHitung() {
         toast('PDF diunduh');
       };
     };
-    attachAC('rDari', (it) => { KP.dari = it.id; draw(); });
-    attachAC('rKe', (it) => { KP.ke = it.id; draw(); });
-    $('#rSwap').onclick = () => { if (!KP.ke) return; [KP.dari, KP.ke] = [KP.ke, KP.dari]; $('#rDari').value = placeLabel(KP.dari); $('#rKe').value = placeLabel(KP.ke); draw(); };
+    $$('[data-lingkup]').forEach((b) => b.onclick = () => { if (KP.lingkup === b.dataset.lingkup) return; KP.lingkup = b.dataset.lingkup; route(); });
+    if ($('#rDari')) attachAC('rDari', (it) => { KP.dari = it.id; draw(); });
+    if ($('#rKe')) attachAC('rKe', (it) => { KP.ke = it.id; draw(); });
+    if ($('#rSwap')) $('#rSwap').onclick = () => { if (!KP.ke) return; [KP.dari, KP.ke] = [KP.ke, KP.dari]; $('#rDari').value = placeLabel(KP.dari); $('#rKe').value = placeLabel(KP.ke); draw(); };
+    $$('[data-delapan]').forEach((b) => b.onclick = () => {
+      KP.delapan = b.dataset.delapan === '1';
+      $$('[data-delapan]').forEach((x) => { x.classList.toggle('on', x === b); x.setAttribute('aria-checked', String(x === b)); });
+      draw();
+    });
+    if ($('#lnQ')) {
+      attachAC('lnQ', (it) => {
+        if (it.kind === 'kota') { KP.lnKota = it.n; KP.lnNeg = negOfCity(it.n) || KP.lnNeg; }
+        else { KP.lnNeg = it.n; KP.lnKota = cityOfNeg(it.n) || ''; }
+        $('#lnNeg').value = KP.lnNeg;
+        draw();
+      }, lnSuggest);
+      $('#lnAsal').onchange = (e) => { KP.lnAsal = e.target.value; draw(); };
+      $('#lnNeg').onchange = (e) => { KP.lnNeg = e.target.value; draw(); };
+      const kurs = $('#lnKurs');
+      kurs.addEventListener('input', () => {
+        const v = Number(kurs.value.replace(/[^\d,]/g, '').replace(',', '.'));
+        KP.kurs = v > 0 ? v : 0; store.set('kurs', KP.kurs); draw();
+      });
+      kurs.addEventListener('blur', () => { kurs.value = KP.kurs ? KP.kurs.toLocaleString('id-ID', { maximumFractionDigits: 2 }) : ''; });
+      $$('[data-kelasln]').forEach((sel) => sel.onchange = () => { KP.kelasLn[sel.dataset.kelasln] = sel.value; draw(); });
+    }
     $$('[data-clear]').forEach((b) => b.onclick = () => { const i = $('#' + b.dataset.clear); i.value = ''; i.focus(); i.dispatchEvent(new Event('input')); });
     $$('[data-jenis]').forEach((b) => b.onclick = () => {
       KP.jenis = b.dataset.jenis;
@@ -1372,8 +1399,9 @@ function viewHitung() {
     const applyStp = (id, v, keepText) => {
       if (id === 'hari') {
         KP.hari = setStp('hari', v, keepText);
-        const m = $('[data-stp="malam"]'); m.dataset.max = KP.hari;
-        KP.malam = setStp('malam', KP.malamManual ? Math.min(KP.malam, KP.hari) : Math.min(KP.hari, autoMalam(KP.hari)));
+        const m = $('[data-stp="malam"]');
+        const mv = KP.malamManual ? Math.min(KP.malam, KP.hari) : Math.min(KP.hari, autoMalam(KP.hari));
+        if (m) { m.dataset.max = KP.hari; KP.malam = setStp('malam', mv); } else KP.malam = mv;
       } else if (id === 'malam') { KP.malamManual = true; KP.malam = setStp('malam', v, keepText); }
       else if (id.startsWith('org:')) { const k = id.slice(4); KP.org[k] = setStp(id, v, keepText); }
       draw();
@@ -1405,7 +1433,8 @@ function viewHitung() {
     });
     $$('[data-kelas]').forEach((sel) => sel.onchange = () => { KP.kelas[sel.dataset.kelas] = sel.value; draw(); });
     draw();
-    if (!KP.ke) setTimeout(() => $('#rKe').focus(), 50);
+    const firstEmpty = KP.lingkup === 'ln' ? (!KP.lnKota && !KP.lnNeg && $('#lnQ')) : (!KP.ke && $('#rKe'));
+    if (firstEmpty) setTimeout(() => firstEmpty.focus(), 50);
   };
   return { html, after };
 }
