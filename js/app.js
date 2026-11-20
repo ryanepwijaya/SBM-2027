@@ -3,6 +3,7 @@ import { S, Y, YEARS, switchYear, initYear, loadData, entry, entriesOf, esc, nor
 import { search, buildIndex, SEARCH_HINTS } from './search.js';
 import { ic } from './icons.js';
 import { loadWilayah, suggest, resolve, routeHtml, placeLabel, routeHints, W } from './rute.js';
+import { KP, compute, formHtml, resultHtml, buildPdf } from './hitung.js';
 import { BABS, REF_LINKS, babByKey, babByKel, babOfButir } from './bab.js';
 
 const $ = (s, el = document) => el.querySelector(s);
@@ -26,6 +27,7 @@ const TOOLS = [
       { k: 'rute', h: '#/rute', t: 'Buat Perjalanan', i: 'signpost', d: 'Dari kota X ke kota Y, semua satuan biaya perjalanan dinas langsung muncul' },
       { k: 'daerah', h: '#/daerah', t: 'Cek Per Provinsi', i: 'map', d: 'Semua satuan biaya per provinsi, semua bab' },
       { k: 'bandingkan', h: '#/bandingkan', t: 'Bandingkan Wilayah', i: 'scale', d: 'Sampai 3 provinsi berdampingan' },
+      { k: 'hitung', h: '#/hitung', t: 'Kalkulator Perjadin', i: 'calculator', d: 'Perkiraan biaya dari tujuan, lama, dan pelaksana surat tugas; bisa diunduh sebagai PDF' },
       { k: 'ln', h: '#/daerah/ln', t: 'Luar Negeri', i: 'globe', d: 'Uang harian per negara dan tiket per kota', hideSide: true },
     ],
   },
@@ -417,6 +419,7 @@ function renderPalette(q) {
       item({ href: '#/rute', t: 'Buat Perjalanan', d: 'Dari kota X ke kota Y: semua satuan biaya yang relevan', i: 'signpost' }),
       item({ href: '#/daerah', t: 'Cek Per Provinsi', d: 'Semua satuan biaya per provinsi, semua bab', i: 'map' }),
       item({ href: '#/bandingkan', t: 'Bandingkan Wilayah', d: 'Sampai 3 provinsi berdampingan', i: 'scale' }),
+      item({ href: '#/hitung', t: 'Kalkulator Perjadin', d: 'Perkiraan biaya dari tujuan, lama, dan pelaksana', i: 'calculator' }),
       item({ href: '#/daerah/ln', t: 'Luar Negeri', d: 'Uang harian per negara dan tiket per kota', i: 'globe' }),
     ] });
     const hist = store.get('qhist', []).slice(0, 5);
@@ -541,6 +544,7 @@ function route() {
         else { cr.push({ t: parts[1] === 'ln' ? 'Luar Negeri' : 'Cek Per Provinsi' }); ({ html, after } = viewDaerah(parts[1] === 'ln' ? 'ln' : 'dn', params)); }
         break;
       case 'rute': setNav('alat'); side = [null, 'tool:rute', 'rute']; cr.push(ALAT_CRUMB, RUTE_CRUMB, { t: 'Buat Perjalanan' }); ({ html, after } = viewRute(params)); break;
+      case 'hitung': setNav('alat'); side = [null, 'tool:hitung', 'rute']; cr.push(ALAT_CRUMB, RUTE_CRUMB, { t: 'Kalkulator Perjadin' }); ({ html, after } = viewHitung()); break;
       case 'bandingkan': setNav('alat'); side = [null, 'tool:bandingkan', 'rute']; cr.push(ALAT_CRUMB, RUTE_CRUMB, { t: 'Bandingkan Wilayah' }); ({ html, after } = viewCompare(params)); break;
       case 'tersimpan': setNav('tersimpan'); side = ['tersimpan']; cr.push({ t: 'Tersimpan', i: 'star' }); html = viewSaved(); break;
       case 'lainnya': {
@@ -630,6 +634,7 @@ function viewHome() {
     <div class="tool-list card">
       ${tool('#/daerah', 'map', 'Cek per provinsi', 'Semua satuan biaya per provinsi, semua bab')}
       ${tool('#/bandingkan', 'scale', 'Bandingkan wilayah', 'Sampai 3 provinsi berdampingan')}
+      ${tool('#/hitung', 'calculator', 'Kalkulator perjadin', 'Perkiraan biaya dari tujuan, lama, dan pelaksana')}
       ${tool('#/daerah/ln', 'globe', 'Luar negeri', 'Uang harian per negara & tiket per kota')}
       ${tool('#/alat/pajak', 'percent', 'Perpajakan <span class="chip sm">Segera</span>', 'PPN dan PPh atas pembayaran oleh bendahara')}
     </div>
@@ -689,6 +694,7 @@ function viewBab(bab) {
       <a href="#/rute">${ic('signpost')}<span><b>Buat perjalanan</b><small>Kota X ke kota Y</small></span></a>
       <a href="#/daerah">${ic('map')}<span><b>Cek per provinsi</b><small>Semua biaya satu provinsi</small></span></a>
       <a href="#/bandingkan">${ic('scale')}<span><b>Bandingkan wilayah</b><small>Sampai 3 provinsi</small></span></a>
+      <a href="#/hitung">${ic('calculator')}<span><b>Kalkulator perjadin</b><small>Perkiraan biaya + PDF</small></span></a>
       <a href="#/daerah/ln">${ic('globe')}<span><b>Luar negeri</b><small>Per negara & kota</small></span></a>
     </div>` : '';
   const html = `
@@ -1271,6 +1277,77 @@ function viewCompare(params) {
 }
 
 /* ---------------- Tersimpan ---------------- */
+/* ---------------- Kalkulator Perjadin ---------------- */
+function viewHitung() {
+  const html = `<div class="page-head"><h1 class="title">Kalkulator Perjadin</h1><p class="subtitle">Isi tujuan surat tugas, lama perjalanan, dan pelaksananya. Perkiraan biaya muncul dari satuan biaya SBM TA ${Y.y}, lengkap dengan rujukan tabelnya. Persentase dibayar yang diatur di tiap tabel ikut dipakai.</p></div>
+  <div class="kp">${formHtml(routeForm)}<div id="kpHost"></div></div>`;
+  const after = () => {
+    const draw = () => {
+      const res = compute();
+      $('.kp-form').classList.toggle('no-tiket', !(res.ready && res.hasTiket));
+      $('#kpHost').innerHTML = resultHtml(res, effNotice);
+      const pdf = $('#kpPdf');
+      if (!pdf) return;
+      const make = async (btn) => {
+        btn.disabled = true; const old = btn.innerHTML; btn.innerHTML = `${ic('clock')} Menyiapkan PDF…`;
+        try { return await buildPdf(res); } catch (err) { console.error(err); toast('PDF gagal dibuat'); return null; } finally { btn.disabled = false; btn.innerHTML = old; }
+      };
+      pdf.onclick = async () => {
+        const out = await make(pdf);
+        if (!out) return;
+        const a = document.createElement('a'); a.href = URL.createObjectURL(out.blob); a.download = out.name;
+        document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1500);
+        toast('PDF diunduh');
+      };
+      const sh = $('#kpShare');
+      const probe = typeof File === 'function' ? new File([''], 'x.pdf', { type: 'application/pdf' }) : null;
+      if (sh && probe && navigator.canShare && navigator.canShare({ files: [probe] })) {
+        sh.hidden = false;
+        sh.onclick = async () => {
+          const out = await make(sh);
+          if (!out) return;
+          try { await navigator.share({ files: [new File([out.blob], out.name, { type: 'application/pdf' })], title: 'Perkiraan biaya perjalanan dinas' }); } catch (e) { /* dibatalkan */ }
+        };
+      }
+    };
+    attachAC('rDari', (it) => { KP.dari = it.id; draw(); });
+    attachAC('rKe', (it) => { KP.ke = it.id; draw(); });
+    $('#rSwap').onclick = () => { if (!KP.ke) return; [KP.dari, KP.ke] = [KP.ke, KP.dari]; $('#rDari').value = placeLabel(KP.dari); $('#rKe').value = placeLabel(KP.ke); draw(); };
+    $$('[data-clear]').forEach((b) => b.onclick = () => { const i = $('#' + b.dataset.clear); i.value = ''; i.focus(); i.dispatchEvent(new Event('input')); });
+    $$('[data-jenis]').forEach((b) => b.onclick = () => {
+      KP.jenis = b.dataset.jenis;
+      $$('[data-jenis]').forEach((x) => { x.classList.toggle('on', x === b); x.setAttribute('aria-checked', String(x === b)); });
+      draw();
+    });
+    const setStp = (id, v) => {
+      const el = $(`[data-stp="${id}"]`);
+      const min = Number(el.dataset.min), max = Number(el.dataset.max);
+      v = Math.max(min, Math.min(max, v));
+      el.querySelector('output').textContent = v;
+      el.querySelector('[data-d="-1"]').disabled = v <= min;
+      el.querySelector('[data-d="1"]').disabled = v >= max;
+      return v;
+    };
+    $('.kp-form').addEventListener('click', (e) => {
+      const b = e.target.closest('.stp button');
+      if (!b) return;
+      const id = b.closest('.stp').dataset.stp;
+      const d = Number(b.dataset.d);
+      if (id === 'hari') {
+        KP.hari = setStp('hari', KP.hari + d);
+        const m = $('[data-stp="malam"]'); m.dataset.max = KP.hari;
+        KP.malam = setStp('malam', KP.malamManual ? Math.min(KP.malam, KP.hari) : KP.hari - 1);
+      } else if (id === 'malam') { KP.malamManual = true; KP.malam = setStp('malam', KP.malam + d); }
+      else if (id.startsWith('org:')) { const k = id.slice(4); KP.org[k] = setStp(id, KP.org[k] + d); }
+      draw();
+    });
+    $$('[data-kelas]').forEach((sel) => sel.onchange = () => { KP.kelas[sel.dataset.kelas] = sel.value; draw(); });
+    draw();
+    if (!KP.ke) setTimeout(() => $('#rKe').focus(), 50);
+  };
+  return { html, after };
+}
+
 function viewAlat() {
   const card = (t) => {
     const subs = (t.sub || []).map((x) => `<a class="al-sub" href="${x.h}">${ic(x.i)}<span><b>${esc(x.t)}</b><small>${esc(x.d)}</small></span></a>`).join('');

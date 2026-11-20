@@ -106,6 +106,7 @@ function comp(bid, ti, row, title, sub, opt = {}) {
   };
 }
 
+export { rowBy };
 export function computeRoute(O, D) {
   const sec = [];
   const notes = [];
@@ -145,7 +146,7 @@ export function computeRoute(O, D) {
   const tTx = S.butir['L2-5'].tables[0];
   const taksi = (pid, where) => {
     const r = tTx.rows.find((x) => x.p === pid);
-    return comp('L2-5', 0, r, `Taksi di ${where} · ${S.prov[pid].nama}`, 'Sekali jalan ke/dari bandara, stasiun, terminal, atau pelabuhan. Lumpsum; dapat riil bila dari/ke kantor dan bukan kendaraan pribadi.', { missing: `${S.prov[pid].nama} tidak tercantum dalam tabel taksi KMK (Lampiran II angka 5).` });
+    return comp('L2-5', 0, r, `Taksi di ${where} · ${S.prov[pid].nama}`, 'Sekali jalan ke/dari bandara, stasiun, terminal, atau pelabuhan. Lumpsum; dapat riil bila dari/ke kantor dan bukan kendaraan pribadi.', { missing: `${S.prov[pid].nama} tidak tercantum dalam tabel taksi ${Y.srcKind} (Lampiran II angka ${S.butir['L2-5'].no}).` });
   };
   const bodeLeg = (O.dki && D.reg?.bode) ? D.reg.bode : (D.dki && O.reg?.bode) ? O.reg.bode : null;
   const tDar = S.butir['L2-2'].tables[0];
@@ -177,7 +178,7 @@ export function computeRoute(O, D) {
     }
     const tk = ticketRoutes(O, D);
     leg.push(...tk.items);
-    if (!tk.found) leg.push({ title: 'Tiket pesawat (PP)', sub: '', bid: 'L2-6', ti: 0, sifat: 'DL', vals: [], missing: `Tidak ada rute tiket pesawat yang tercantum antara ${tk.oc.map(titleCity).join('/') || pO.nama} dan ${tk.dc.map(titleCity).join('/') || pD.nama} dalam tabel KMK (Lampiran II angka 6).` });
+    if (!tk.found) leg.push({ title: 'Tiket pesawat (PP)', sub: '', bid: 'L2-6', ti: 0, sifat: 'DL', vals: [], missing: `Tidak ada rute tiket pesawat yang tercantum antara ${tk.oc.map(titleCity).join('/') || pO.nama} dan ${tk.dc.map(titleCity).join('/') || pD.nama} dalam tabel ${Y.srcKind} (Lampiran II angka ${S.butir['L2-6'].no}).` });
     if (D.reg && !D.dki && !W.ticketByReg[D.reg.id] && !isCapital(D)) {
       for (const x of darRow(D)) arr.push(comp('L2-2', 0, x.r, `Transport darat ${x.r.v[1]} → ${x.r.v[2]}`, 'Dari ibu kota provinsi ke kabupaten/kota tujuan.', { labels: { 4: 'Sekali jalan' }, note: x.note }));
       if (!darRow(D).length) arr.push({ title: `Transport darat ke ${D.label}`, sub: '', bid: 'L2-2', ti: 0, sifat: 'DL', vals: [], missing: 'Rute dari ibu kota provinsi ke kabupaten/kota ini tidak tercantum. Mengacu pada harga pasar (at cost).' });

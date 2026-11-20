@@ -44,6 +44,12 @@ python3 build_data.py /tmp/tables26.json /tmp/text26.json map.json ../../data/sb
 
 `map.json` memetakan nomor butir PMK 32/2025 ke kode butir TA 2027. Penyesuaian teks per tahun (poin penting, catatan dokumen, dasar hukum sifat) ada di `YEAR_PATCH` pada `js/catalog.js`.
 
+## Alat Bantu
+
+- **Rute Perjadin**: Buat Perjalanan (`#/rute`), Cek Per Provinsi (`#/daerah`), Bandingkan Wilayah (`#/bandingkan`), Kalkulator Perjadin (`#/hitung`, `js/hitung.js`).
+- Kalkulator Perjadin hanya mengalikan satuan biaya SBM dengan volume (hari, malam, orang); aturan PMK Perjalanan Dinas tidak diterapkan. PDF dibuat di peramban dengan jsPDF + jspdf-autotable (`vendor/`, lisensi MIT).
+- **Perpajakan** (`#/alat/pajak`): penanda "Sedang disiapkan".
+
 ## Menambah atau mengubah entri
 
 1. Entri Perjalanan Dinas ada di `js/catalog.js`; bab lain di `js/entries-more.js` (nama, sinonim pencarian, poin penting dari Penjelasan).

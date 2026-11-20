@@ -108,6 +108,12 @@ export function money(t, n, cur = t?.cur) {
   if (p === 100) return fmt(n, cur);
   return `<span class="eff-v" title="${pctTxt(p)} dari ${fmt(n, cur)}">${fmt(adjust(n, p, cur), cur)}</span><s class="eff-o" aria-label="Besaran SBM ${fmt(n, cur)}">${fmt(n, cur)}</s>`;
 }
+// Nilai angka setelah persentase dibayar (untuk penjumlahan)
+export function effVal(t, n, cur = t?.cur) {
+  if (n == null) return null;
+  const p = t ? effPct(t) : 100;
+  return p === 100 ? n : adjust(n, p, cur);
+}
 export function moneyTxt(t, n, cur = t?.cur) {
   if (n == null) return '';
   const p = t ? effPct(t) : 100;
