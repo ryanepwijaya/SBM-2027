@@ -1791,7 +1791,18 @@ tr.k-turun .pb-d, tr.k-turun .pb-p { color: var(--red); }
 }
 
 /* ===== Hitung Lembur / Pemeliharaan / Paket Kegiatan ===== */
-.lb-grid .iv-h, .lb-grid .iv-r { grid-template-columns: 40px minmax(250px, 330px) 80px 96px 96px minmax(180px, 1fr) 36px; }
+.lb-grid .iv-h, .lb-grid .iv-r { grid-template-columns: 40px minmax(240px, 320px) 76px 90px 90px 104px minmax(170px, 1fr) 36px; }
+.lb-grid .iv-h > span:nth-child(6) { display: inline-flex; align-items: center; gap: 4px; }
+.lb-ck { display: inline-flex; align-items: center; gap: 7px; height: 40px; font-size: 13px; font-weight: 650; cursor: pointer; }
+.lb-ck .lb-in { width: 18px; height: 18px; padding: 0; flex: none; accent-color: var(--navy); }
+[data-theme="dark"] .lb-ck .lb-in { accent-color: var(--gold-2); }
+.lb-ck span { display: none; }
+@media (max-width: 767px) {
+  .lb-grid .iv-r { grid-template-columns: 0.7fr 0.8fr 1.6fr; grid-template-areas: "no no del" "st st st" "o v t" "lb lb lb" "j j j"; }
+  .lb-grid .iv-r .c-lb { grid-area: lb; }
+  .lb-ck { height: 30px; }
+  .lb-ck span { display: inline; }
+}
 .lb-rr { grid-template-columns: minmax(0, 1.8fr) 80px repeat(3, minmax(0, 1fr)); }
 .qt-top { display: flex; align-items: flex-end; gap: 14px 18px; flex-wrap: wrap; padding: 16px 18px; margin-bottom: 16px; position: sticky; top: calc(var(--topbar, 60px) + 8px); z-index: 5; }
 .qt-top .kp-fld { margin: 0; min-width: 220px; flex: 0 1 280px; }

@@ -62,15 +62,16 @@ function lemburRates() {
     sp: { n: 'Satpam, Pengemudi, Petugas Kebersihan, Pramubakti', s: 'Satpam/pengemudi/kebersihan/pramubakti', l: v2(satpam[0]), m: v2(satpam[1]), bid: 'L1-30', t: b.t },
   };
 }
-const newLembur = (st = 'g3') => ({ st, o: '1', h: '', j: '' });
+const newLembur = (st = 'g3') => ({ st, o: '1', h: '', j: '', lb: false });
 function lemburRow(R, r) {
   const x = R[r.st] || R.g3;
   const o = Math.max(0, Math.round(num(r.o || '1'))), h = num(r.h), j = num(r.j);
   const tl = effVal(x.t, x.l), tm = effVal(x.t, x.m);
-  const lembur = Math.round(o * h * j * (tl || 0));
+  // Hari libur kerja: uang lembur 200% dari tarif (PMK 125/PMK.05/2009 untuk PNS; Perdirjen Perbendaharaan untuk Non-ASN); uang makan tetap
+  const lembur = Math.round(o * h * j * (tl || 0) * (r.lb ? 2 : 1));
   // Uang makan lembur: setelah lembur paling kurang 2 jam berturut-turut, paling banyak 1 kali per hari
   const makan = j >= 2 ? Math.round(o * h * (tm || 0)) : 0;
-  return { x, o, h, j, lembur, makan, total: lembur + makan, tl, tm };
+  return { x, o, h, j, lembur, makan, total: lembur + makan, tl, tm, lb: !!r.lb };
 }
 export function viewLembur(ui) {
   const R = lemburRates();
@@ -78,26 +79,27 @@ export function viewLembur(ui) {
   const D = store.get(KEY, null);
   const L = { rows: Array.isArray(D?.rows) && D.rows.length ? D.rows.map((r) => ({ ...newLembur(), ...r, st: R[r.st] ? r.st : 'g3' })) : [newLembur()] };
   const save = () => store.set(KEY, L);
-  const html = `<div class="page-head"><h1 class="title">Hitung Lembur</h1><p class="subtitle">Uang lembur dan uang makan lembur sesuai SBM TA ${Y.y}: ASN per golongan (${lampRef('L1-22')}), Pegawai Non-ASN serta satpam, pengemudi, petugas kebersihan, dan pramubakti (${lampRef('L1-30')}). Uang makan lembur dihitung bila lembur paling kurang 2 jam per hari, paling banyak sekali per hari, sesuai penjelasan SBM. Ditampilkan tanpa PPh.</p></div>
+  const html = `<div class="page-head"><h1 class="title">Hitung Lembur</h1><p class="subtitle">Uang lembur dan uang makan lembur sesuai SBM TA ${Y.y}: ASN per golongan (${lampRef('L1-22')}), Pegawai Non-ASN serta satpam, pengemudi, petugas kebersihan, dan pramubakti (${lampRef('L1-30')}). Uang makan lembur dihitung bila lembur paling kurang 2 jam per hari, paling banyak sekali per hari. Centang <b>Hari libur</b> untuk lembur di hari libur kerja: uang lembur dibayar 200% dari tarif, uang makan tetap. Ditampilkan tanpa PPh.</p></div>
   <div class="card iv hn lb">
     <div class="iv-bar"><div class="muted small">Satu baris bisa satu orang atau beberapa orang dengan status, hari, dan jam yang sama.</div><button type="button" class="btn sm" id="lbReset">${ic('history')} Reset</button></div>
     <div class="iv-grid hn-grid lb-grid" id="lbGrid" role="table" aria-label="Daftar lembur">
-      <div class="iv-h" role="row"><span role="columnheader">No</span><span role="columnheader">Status</span><span role="columnheader">Orang</span><span role="columnheader">Hari lembur</span><span role="columnheader">Jam per hari</span><span role="columnheader" class="n">Uang lembur · uang makan</span><span role="columnheader"><span class="sr">Hapus</span></span></div>
+      <div class="iv-h" role="row"><span role="columnheader">No</span><span role="columnheader">Status</span><span role="columnheader">Orang</span><span role="columnheader">Hari lembur</span><span role="columnheader">Jam per hari</span><span role="columnheader">Hari libur ${tip('Lembur pada hari libur kerja dibayar 200% dari tarif uang lembur (PMK 125/PMK.05/2009 untuk PNS; ketentuan Dirjen Perbendaharaan untuk Non-ASN, satpam, pengemudi, petugas kebersihan, dan pramubakti). Uang makan lembur tetap paling banyak sekali per hari.')}</span><span role="columnheader" class="n">Uang lembur · uang makan</span><span role="columnheader"><span class="sr">Hapus</span></span></div>
       <div id="lbRows"></div>
     </div>
-    <div class="iv-add"><button type="button" class="btn sm" id="lbAdd">${ic('plus')} Tambah baris</button><span class="muted small">${ic('command')} Tab: kolom berikutnya · Tab di kolom terakhir: baris baru</span></div>
+    <div class="iv-add"><button type="button" class="btn sm" id="lbAdd">${ic('plus')} Tambah baris</button><span class="muted small">${ic('command')} Tab: kolom berikutnya · Spasi: centang hari libur · Tab di kolom terakhir: baris baru</span></div>
     <div class="hn-rek" id="lbRek"></div>
     <div class="iv-tot"><div class="hn-sum" id="lbSum"></div><div class="iv-tot-a">${copyBtn('lbCopy', 'Salin total')}</div></div>
   </div>
-  <div class="kp-foot muted small tx-foot">Tarif: ${Object.values(R).map((x) => `${x.s || x.n} ${fmt(x.l)}/jam, makan ${fmt(x.m)}/hari`).join('; ')}.</div>`;
+  <div class="kp-foot muted small tx-foot">Tarif: ${Object.values(R).map((x) => `${x.s || x.n} ${fmt(x.l)}/jam, makan ${fmt(x.m)}/hari`).join('; ')}. Hari libur kerja: uang lembur 200% dari tarif.</div>`;
   const { $, $$, toast } = ui;
-  const res = (x) => `<span class="hn-x"><b>${fmt(x.total)}</b><small>Lembur ${fmt(x.lembur)}</small><small>Makan ${fmt(x.makan)}${x.j && x.j < 2 ? ' <em>kurang 2 jam</em>' : ''}</small></span>`;
+  const res = (x) => `<span class="hn-x"><b>${fmt(x.total)}</b><small>Lembur ${fmt(x.lembur)}${x.lb ? ' <em>200%</em>' : ''}</small><small>Makan ${fmt(x.makan)}${x.j && x.j < 2 ? ' <em>kurang 2 jam</em>' : ''}</small></span>`;
   const rowHtml = (r, i) => `<div class="iv-r hn-r lb-r" role="row" data-i="${i}">
     <span class="iv-no c-no" role="cell">${i + 1}</span>
     <span class="c-st" role="cell" data-l="Status"><select class="sel iv-in hn-st" data-f="st" aria-label="Status baris ${i + 1}">${Object.entries(R).map(([k, x]) => `<option value="${k}"${k === r.st ? ' selected' : ''}>${esc(x.s || x.n)}</option>`).join('')}</select></span>
     <span class="c-o" role="cell" data-l="Orang"><input class="iv-in" data-f="o" inputmode="numeric" autocomplete="off" value="${esc(r.o)}" aria-label="Orang baris ${i + 1}"></span>
     <span class="c-v" role="cell" data-l="Hari"><input class="iv-in" data-f="h" inputmode="decimal" autocomplete="off" value="${esc(r.h)}" placeholder="0" aria-label="Hari lembur baris ${i + 1}"></span>
     <span class="c-t" role="cell" data-l="Jam/hari"><input class="iv-in" data-f="j" inputmode="decimal" autocomplete="off" value="${esc(r.j)}" placeholder="0" aria-label="Jam per hari baris ${i + 1}"></span>
+    <span class="c-lb" role="cell"><label class="lb-ck"><input type="checkbox" class="iv-in lb-in" data-f="lb"${r.lb ? ' checked' : ''} aria-label="Hari libur baris ${i + 1}"><span>Hari libur</span></label></span>
     <span class="c-j" role="cell" data-l="Hasil">${res(lemburRow(R, r))}</span>
     <span class="c-x" role="cell"><button type="button" class="icon-btn sm" data-del="${i}" tabindex="-1" aria-label="Hapus baris ${i + 1}">${ic('x')}</button></span>
   </div>`;
@@ -116,14 +118,17 @@ export function viewLembur(ui) {
   const after = () => {
     draw();
     const g = $('#lbGrid');
-    g.addEventListener('input', (e) => { const inp = e.target.closest('input.iv-in'); if (!inp) return; const i = Number(inp.closest('.lb-r').dataset.i); inp.value = inp.dataset.f === 'o' ? digits(inp.value) : cleanDec(inp.value.replace('.', ',')); L.rows[i][inp.dataset.f] = inp.value; save(); refresh(i); });
-    g.addEventListener('change', (e) => { const s = e.target.closest('.hn-st'); if (!s) return; const i = Number(s.closest('.lb-r').dataset.i); L.rows[i].st = s.value; save(); refresh(i); });
-    g.addEventListener('focusin', (e) => { const inp = e.target.closest('input.iv-in'); if (inp) inp.select(); });
+    g.addEventListener('input', (e) => { const inp = e.target.closest('input.iv-in'); if (!inp || inp.type === 'checkbox') return; const i = Number(inp.closest('.lb-r').dataset.i); inp.value = inp.dataset.f === 'o' ? digits(inp.value) : cleanDec(inp.value.replace('.', ',')); L.rows[i][inp.dataset.f] = inp.value; save(); refresh(i); });
+    g.addEventListener('change', (e) => {
+      const c = e.target.closest('.lb-in'); if (c) { const i = Number(c.closest('.lb-r').dataset.i); L.rows[i].lb = c.checked; save(); refresh(i); return; }
+      const s = e.target.closest('.hn-st'); if (!s) return; const i = Number(s.closest('.lb-r').dataset.i); L.rows[i].st = s.value; save(); refresh(i); });
+    g.addEventListener('focusin', (e) => { const inp = e.target.closest('input.iv-in'); if (inp && inp.type !== 'checkbox') inp.select(); });
     g.addEventListener('focusout', (e) => { const inp = e.target.closest('[data-f="o"]'); if (inp && !digits(inp.value)) { const i = Number(inp.closest('.lb-r').dataset.i); inp.value = '1'; L.rows[i].o = '1'; save(); refresh(i); } });
     g.addEventListener('keydown', (e) => {
       const inp = e.target.closest('.iv-in'); if (!inp) return;
       const i = Number(inp.closest('.lb-r').dataset.i), f = inp.dataset.f, last = i === L.rows.length - 1;
-      if (e.key === 'Tab' && !e.shiftKey && last && f === 'j' && !isEmpty(L.rows[i])) { e.preventDefault(); addRow(); }
+      if (e.key === 'Tab' && !e.shiftKey && last && f === 'lb' && !isEmpty(L.rows[i])) { e.preventDefault(); addRow(); }
+      if (e.key === 'Enter' && f === 'lb') { e.preventDefault(); inp.click(); return; }
       if (e.key === 'Enter') { e.preventDefault(); if (last) { if (!isEmpty(L.rows[i])) addRow(); } else draw({ i: i + 1, f }); }
     });
     g.addEventListener('click', (e) => { const d = e.target.closest('[data-del]'); if (!d) return; const i = Number(d.dataset.del); if (L.rows.length > 1) L.rows.splice(i, 1); else L.rows[0] = newLembur(); save(); draw(); });
