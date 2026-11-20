@@ -1672,3 +1672,62 @@ table.t.ms-dt tr.miss td { color: var(--muted); }
 .pb-opts { display: flex; align-items: center; gap: 10px 18px; flex-wrap: wrap; }
 .tx-hint { flex-basis: auto; }
 @media (max-width: 719px) { .tx-hint { display: none; } }
+
+/* Perubahan SBM 2026 → 2027 */
+.pb-sum { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 10px; margin-bottom: 14px; }
+.pb-stat { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; padding: 12px 14px; border-radius: var(--radius); border: 1px solid var(--border); background: var(--surface); color: var(--text); font: inherit; cursor: pointer; text-align: left; }
+.pb-stat b { font-size: 24px; font-weight: 800; font-variant-numeric: tabular-nums; }
+.pb-stat span { font-size: 13px; font-weight: 650; color: var(--muted); }
+.pb-stat:hover { background: var(--surface-2); }
+.pb-stat.on { border-color: var(--navy); box-shadow: inset 0 0 0 1px var(--navy); }
+[data-theme="dark"] .pb-stat.on { border-color: var(--gold-2); box-shadow: inset 0 0 0 1px var(--gold-2); }
+.pb-stat.k-naik b { color: #1F7A4D; }
+.pb-stat.k-turun b { color: var(--red); }
+[data-theme="dark"] .pb-stat.k-naik b { color: #5BD39A; }
+.pb-card { padding: 0; overflow: hidden; }
+.pb-tools { display: flex; flex-wrap: wrap; gap: 8px; padding: 14px 16px; border-bottom: 1px solid var(--border-2); }
+.pb-tools .sel { height: 40px; }
+.pb-q { flex: 1 1 260px; display: flex; align-items: center; gap: 8px; height: 40px; padding: 0 12px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); }
+.pb-q svg { width: 17px; height: 17px; color: var(--muted); flex: none; }
+.pb-q input { flex: 1; min-width: 0; border: 0; background: transparent; font: inherit; font-size: 14px; color: var(--text); }
+.pb-q input:focus { outline: none; }
+.pb-q:focus-within { border-color: var(--navy); }
+.pb-meta { padding: 10px 16px 0; }
+.pb-tw { border-radius: 0; border-left: 0; border-right: 0; border-bottom: 0; margin-top: 8px; max-height: 70vh; }
+table.t.pb-t thead th { text-transform: none; letter-spacing: 0; }
+table.t.pb-t tr.grp td { background: var(--surface-2); font-weight: 750; }
+table.t.pb-t tr.grp td a { color: var(--text); }
+table.t.pb-t tr.grp td small { font-weight: 500; color: var(--muted); margin-left: 6px; }
+.pb-n { font-weight: 700; color: var(--text); }
+.pb-w { font-size: 13.5px; }
+.pb-rel { font-style: normal; font-size: 11px; font-weight: 700; color: var(--muted); padding: 0 6px; border-radius: 999px; background: var(--surface-2); border: 1px solid var(--border-2); }
+table.t.pb-t td.n { font-variant-numeric: tabular-nums; }
+tr.k-naik .pb-d, tr.k-naik .pb-p { color: #1F7A4D; }
+tr.k-turun .pb-d, tr.k-turun .pb-p { color: var(--red); }
+[data-theme="dark"] tr.k-naik .pb-d, [data-theme="dark"] tr.k-naik .pb-p { color: #5BD39A; }
+.pb-tag { font-size: 11.5px; font-weight: 700; padding: 1px 8px; border-radius: 999px; background: var(--surface-2); border: 1px solid var(--border); color: var(--muted); }
+.pb-more { padding: 12px 16px; text-align: center; border-top: 1px solid var(--border-2); }
+.pb-foot { margin-top: 12px; padding: 0 2px; }
+@media (max-width: 719px) {
+  .pb-sum { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .pb-stat b { font-size: 20px; }
+  table.t.pb-t thead { display: none; }
+  table.t.pb-t, .pb-t tbody { display: block; }
+  table.t.pb-t tr { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 12px; padding: 10px 14px; border-bottom: 1px solid var(--border-2); }
+  table.t.pb-t tr.grp { display: block; padding: 0; }
+  table.t.pb-t td { display: block; border: 0; padding: 0; }
+  table.t.pb-t tr:not(.grp) td:first-child { grid-column: 1 / -1; }
+  table.t.pb-t tr.grp td { padding: 8px 14px; }
+  table.t.pb-t td.n { text-align: left; }
+  table.t.pb-t td[data-l]::before { content: attr(data-l); display: block; font-size: 11px; font-weight: 600; color: var(--muted); }
+}
+
+/* Unduh Tabel Biaya */
+.un-top { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding: 14px 16px; margin-bottom: 8px; }
+.un-top .un-q { flex: 1 1 240px; }
+.un-g .sec { margin-top: 18px; }
+.un-g .sec .count { font-size: 12.5px; font-weight: 700; color: var(--muted); }
+.un-it { align-items: center; }
+.un-it .t { color: var(--text); font-weight: 650; }
+.un-it .btn { flex: none; }
+.un-it .btn svg { width: 16px; height: 16px; }
