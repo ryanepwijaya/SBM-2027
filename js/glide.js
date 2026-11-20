@@ -2,7 +2,7 @@
 // Satu lapisan ::before mengikuti tombol .on; posisinya diatur lewat variabel CSS.
 // Bila grup digambar ulang (mis. seluruh formulir dirender lagi), posisi lama diingat
 // per label tombol, sehingga penanda tetap bergeser dari tempat sebelumnya.
-const SEL = '.kp-seg, .seg';
+const SEL = '.kp-seg, .seg, .tabs';
 const last = new Map();
 const keyOf = (seg) => [...seg.children].map((b) => b.textContent.trim()).join('|');
 const reduce = () => window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;

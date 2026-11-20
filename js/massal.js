@@ -142,7 +142,7 @@ function step1(ui) {
     </div>
     <div class="muted small">Lama ini berlaku untuk semua kota asal. Di langkah 3, tiap kota asal bisa ditambah atau dikurangi harinya (misalnya datang sehari lebih awal).</div>
     <h3 class="ms-h3">Kelas tiket pesawat per tingkat ${tip('Hanya dipakai bila rute dari kota asal memakai tiket pesawat.')}</h3>
-    <div class="ms-kelas">${TINGKAT.map((t) => `<label class="ms-kl"><span>${esc(t.n)}</span><select class="sel" data-kelas="${t.k}"><option value="eko"${MS.kelas[t.k] === 'eko' ? ' selected' : ''}>Ekonomi</option><option value="bis"${MS.kelas[t.k] === 'bis' ? ' selected' : ''}>Bisnis</option></select></label>`).join('')}</div>
+    <div class="ms-kelas">${TINGKAT.map((t) => `<label class="ms-kl"><span title="${esc(t.n)}">${esc(t.s)}</span><select class="sel" data-kelas="${t.k}"><option value="eko"${MS.kelas[t.k] === 'eko' ? ' selected' : ''}>Ekonomi</option><option value="bis"${MS.kelas[t.k] === 'bis' ? ' selected' : ''}>Bisnis</option></select></label>`).join('')}</div>
     ${navBtns(0, 2, 'Pilih kota asal')}
   </div>`;
 }

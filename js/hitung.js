@@ -7,12 +7,12 @@ import { ic } from './icons.js';
 
 // Tingkat pelaksana mengikuti kolom tabel penginapan; rep = baris tabel uang representasi
 export const TINGKAT = [
-  { k: 'pn', n: 'Pejabat Negara/Wakil Menteri', h: 0, rep: 0 },
-  { k: 'e1', n: 'Pejabat Eselon I', h: 0, rep: 1 },
-  { k: 'pnl', n: 'Pejabat Negara Lainnya', h: 1, rep: null },
-  { k: 'e2', n: 'Pejabat Eselon II', h: 1, rep: 2 },
-  { k: 'e3', n: 'Pejabat Eselon III/Golongan IV', h: 2, rep: null },
-  { k: 'e4', n: 'Pejabat Eselon IV/Golongan III/II/I', h: 3, rep: null },
+  { k: 'pn', n: 'Pejabat Negara/Wakil Menteri', s: 'Pejabat Negara/Wamen', h: 0, rep: 0 },
+  { k: 'e1', n: 'Pejabat Eselon I', s: 'Eselon I', h: 0, rep: 1 },
+  { k: 'pnl', n: 'Pejabat Negara Lainnya', s: 'Pejabat Negara Lainnya', h: 1, rep: null },
+  { k: 'e2', n: 'Pejabat Eselon II', s: 'Eselon II', h: 1, rep: 2 },
+  { k: 'e3', n: 'Pejabat Eselon III/Golongan IV', s: 'Eselon III/Gol. IV', h: 2, rep: null },
+  { k: 'e4', n: 'Pejabat Eselon IV/Golongan III/II/I', s: 'Eselon IV/Gol. III, II, I', h: 3, rep: null },
 ];
 
 // Tingkat → kelompok tarif paket rapat (L1-29): 0 Menteri/Wamen, 1 Eselon I dan II/JF Utama, 2 Eselon III ke bawah
@@ -245,7 +245,7 @@ export function formHtml(ui) {
       : 'Jumlah bisa diketik langsung (sampai 999 orang). Kelas tiket dipilih per tingkat dan hanya dipakai bila rutenya memakai tiket pesawat.';
   return `<div class="card card-pad kp-form">
     <div class="kp-step"><h2 class="kp-h"><span class="step">1</span>Tujuan surat tugas<button type="button" class="btn sm danger kp-reset" id="kpReset">${ic('history')} Reset</button></h2>
-      ${seg('lingkup', [{ v: 'dn', t: 'Dalam negeri, luar kota' }, { v: 'dk', t: 'Dalam kota' }, { v: 'ln', t: 'Luar negeri' }], L)}
+      ${seg('lingkup', [{ v: 'dn', t: 'Luar kota' }, { v: 'dk', t: 'Dalam kota' }, { v: 'ln', t: 'Luar negeri' }], L)}
       ${tujuan}
     </div>
     <div class="kp-step"><h2 class="kp-h"><span class="step">2</span>Lama perjalanan</h2>
@@ -254,7 +254,7 @@ export function formHtml(ui) {
     </div>
     <div class="kp-step"><h2 class="kp-h"><span class="step">3</span>Pelaksana</h2>
       <div class="kp-people">${TINGKAT.map((t) => `<div class="kp-p">
-        <span class="kp-pn">${esc(t.n)}${L === 'ln' ? ` <small class="kp-gol">Gol. ${GOL[t.k]}</small>` : ''}</span>
+        <span class="kp-pn" title="${esc(t.n)}">${esc(t.s)}${L === 'ln' ? ` <small class="kp-gol">Gol. ${GOL[t.k]}</small>` : ''}</span>
         ${L === 'dk' ? '<span></span>' : kelasSel(t)}
         ${stepper('org:' + t.k, KP.org[t.k], 0, 999, 'pelaksana ' + t.n)}
       </div>`).join('')}</div>

@@ -29,7 +29,8 @@ export function itemsOf(bid, ti, prov) {
     if ((r.cu || t.cur) === 'USD') return;
     const texts = r.v.filter((x, i) => i > 0 && !vc.includes(i) && i !== uc?.i && x && !/^(Rp)?\s*[\d.,]+$/.test(String(x).trim()) && !(r.p && x === S.prov[r.p]?.nama));
     let base = texts.join(' · '), grp = chain[0]?.g || '';
-    if (!base) { base = grp; grp = chain[1]?.g || ''; }
+    // baris per provinsi tanpa uraian: bila ada beberapa kolom nilai, nama kolom jadi uraian di bawah judul grup
+    if (!base) { if (vc.length > 1) base = ''; else { base = grp; grp = chain[1]?.g || ''; } }
     for (const ci of vc) {
       if (r.n[ci] == null) continue;
       out.push({ key: `${bid}:${ti}:${ri}:${ci}`, bid, ti, t, grp, label: [base, vc.length > 1 ? shortCol(t.cols[ci]) : ''].filter(Boolean).join(' · ') || grp, unit: unitTxt(uc ? r.v[uc.i] : ''), n: r.n[ci], code: r.c });
@@ -184,7 +185,7 @@ export function viewPemeliharaan(ui) {
   const secs = () => [
     { k: 'gedung', t: 'Gedung dan bangunan', icon: 'building', months: true, vols: [{ k: 'q', t: 'Luas (m²)' }], items: itemsOf('L2-10', 0, P.prov), note: 'Pemeliharaan rutin gedung/bangunan kantor (kerusakan paling tinggi 2%), per m² per tahun.' },
     { k: 'kend', t: 'Kendaraan dinas', icon: 'car', months: true, vols: [{ k: 'q', t: 'Unit' }], items: S.butir['L2-9'].tables.flatMap((_, ti) => itemsOf('L2-9', ti, P.prov)), note: 'Sudah termasuk bahan bakar atau pengisian daya; belum termasuk pengurusan STNK.' },
-    { k: 'sarana', t: 'Sarana kantor', icon: 'monitor', months: true, vols: [{ k: 'q', t: 'Jumlah' }], items: itemsOf('L2-8', 0, P.prov), note: 'Inventaris kantor dihitung per pegawai; lainnya per unit.' },
+    { k: 'sarana', t: 'Sarana kantor', icon: 'monitor', months: true, vols: [{ k: 'q', t: 'Banyaknya' }], items: itemsOf('L2-8', 0, P.prov), note: 'Inventaris kantor dihitung per pegawai; lainnya per unit.' },
   ];
   const html = `<div class="page-head"><h1 class="title">Hitung Pemeliharaan dan Operasional</h1><p class="subtitle">Pagu pemeliharaan gedung/bangunan (${lampRef('L2-10')}), pemeliharaan dan operasional kendaraan dinas (${lampRef('L2-9')}), dan pemeliharaan sarana kantor (${lampRef('L2-8')}) per tahun. Isi volume yang diperlukan saja; bulan bisa dikurangi untuk prorata.</p></div>
   <div class="card qt-top"><label class="kp-fld"><span>Provinsi satker</span>${provSel('pmProv', P.prov)}</label>
@@ -239,7 +240,8 @@ function qtWire(ui, o) {
 }
 
 /* =================== Paket Kegiatan =================== */
-const TIERS = ['Menteri/Wamen', 'Eselon I dan II/JF Utama', 'Eselon III/JF Madya ke bawah'];
+const TIERS = ['Menteri/Wamen', 'Eselon I–II/JF Utama', 'Eselon III ke bawah'];
+const TIERS_FULL = ['Menteri, setingkat menteri, dan wakil menteri', 'Pejabat Eselon I dan II/Pejabat Fungsional Utama', 'Pejabat Eselon III/Pejabat Fungsional Madya ke bawah'];
 export function viewPaket(ui) {
   const KEY = `paket:${Y.y}`;
   const P = { prov: 'dki', mode: 'luar', jenis: 'biasa', q: {}, months: {}, peserta: '', rapat: '1', makan: '1', snack: '1', paket: 'fullboard', hari: '1', tier: ['', '', ''], gedung: false, ghari: '1', ...store.get(KEY, {}) };
@@ -295,7 +297,7 @@ export function viewPaket(ui) {
          <div class="pk-grid">${inp('peserta', 'Peserta (orang)', P.peserta)}${inp('rapat', 'Jumlah rapat', P.rapat)}${inp('makan', 'Makan per rapat (kali)', P.makan)}${inp('snack', 'Kudapan per rapat (kali)', P.snack)}</div>
          <p class="qt-note muted small">Konsumsi rapat diberikan untuk rapat luring paling singkat 2 jam (${lampRef('L1-36')}).</p>`
       : `<div class="pk-row">${seg('paket', [['halfday', 'Halfday'], ['fullday', 'Fullday'], ['fullboard', 'Fullboard']], P.paket)}</div>
-         <div class="pk-grid">${inp('hari', P.paket === 'fullboard' ? 'Jumlah paket (hari)' : 'Hari', P.hari)}${TIERS.map((t, i) => inp('tier' + i, `Peserta ${t}`, P.tier[i])).join('')}</div>
+         <div class="pk-grid">${inp('hari', P.paket === 'fullboard' ? 'Jumlah paket (hari)' : 'Hari', P.hari)}${TIERS.map((t, i) => inp('tier' + i, `<span title="${TIERS_FULL[i]}">Peserta ${t}</span>`, P.tier[i])).join('')}</div>
          <p class="qt-note muted small">Paket per orang per hari sesuai tingkat peserta (${lampRef('L1-29')})${P.paket === 'fullboard' ? '; fullboard ditambah uang harian rapat fullboard' : ''}. Tarif fullboard untuk 1 kamar berdua.</p>`;
     const rows = lines.map((l) => `<tr${l.miss ? ' class="miss"' : ''}><td><b class="qt-l">${esc(l.l)}</b></td><td class="n" data-l="Satuan biaya">${l.u != null ? fmt(l.u) : '<span class="na">Tidak tercantum</span>'}</td><td data-l="Volume">${esc(l.v)}</td><td class="n" data-l="Jumlah">${fmt(l.a)}</td></tr>`).join('');
     const sub = lines.reduce((a, l) => a + l.a, 0);

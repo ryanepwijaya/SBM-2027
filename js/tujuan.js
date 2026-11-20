@@ -106,7 +106,7 @@ function formHtml(T, ui) {
       <div class="kp-row"><span class="kp-lbl">Uang harian</span>${seg('jenis', [['lk', 'Luar kota'], ['diklat', 'Diklat']], T.jenis)}</div>
     </div>
     <div class="kp-step"><h2 class="kp-h"><span class="step">2</span>Pelaksana</h2>
-      <div class="kp-people">${TINGKAT.map((t) => `<div class="kp-p"><span class="kp-pn">${esc(t.n)}</span>
+      <div class="kp-people">${TINGKAT.map((t) => `<div class="kp-p"><span class="kp-pn" title="${esc(t.n)}">${esc(t.s)}</span>
         <select class="sel kp-kelas" data-kelas="${t.k}" aria-label="Kelas tiket ${esc(t.n)}"><option value="eko"${T.kelas[t.k] === 'eko' ? ' selected' : ''}>Ekonomi</option><option value="bis"${T.kelas[t.k] === 'bis' ? ' selected' : ''}>Bisnis</option></select>
         ${stp('org:' + t.k, T.org[t.k], 0, 999, 'Pelaksana ' + t.n)}</div>`).join('')}</div>
       <div class="muted small kp-note">Kelas tiket dipilih per tingkat dan hanya dipakai bila ruasnya memakai tiket pesawat.</div>

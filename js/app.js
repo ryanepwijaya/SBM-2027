@@ -1155,7 +1155,7 @@ function updateResults(q) {
 
 /* ---------------- Daerah ---------------- */
 function daerahSeg(mode) {
-  return `<div class="seg"><a href="#/daerah" class="${mode === 'dn' ? 'on' : ''}">Dalam negeri (per provinsi)</a><a href="#/daerah/ln" class="${mode === 'ln' ? 'on' : ''}">Luar negeri (per negara)</a></div>`;
+  return `<div class="seg"><a href="#/daerah" class="${mode === 'dn' ? 'on' : ''}">Dalam negeri<small> · per provinsi</small></a><a href="#/daerah/ln" class="${mode === 'ln' ? 'on' : ''}">Luar negeri<small> · per negara</small></a></div>`;
 }
 
 /* ---------------- Rute ---------------- */
