@@ -48,7 +48,7 @@ export function viewInvoice(ui) {
   <div class="card iv">
     <div class="iv-bar">
       <label class="iv-lock"><input type="checkbox" id="ivLock"${I.lock ? ' checked' : ''}><span>Kunci semua frekuensi = 1 <small>(kolom Frek dilewati saat Tab)</small></span></label>
-      <button type="button" class="btn sm" id="ivReset">${ic('history')} Reset</button>
+      <button type="button" class="btn sm danger" id="ivReset">${ic('history')} Reset</button>
     </div>
     <div class="iv-ord" id="ivOrd"></div>
     <div class="iv-grid${I.lock ? ' locked' : ''}" id="ivGrid" role="table" aria-label="Daftar barang/jasa">
@@ -217,7 +217,7 @@ export function viewHonor(ui) {
   <div class="card iv hn">
     <div class="iv-bar">
       <div class="pb-opts"><label class="iv-lock"><input type="checkbox" id="hnNet"${H.netto ? ' checked' : ''}><span>Tarif yang diisi adalah netto <small>(dihitung balik ke bruto)</small></span></label></div>
-      <button type="button" class="btn sm" id="hnReset">${ic('history')} Reset</button>
+      <button type="button" class="btn sm danger" id="hnReset">${ic('history')} Reset</button>
     </div>
     <div class="iv-grid hn-grid" id="hnGrid" role="table" aria-label="Daftar honorarium">
       <div class="iv-h hn-h" role="row"><span role="columnheader">No</span><span role="columnheader">Status</span><span role="columnheader">Orang</span><span role="columnheader">Vol</span><span role="columnheader" id="hnTh"></span><span role="columnheader" class="n">Bruto · PPh 21 · Netto</span><span role="columnheader"><span class="sr">Hapus</span></span></div>
@@ -358,7 +358,7 @@ export function viewPajak(ui, params) {
       <span class="muted small">Ambil dari:</span>
       <a class="btn sm" href="#/alat/invoice">${ic('receipt')} Hitung Invoice ${ic('arrow-right')}</a>
       <span class="muted small tx-hint">isi daftar barang di sana, lalu tekan Hitung pajak</span>
-      <button type="button" class="btn sm" id="txClear">${ic('x')} Kosongkan</button>
+      <button type="button" class="btn sm danger" id="txClear">${ic('x')} Kosongkan</button>
     </div>
   </div>
   <div class="tx-grid" id="txOut"></div>

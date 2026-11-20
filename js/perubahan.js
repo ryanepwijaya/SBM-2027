@@ -121,7 +121,7 @@ export function viewPerubahan(ui) {
           <select class="sel" id="pbKind" aria-label="Jenis perubahan">${KINDS.map(([k, n]) => `<option value="${k}"${k === st.kind ? ' selected' : ''}>${n}</option>`).join('')}</select>
           <select class="sel" id="pbBab" aria-label="Bab"><option value="">Semua bab</option>${BABS.map((b) => `<option value="${b.key}"${b.key === st.bab ? ' selected' : ''}>${esc(b.name)}</option>`).join('')}</select>
           <select class="sel" id="pbSort" aria-label="Urutan"><option value="bab"${st.sort === 'bab' ? ' selected' : ''}>Urut bab</option><option value="up"${st.sort === 'up' ? ' selected' : ''}>Kenaikan terbesar (%)</option><option value="down"${st.sort === 'down' ? ' selected' : ''}>Penurunan terbesar (%)</option></select>
-          <button type="button" class="btn" id="pbXls">${ic('file-spreadsheet')} Unduh Excel</button>
+          <button type="button" class="btn primary" id="pbXls">${ic('file-spreadsheet')} Unduh Excel</button>
         </div>
         <div id="pbList"></div>
       </div>

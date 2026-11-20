@@ -1,9 +1,9 @@
 // Service worker: aplikasi tetap bisa dibuka tanpa internet
-const VERSION = 'sbm27-v50-202611201625';
+const VERSION = 'sbm27-v51-202611201650';
 const SHELL = [
   './', 'index.html', 'css/app.css', 'manifest.webmanifest',
   'js/app.js', 'js/store.js', 'js/search.js', 'js/catalog.js', 'js/icons.js',
-  'data/sbm.json', 'data/sbm-2026.json', 'data/wilayah.json', 'js/rute.js', 'js/bab.js', 'js/entries-more.js', 'js/hitung.js', 'js/massal.js', 'js/ln.js', 'js/pbj.js', 'js/perubahan.js', 'js/alat2.js', 'js/tujuan.js', 'js/pindah.js',
+  'data/sbm.json', 'data/sbm-2026.json', 'data/wilayah.json', 'js/rute.js', 'js/bab.js', 'js/entries-more.js', 'js/hitung.js', 'js/massal.js', 'js/ln.js', 'js/pbj.js', 'js/perubahan.js', 'js/alat2.js', 'js/tujuan.js', 'js/pindah.js', 'js/glide.js',
   'vendor/jspdf.umd.min.js', 'vendor/jspdf.plugin.autotable.min.js', 'vendor/xlsx.mini.min.js',
   'icons/icon-192.png', 'icons/icon-512.png', 'icons/maskable-512.png', 'icons/apple-touch-icon.png', 'icons/favicon-64.png',
 ];

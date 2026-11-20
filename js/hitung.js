@@ -244,7 +244,7 @@ export function formHtml(ui) {
     : L === 'dk' ? 'Jumlah bisa diketik langsung (sampai 999 orang).'
       : 'Jumlah bisa diketik langsung (sampai 999 orang). Kelas tiket dipilih per tingkat dan hanya dipakai bila rutenya memakai tiket pesawat.';
   return `<div class="card card-pad kp-form">
-    <div class="kp-step"><h2 class="kp-h"><span class="step">1</span>Tujuan surat tugas<button type="button" class="btn sm kp-reset" id="kpReset">${ic('history')} Reset</button></h2>
+    <div class="kp-step"><h2 class="kp-h"><span class="step">1</span>Tujuan surat tugas<button type="button" class="btn sm danger kp-reset" id="kpReset">${ic('history')} Reset</button></h2>
       ${seg('lingkup', [{ v: 'dn', t: 'Dalam negeri, luar kota' }, { v: 'dk', t: 'Dalam kota' }, { v: 'ln', t: 'Luar negeri' }], L)}
       ${tujuan}
     </div>
@@ -300,7 +300,7 @@ export function resultHtml(res, effNotice) {
   return `${effNotice()}
   <div class="card kp-res">
     <div class="kp-res-h"><div><div class="kp-title">Perkiraan biaya perjalanan dinas${L === 'dk' ? ' dalam kota' : L === 'ln' ? ' luar negeri' : ''}</div><div class="muted small">${esc(summaryTxt(res))}</div></div>
-      <div class="kp-actions"><button type="button" class="btn" id="kpPdf">${ic('download')} Unduh PDF</button></div></div>
+      <div class="kp-actions"><button type="button" class="btn primary" id="kpPdf">${ic('download')} Unduh PDF</button></div></div>
     ${table}
     ${per}
     <div class="kp-foot muted small">Satuan biaya mengikuti SBM TA ${Y.y} (${esc(Y.src)})${res.effOn ? ', dengan persentase dibayar yang sedang aktif' : ''}. ${base} ${notes.join(' ')}</div>

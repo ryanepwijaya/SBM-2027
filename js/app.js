@@ -12,6 +12,7 @@ import { viewLembur, viewPemeliharaan, viewPaket } from './alat2.js';
 import { viewTujuan } from './tujuan.js';
 import { viewPindah } from './pindah.js';
 import { BABS, REF_LINKS, babByKey, babByKel, babOfButir } from './bab.js';
+import { initGlide } from './glide.js';
 
 const $ = (s, el = document) => el.querySelector(s);
 const $$ = (s, el = document) => [...el.querySelectorAll(s)];
@@ -103,7 +104,7 @@ function effNotice() {
     return `<a class="chip" href="#/b/${bid}?t=${ti}">${esc(e ? (e.tab || e.name) : S.butir[bid].title)} ${pctTxt(v)}</a>`;
   }).filter(Boolean);
   if (!items.length) return '';
-  return `<div class="eff-note eff-sum" role="status">${ic('triangle-alert')}<div><b>Simulasi efisiensi aktif.</b> Angka berikut ditampilkan sebagian; besaran resmi tampil dicoret. <span class="chips">${items.join('')}</span></div><button type="button" class="btn sm" data-eff-clear>Kembali ke 100% semua</button></div>`;
+  return `<div class="eff-note eff-sum" role="status">${ic('triangle-alert')}<div><b>Simulasi efisiensi aktif.</b> Angka berikut ditampilkan sebagian; besaran resmi tampil dicoret. <span class="chips">${items.join('')}</span></div><button type="button" class="btn sm danger" data-eff-clear>Kembali ke 100% semua</button></div>`;
 }
 // Kotak "Dibayar %" per komponen di alat Perjalanan Dinas: simpan saat selesai diketik (Enter atau keluar kotak)
 document.addEventListener('change', (e) => {
@@ -989,7 +990,7 @@ function viewButir(id, params, anchor) {
     const p = effPct(t);
     const ctl = $('.eff-ctl');
     if (ctl) ctl.classList.toggle('on', p < 100);
-    const effNote = p < 100 ? `<div class="eff-note" role="status">${ic('alert')}<div><b>Ditampilkan ${pctTxt(p)} dari besaran SBM.</b> Angka dicoret di bawahnya adalah besaran resmi ${Y.src}. Dibulatkan ke rupiah terdekat.</div><button type="button" class="btn sm" id="effReset">Kembali ke 100%</button></div>` : '';
+    const effNote = p < 100 ? `<div class="eff-note" role="status">${ic('alert')}<div><b>Ditampilkan ${pctTxt(p)} dari besaran SBM.</b> Angka dicoret di bawahnya adalah besaran resmi ${Y.src}. Dibulatkan ke rupiah terdekat.</div><button type="button" class="btn sm danger" id="effReset">Kembali ke 100%</button></div>` : '';
     host.innerHTML = effNote + renderTable(t, { rows, filter, sort: state.sort, hl: params.r, cityToProv: !['L2-2', 'L2-3', 'L2-6'].includes(id) });
     const rs = $('#effReset');
     if (rs) rs.onclick = () => { setEffPct(t, 100); draw(); toast('Kembali ke 100%'); };
@@ -1690,6 +1691,7 @@ async function start() {
   document.title = 'Standar Biaya Masukan · Cek SBM';
   shell();
   initTips();
+  initGlide();
   $('#main').innerHTML = `<div class="empty">Memuat data…</div>`;
   try {
     await loadData();

@@ -111,7 +111,7 @@ function formHtml(T, ui, kurs) {
   if (T.lingkup === 'ln') {
     const rows = perwakilanRows();
     return `<div class="card card-pad kp-form">
-      <div class="kp-step"><h2 class="kp-h"><span class="step">1</span>Tujuan pindah<button type="button" class="btn sm kp-reset" id="pdReset">${ic('history')} Reset</button></h2>
+      <div class="kp-step"><h2 class="kp-h"><span class="step">1</span>Tujuan pindah<button type="button" class="btn sm danger kp-reset" id="pdReset">${ic('history')} Reset</button></h2>
         ${seg('lingkup', [['dn', 'Dalam negeri'], ['ln', 'Luar negeri']], T.lingkup)}
         <div class="kp-row"><span class="kp-lbl">Arah</span>${seg('arah', [['out', 'Jakarta → perwakilan'], ['in', 'Perwakilan → Jakarta']], T.arah)}</div>
         <label class="kp-fld"><span>Perwakilan</span><select class="sel" id="pdPer"><option value="">Pilih perwakilan…</option>${rows.map((r) => `<option${r.v[1] === T.per ? ' selected' : ''}>${esc(r.v[1])}</option>`).join('')}</select></label>
@@ -122,7 +122,7 @@ function formHtml(T, ui, kurs) {
     </div>`;
   }
   return `<div class="card card-pad kp-form">
-    <div class="kp-step"><h2 class="kp-h"><span class="step">1</span>Tujuan pindah<button type="button" class="btn sm kp-reset" id="pdReset">${ic('history')} Reset</button></h2>
+    <div class="kp-step"><h2 class="kp-h"><span class="step">1</span>Tujuan pindah<button type="button" class="btn sm danger kp-reset" id="pdReset">${ic('history')} Reset</button></h2>
       ${seg('lingkup', [['dn', 'Dalam negeri'], ['ln', 'Luar negeri']], T.lingkup)}
       <div class="route-form">${ui.placeField('pdAsal', 'Dari', placeLabel(T.asal), 'Kota/kabupaten asal')}${ui.placeField('pdKe', 'Ke', T.ke ? placeLabel(T.ke) : '', 'Kota/kabupaten tempat kerja baru')}</div>
       <div class="kp-row"><span class="kp-lbl">Tiket ${tip('Tabel tiket SBM memuat tarif pergi-pulang (PP), sedangkan pindah hanya sekali jalan. Bawaan dihitung setengah tarif PP sebagai pendekatan.')}</span>${seg('tiket', [['half', '½ tarif PP'], ['full', 'Tarif PP penuh']], T.tiket)}</div>
@@ -154,7 +154,7 @@ function resultHtml(T, res, effNotice) {
   return `${effNotice()}
   <div class="card kp-res">
     <div class="kp-res-h"><div><div class="kp-title">Perkiraan biaya perjalanan dinas pindah${T.lingkup === 'ln' ? ' luar negeri' : ''}</div><div class="muted small">${esc(sum)}</div></div>
-      <div class="kp-actions"><button type="button" class="btn" id="pdPdf">${ic('download')} Unduh PDF</button></div></div>
+      <div class="kp-actions"><button type="button" class="btn primary" id="pdPdf">${ic('download')} Unduh PDF</button></div></div>
     ${table}${per}
     <div class="kp-foot muted small">Satuan biaya mengikuti SBM TA ${Y.y} (${esc(Y.src)})${res.effOn ? ', dengan persentase dibayar yang sedang aktif' : ''}. ${base} ${notes.join(' ')}</div>
   </div>`;

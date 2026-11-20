@@ -81,7 +81,7 @@ export function viewLembur(ui) {
   const save = () => store.set(KEY, L);
   const html = `<div class="page-head"><h1 class="title">Hitung Lembur</h1><p class="subtitle">Uang lembur dan uang makan lembur sesuai SBM TA ${Y.y}: ASN per golongan (${lampRef('L1-22')}), Pegawai Non-ASN serta satpam, pengemudi, petugas kebersihan, dan pramubakti (${lampRef('L1-30')}). Uang makan lembur dihitung bila lembur paling kurang 2 jam per hari, paling banyak sekali per hari. Centang <b>Hari libur</b> untuk lembur di hari libur kerja: uang lembur dibayar 200% dari tarif, uang makan tetap. Ditampilkan tanpa PPh.</p></div>
   <div class="card iv hn lb">
-    <div class="iv-bar"><div class="muted small">Satu baris bisa satu orang atau beberapa orang dengan status, hari, dan jam yang sama.</div><button type="button" class="btn sm" id="lbReset">${ic('history')} Reset</button></div>
+    <div class="iv-bar"><div class="muted small">Satu baris bisa satu orang atau beberapa orang dengan status, hari, dan jam yang sama.</div><button type="button" class="btn sm danger" id="lbReset">${ic('history')} Reset</button></div>
     <div class="iv-grid hn-grid lb-grid" id="lbGrid" role="table" aria-label="Daftar lembur">
       <div class="iv-h" role="row"><span role="columnheader">No</span><span role="columnheader">Status</span><span role="columnheader">Orang</span><span role="columnheader">Hari lembur</span><span role="columnheader">Jam per hari</span><span role="columnheader">Hari libur ${tip('Lembur pada hari libur kerja dibayar 200% dari tarif uang lembur (PMK 125/PMK.05/2009 untuk PNS; ketentuan Dirjen Perbendaharaan untuk Non-ASN, satpam, pengemudi, petugas kebersihan, dan pramubakti). Uang makan lembur tetap paling banyak sekali per hari.')}</span><span role="columnheader" class="n">Uang lembur · uang makan</span><span role="columnheader"><span class="sr">Hapus</span></span></div>
       <div id="lbRows"></div>
@@ -188,7 +188,7 @@ export function viewPemeliharaan(ui) {
   ];
   const html = `<div class="page-head"><h1 class="title">Hitung Pemeliharaan dan Operasional</h1><p class="subtitle">Pagu pemeliharaan gedung/bangunan (${lampRef('L2-10')}), pemeliharaan dan operasional kendaraan dinas (${lampRef('L2-9')}), dan pemeliharaan sarana kantor (${lampRef('L2-8')}) per tahun. Isi volume yang diperlukan saja; bulan bisa dikurangi untuk prorata.</p></div>
   <div class="card qt-top"><label class="kp-fld"><span>Provinsi satker</span>${provSel('pmProv', P.prov)}</label>
-    <div class="qt-grand"><span>Total pagu</span><b id="pmTot">Rp0</b></div>${copyBtn('pmCopy', 'Salin total')}<button type="button" class="btn sm" id="pmReset">${ic('history')} Reset</button></div>
+    <div class="qt-grand"><span>Total pagu</span><b id="pmTot">Rp0</b></div>${copyBtn('pmCopy', 'Salin total')}<button type="button" class="btn sm danger" id="pmReset">${ic('history')} Reset</button></div>
   <div id="pmHost"></div>`;
   return { html, after: () => qtWire(ui, { P, save, secs, host: '#pmHost', tot: '#pmTot', copy: '#pmCopy', reset: '#pmReset', prov: '#pmProv' }) };
 }
@@ -310,7 +310,7 @@ export function viewPaket(ui) {
   const html = `<div class="page-head"><h1 class="title">Paket Kegiatan</h1><p class="subtitle">Perkiraan biaya rapat/pertemuan: konsumsi rapat di kantor atau paket halfday/fullday/fullboard di luar kantor, ditambah honorarium narasumber, moderator, pembawa acara, panitia, dan sewa gedung pertemuan bila perlu. Transport peserta dari luar kota bisa dihitung di <a href="#/massal">Perjadin (banyak asal)</a>.</p></div>
   <div class="card qt-top"><label class="kp-fld"><span>Provinsi kegiatan</span>${provSel('pkProv', P.prov)}</label>
     <div class="kp-fld"><span>Tempat</span>${seg('mode', [['kantor', 'Di kantor'], ['luar', 'Di luar kantor']], P.mode)}</div>
-    <div class="qt-grand"><span>Total perkiraan</span><b id="pkTot">Rp0</b></div>${copyBtn('pkCopy', 'Salin total')}<button type="button" class="btn sm" id="pkReset">${ic('history')} Reset</button></div>
+    <div class="qt-grand"><span>Total perkiraan</span><b id="pkTot">Rp0</b></div>${copyBtn('pkCopy', 'Salin total')}<button type="button" class="btn sm danger" id="pkReset">${ic('history')} Reset</button></div>
   <div id="pkMain"></div>
   <div id="pkHost"></div>`;
   const after = () => {

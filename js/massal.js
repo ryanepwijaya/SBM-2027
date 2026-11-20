@@ -176,7 +176,7 @@ function step2(ui) {
       <div class="ms-one">${ui.placeField('mAsal', 'Tambah kota asal', '', 'Ketik kota/kabupaten, mis. Medan, Kab. Bojonegoro…')}</div>
       <div class="ms-quick">
         <button type="button" class="btn sm${allCaps ? ' on' : ''}" id="msCaps">${ic(allCaps ? 'check' : 'landmark')} Semua ibu kota provinsi (${caps.length})</button>
-        <button type="button" class="btn sm" id="msClear"${MS.asal.length ? '' : ' disabled'}>${ic('x')} Kosongkan</button>
+        <button type="button" class="btn sm danger" id="msClear"${MS.asal.length ? '' : ' disabled'}>${ic('x')} Kosongkan</button>
       </div>
       <div class="ms-provs">${S.provList.map((p) => {
         const c = provCount(p.id);
@@ -273,7 +273,7 @@ function step4(effNotice) {
       <div class="ms-dl">
         <label class="ms-dl-o"><span>Halaman rincian PDF</span><select class="sel sm" id="msPdfBy"><option value="kota"${MS.pdfBy === 'kota' ? ' selected' : ''}>Satu halaman per kota asal</option><option value="prov"${MS.pdfBy === 'prov' ? ' selected' : ''}>Satu halaman per provinsi</option></select></label>
         <button type="button" class="btn primary" id="msPdf">${ic('download')} Unduh PDF</button>
-        <button type="button" class="btn" id="msXls">${ic('file-spreadsheet')} Unduh Excel</button>
+        <button type="button" class="btn primary" id="msXls">${ic('file-spreadsheet')} Unduh Excel</button>
       </div>
     </div>
     <div class="card ms-cat"><table class="t ms-ct"><thead><tr><th>Komponen</th><th>Dibayar ${tip('Simulasi efisiensi per komponen. Bawaan 100%. Berlaku untuk tabel SBM komponen itu di seluruh aplikasi dan tersimpan di perangkat ini.')}</th><th class="n">Jumlah</th><th class="n">Porsi</th></tr></thead><tbody>${catRows(res)}</tbody>
@@ -335,7 +335,7 @@ function applyPaste(p) {
 /* ---------------- View ---------------- */
 export function viewMassal(ui) {
   const html = `<div class="page-head"><h1 class="title">Perjadin (banyak asal)</h1><p class="subtitle">Perkiraan biaya satu kegiatan di kota tertentu dengan peserta dari banyak kota asal. Hasilnya bisa diunduh sebagai PDF (ringkasan di halaman pertama, lalu rincian) dan Excel. Isian tersimpan otomatis di perangkat ini saja, tanpa akun dan tidak dikirim ke mana pun.</p></div>
-  <div class="ms-bar"><span class="muted small">${ic('check')} Draf tersimpan otomatis di perangkat ini</span><button type="button" class="btn sm" id="msReset">${ic('history')} Reset semua</button></div>
+  <div class="ms-bar"><span class="muted small">${ic('check')} Draf tersimpan otomatis di perangkat ini</span><button type="button" class="btn sm danger" id="msReset">${ic('history')} Reset semua</button></div>
   <div id="msNav"></div><div id="msBody"></div>`;
   const { $, $$, toast, effNotice } = ui;
   const go = (s) => { MS.step = s; save(); render(); window.scrollTo({ top: 0 }); };

@@ -94,10 +94,10 @@ function formHtml(T, ui) {
   const dests = T.dest.map((d, i) => `<div class="tj-d" data-i="${i}">
       <div class="tj-dh"><span class="tj-n">${i + 1}</span><b>Tujuan ${i + 1}</b>${T.dest.length > 1 ? `<button type="button" class="icon-btn sm tj-del" data-del="${i}" aria-label="Hapus tujuan ${i + 1}">${ic('x')}</button>` : ''}</div>
       <div class="route-form">${ui.placeField('tjD' + i, 'Kota tujuan', d.id ? placeLabel(d.id) : '', 'Ketik kota tujuan, mis. Surabaya, Kab. Bojonegoro…')}</div>
-      <div class="tj-hm"><span class="kp-lbl">Hari</span>${stp('h:' + i, d.h, 1, 365, `Hari di tujuan ${i + 1}`)}<span class="kp-lbl">Malam ${i === 0 ? tip('Malam menginap di kota ini. Bawaan 1 malam untuk 1 hari, lalu hari dikurangi satu. Bisa 0 sampai sama dengan jumlah hari.') : ''}</span>${stp('m:' + i, d.m, 0, d.h, `Malam di tujuan ${i + 1}`)}</div>
+      <div class="tj-hm"><div class="tj-f"><span class="kp-lbl">Hari</span>${stp('h:' + i, d.h, 1, 365, `Hari di tujuan ${i + 1}`)}</div><div class="tj-f"><span class="kp-lbl">Malam ${i === 0 ? tip('Malam menginap di kota ini. Bawaan 1 malam untuk 1 hari, lalu hari dikurangi satu. Bisa 0 sampai sama dengan jumlah hari.') : ''}</span>${stp('m:' + i, d.m, 0, d.h, `Malam di tujuan ${i + 1}`)}</div></div>
     </div>`).join('');
   return `<div class="card card-pad kp-form">
-    <div class="kp-step"><h2 class="kp-h"><span class="step">1</span>Rute surat tugas<button type="button" class="btn sm kp-reset" id="tjReset">${ic('history')} Reset</button></h2>
+    <div class="kp-step"><h2 class="kp-h"><span class="step">1</span>Rute surat tugas<button type="button" class="btn sm danger kp-reset" id="tjReset">${ic('history')} Reset</button></h2>
       <div class="route-form">${ui.placeField('tjAsal', 'Kota asal', placeLabel(T.asal), 'Kota/kabupaten asal')}</div>
       <div class="tj-list">${dests}</div>
       ${T.dest.length < MAX_TUJUAN ? `<button type="button" class="btn sm tj-add" id="tjAdd">${ic('plus')} Tambah tujuan <small>(maks. ${MAX_TUJUAN})</small></button>` : `<div class="muted small">Paling banyak ${MAX_TUJUAN} tujuan dalam satu surat tugas.</div>`}
@@ -125,7 +125,7 @@ function resultHtml(T, res, effNotice) {
   return `${effNotice()}
   <div class="card kp-res">
     <div class="kp-res-h"><div><div class="kp-title">Perkiraan biaya perjalanan dinas banyak tujuan</div><div class="muted small">${esc(routeTxt(T))} · ${hari} hari ${malam} malam · ${res.total} orang</div></div>
-      <div class="kp-actions"><button type="button" class="btn" id="tjPdf">${ic('download')} Unduh PDF</button></div></div>
+      <div class="kp-actions"><button type="button" class="btn primary" id="tjPdf">${ic('download')} Unduh PDF</button></div></div>
     ${table}${per}
     <div class="kp-foot muted small">Satuan biaya mengikuti SBM TA ${Y.y} (${esc(Y.src)})${res.effOn ? ', dengan persentase dibayar yang sedang aktif' : ''}. Tiap ruas dihitung sekali jalan: taksi di kota keberangkatan dan kedatangan masing-masing 1 kali, transport darat 1 kali, tiket ${res.f === 1 ? 'tarif PP penuh' : 'setengah tarif PP'} karena tabel tiket SBM memuat tarif pergi-pulang. Uang harian, penginapan, dan representasi mengikuti provinsi tiap tujuan. ${notes.join(' ')}</div>
   </div>`;

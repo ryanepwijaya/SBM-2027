@@ -1871,9 +1871,9 @@ table.t.qt tr.miss td { color: var(--muted); }
 [data-theme="dark"] .tj-n { background: var(--gold-2); color: #1b1f33; }
 .tj-del { margin-left: auto; }
 .tj-d .pf label { font-size: 12.5px; }
-.tj-hm { display: flex; align-items: center; gap: 8px 10px; flex-wrap: wrap; margin-top: 10px; }
-.tj-hm .kp-lbl { font-size: 13px; }
-.tj-hm .kp-lbl + .stp { margin-right: 8px; }
+.tj-hm { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-top: 10px; }
+.tj-f { display: flex; flex-direction: column; align-items: flex-start; gap: 5px; }
+.tj-hm .kp-lbl { font-size: 13px; display: inline-flex; align-items: center; gap: 5px; }
 .tj-add { margin-bottom: 10px; }
 .tj-add small { font-weight: 500; color: var(--muted); }
 .tj-route { display: flex; align-items: flex-start; gap: 7px; padding: 9px 11px; border-radius: 10px; background: color-mix(in srgb, var(--gold) 12%, var(--surface)); margin-bottom: 12px; font-weight: 600; color: var(--text); }
@@ -1891,3 +1891,47 @@ table.t.qt tr.miss td { color: var(--muted); }
 /* tutup celah di atas kartu yang menempel agar isi yang digulir tidak mengintip */
 .qt-top::before { content: ""; position: absolute; left: -1px; right: -1px; top: -10px; height: 10px; background: var(--bg); }
 @media (max-width: 767px) { .qt-top::before { display: none; } }
+
+/* ===== Gerak halus: grup pilihan dan tombol ===== */
+.kp-seg, .seg { position: relative; isolation: isolate; }
+.kp-seg button, .seg a { position: relative; z-index: 1; transition: color .22s ease, background-color .18s ease; }
+.kp-seg.glide::before, .seg.glide::before {
+  content: ""; position: absolute; left: 0; top: 0; z-index: 0; pointer-events: none;
+  width: var(--gw, 0); height: var(--gh, 0); transform: translate(var(--gx, 0), var(--gy, 0));
+  background: var(--navy); border-radius: 8px; box-shadow: 0 1px 3px rgba(20, 28, 70, .28);
+  transition: transform .32s cubic-bezier(.3, .8, .25, 1), width .32s cubic-bezier(.3, .8, .25, 1), height .32s cubic-bezier(.3, .8, .25, 1);
+}
+.seg.glide::before { border-radius: 9px; }
+[data-theme="dark"] .kp-seg.glide::before, [data-theme="dark"] .seg.glide::before { background: var(--gold-2); box-shadow: none; }
+.kp-seg.glide button.on, .seg.glide a.on { background: transparent; box-shadow: none; }
+.kp-seg.g-still::before, .seg.g-still::before { transition: none; }
+.btn { transition: background-color .18s ease, color .18s ease, border-color .18s ease, box-shadow .18s ease, transform .12s ease; }
+.btn:active:not(:disabled) { transform: scale(.97); }
+.btn.primary:hover { background: var(--navy-700); border-color: var(--navy-700); color: #fff; }
+[data-theme="dark"] .btn.primary:hover { background: #ffe14d; border-color: #ffe14d; color: var(--navy-900); }
+.btn:disabled { opacity: .6; cursor: not-allowed; }
+.stp button { transition: background-color .15s ease, transform .1s ease; }
+.stp button:active:not(:disabled) { transform: scale(.9); }
+@media (prefers-reduced-motion: reduce) {
+  .kp-seg.glide::before, .seg.glide::before, .btn, .kp-seg button, .seg a { transition: none; }
+}
+
+/* Tombol reset/kosongkan: merah supergrafis */
+.btn.danger { color: var(--red); border-color: color-mix(in srgb, var(--red) 45%, var(--border)); background: var(--surface); }
+.btn.danger svg { color: currentColor; }
+.btn.danger:hover { background: var(--red); border-color: var(--red); color: #fff; }
+[data-theme="dark"] .btn.danger { color: #FF8A73; border-color: color-mix(in srgb, #FF8A73 45%, var(--border)); }
+[data-theme="dark"] .btn.danger:hover { background: var(--red-2); border-color: var(--red-2); color: #fff; }
+
+/* Kotak informasi penting: sorotan kuning tipis */
+.callout, .qt-note, .kp-res .kp-foot, .tx-foot, .kp-foot.tx-foot {
+  background: color-mix(in srgb, var(--gold) 11%, var(--surface)); border: 1px solid color-mix(in srgb, var(--gold) 38%, var(--border));
+  border-left: 3px solid var(--gold); border-radius: 10px; color: var(--text);
+}
+[data-theme="dark"] .callout, [data-theme="dark"] .qt-note, [data-theme="dark"] .kp-res .kp-foot, [data-theme="dark"] .tx-foot {
+  background: color-mix(in srgb, var(--gold-2) 8%, var(--surface)); border-color: color-mix(in srgb, var(--gold-2) 28%, var(--border)); border-left-color: var(--gold-2);
+}
+.callout svg { color: #9A6B00; }
+.qt-note { padding: 9px 12px; }
+.kp-res .kp-foot { margin: 0 18px 16px; padding: 10px 12px; }
+.tx-foot { padding: 10px 12px; }
