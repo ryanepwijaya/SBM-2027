@@ -110,7 +110,7 @@ export function effMini(keys) {
   if (!ks.length) return '';
   const ps = ks.map(effPctKey);
   const p = ps.every((x) => x === ps[0]) ? ps[0] : null;
-  return `<label class="eff-mini${p !== 100 ? ' on' : ''}" title="Persentase dibayar untuk simulasi efisiensi. Berlaku untuk tabel ini di seluruh aplikasi (tersimpan di perangkat ini)."><span>Dibayar</span><input type="text" inputmode="decimal" autocomplete="off" maxlength="6" data-effk="${ks.join(',')}" value="${p == null ? '' : String(p).replace('.', ',')}"${p == null ? ' placeholder="campur"' : ''} aria-label="Persentase dibayar"><span>%</span></label>`;
+  return `<label class="eff-mini${p !== 100 ? ' on' : ''}" title="Klik untuk mengubah persentase yang dibayar (simulasi efisiensi). Berlaku untuk tabel ini di seluruh aplikasi."><span class="em-l">Dibayar</span><span class="em-box">${ic('pencil-line', 'em-ic')}<input type="text" inputmode="decimal" autocomplete="off" maxlength="6" data-effk="${ks.join(',')}" value="${p == null ? '' : String(p).replace('.', ',')}"${p == null ? ' placeholder="campur"' : ''} aria-label="Persentase dibayar, bisa diubah"><span class="em-pc">%</span></span></label>`;
 }
 export function clearEff() { store.set('eff:' + Y.y, {}); }
 const adjust = (n, p, cur) => (cur === 'USD' ? Math.round(n * p) / 100 : Math.round((n * p) / 100));

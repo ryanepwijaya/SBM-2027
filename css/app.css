@@ -1496,12 +1496,20 @@ table.t.ms-dt tr.miss td { color: var(--muted); }
 .kp-tbl tfoot tr.sub + tr:not(.sub) td { border-top: 2px solid var(--gold); }
 .callout [data-to-dk] { margin-left: 6px; vertical-align: middle; }
 
-/* Kotak Dibayar % per komponen (alat Rute Perjadin) */
-.eff-mini { display: inline-flex; align-items: center; gap: 3px; height: 26px; padding: 0 7px 0 8px; border-radius: 999px; border: 1px solid var(--border); background: var(--surface); font-size: 11.5px; font-weight: 600; color: var(--muted); cursor: text; vertical-align: middle; }
-.eff-mini input { width: 34px; border: 0; background: transparent; font: inherit; font-size: 12.5px; font-weight: 800; text-align: right; color: var(--text); font-variant-numeric: tabular-nums; padding: 0; }
-.eff-mini input:focus { outline: none; }
-.eff-mini input::placeholder { color: var(--faint); font-weight: 600; }
-.eff-mini:focus-within { border-color: var(--navy); box-shadow: 0 0 0 2px color-mix(in srgb, var(--navy) 20%, transparent); }
-[data-theme="dark"] .eff-mini:focus-within { border-color: var(--gold-2); box-shadow: none; }
-.eff-mini.on { border-color: var(--gold); background: color-mix(in srgb, var(--gold) 16%, var(--surface)); color: var(--text); }
+/* Kotak Dibayar % per komponen (alat Rute Perjadin): tampil sebagai kolom isian */
+.eff-mini { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 600; color: var(--muted); cursor: text; vertical-align: middle; }
+.em-box { display: inline-flex; align-items: center; gap: 4px; height: 32px; padding: 0 8px; border-radius: 8px; border: 1.5px solid color-mix(in srgb, var(--navy) 35%, var(--border)); background: var(--surface); box-shadow: inset 0 1px 2px rgba(20, 26, 60, .08); transition: border-color .15s, box-shadow .15s; }
+.eff-mini:hover .em-box { border-color: var(--navy); }
+.em-ic { width: 14px; height: 14px; color: var(--navy-700); flex: none; }
+.em-box input { width: 38px; border: 0; background: transparent; font: inherit; font-size: 14.5px; font-weight: 800; text-align: right; color: var(--text); font-variant-numeric: tabular-nums; padding: 0; cursor: text; }
+.em-box input:focus { outline: none; }
+.em-box input::placeholder { color: var(--faint); font-weight: 600; font-size: 12px; }
+.em-pc { color: var(--muted); font-weight: 700; font-size: 13px; }
+.eff-mini:focus-within .em-box { border-color: var(--navy); box-shadow: 0 0 0 3px color-mix(in srgb, var(--navy) 18%, transparent); }
+[data-theme="dark"] .em-box { border-color: color-mix(in srgb, var(--gold-2) 45%, var(--border)); box-shadow: none; }
+[data-theme="dark"] .em-ic { color: var(--gold-2); }
+[data-theme="dark"] .eff-mini:hover .em-box, [data-theme="dark"] .eff-mini:focus-within .em-box { border-color: var(--gold-2); box-shadow: 0 0 0 3px color-mix(in srgb, var(--gold-2) 20%, transparent); }
+.eff-mini.on .em-box { border-color: var(--gold); background: color-mix(in srgb, var(--gold) 16%, var(--surface)); }
+.eff-mini.on .em-l { color: var(--text); }
+.kp-meta .eff-mini, .rcomp .chips .eff-mini { margin-left: 4px; }
 .ms-eff { white-space: nowrap; }
