@@ -17,7 +17,7 @@ const NAV = [
 ];
 const SIDE_MAIN = [
   { k: 'beranda', h: '#/', t: 'Beranda', i: 'house' },
-  { k: 'tersimpan', h: '#/tersimpan', t: 'Tersimpan', i: 'star' },
+  { k: 'tersimpan', h: '#/tersimpan', t: 'Favorit', i: 'star' },
 ];
 // Alat Bantu: alat hitung cepat untuk menguji pengadaan/pembayaran
 const TOOLS = [
@@ -566,7 +566,7 @@ function route() {
         location.replace(ps.length ? `#/daerah/p/${ps[0]}${ps.length > 1 ? '?vs=' + ps.slice(1, 3).join(',') : ''}` : '#/daerah');
         return;
       }
-      case 'tersimpan': setNav('tersimpan'); side = ['tersimpan']; cr.push({ t: 'Tersimpan', i: 'star' }); html = viewSaved(); break;
+      case 'tersimpan': setNav('tersimpan'); side = ['tersimpan']; cr.push({ t: 'Favorit', i: 'star' }); html = viewSaved(); break;
       case 'lainnya': {
         setNav('lainnya');
         const ref = REF_LINKS.find((r) => r.h === '#/' + parts.join('/'));
@@ -620,7 +620,7 @@ function disclaimerCard() {
 }
 
 /* ---------------- Beranda ---------------- */
-const HOME_HINTS = ['uang harian jatim', 'jakarta surabaya', 'penginapan dki', 'taksi bali', 'fullboard', 'jepang'];
+const HOME_HINTS = ['uang harian surakarta', 'jakarta surabaya', 'penginapan bali', 'honorarium narasumber'];
 function babCard(b, i) {
   const pops = b.popular.map((k) => b.items.find((x) => x.k === k || x.butir === k)).filter(Boolean);
   return `<a class="bab-card${b.active ? '' : ' soon'}" href="#/bab/${b.key}" style="--i:${i}">
@@ -643,50 +643,35 @@ function babFeature(b, i) {
     <a class="bc-foot feat-all" href="#/bab/${b.key}">Semua ${b.count} jenis satuan biaya perjalanan dinas</a>
   </div>`;
 }
+// Rekomendasi pengisi Akses cepat bila favorit belum 8
+const HOME_RECS = ['uh-dn', 'penginapan', 'tiket-dn', 'taksi', 'rapat', 'honor-narasumber', 'konsumsi-rapat', 'uang-makan'];
 function viewHome() {
   const recent = store.get('recent', []).map(entry).filter(Boolean).slice(0, 5);
-  const sv = saved().map(entry).filter(Boolean).slice(0, 5);
-  const total = S.data.butir.length;
-  const mini = (arr, empty) => arr.length ? `<div class="card list">${arr.map(entryRow).join('')}</div>` : `<div class="card empty-card">${empty}</div>`;
-  const tool = (h, i, t, d) => `<a class="tool" href="${h}"><span class="tool-ico">${ic(i)}</span><span class="tool-tx"><b>${t}</b><small>${d}</small></span>${ic('chevron-right', 'chev')}</a>`;
+  const fav = saved().map(entry).filter(Boolean).slice(0, 8);
+  const rec = HOME_RECS.map(entry).filter((e) => e && !fav.some((f) => f.key === e.key)).slice(0, 8 - fav.length);
+  const qa = (e, isFav) => {
+    const b = S.butir[e.butir];
+    return `<a class="qa${isFav ? ' fav' : ''}" href="#/b/${e.butir}?t=${e.table}"><span class="qa-ico">${ic(e.icon)}</span><span class="qa-tx"><b>${esc(e.name)}</b><small title="${esc(lampShort(b))}">${isFav ? `${ic('star')} Favorit` : 'Rekomendasi'}</small></span></a>`;
+  };
+  const tools = [
+    { h: '#/rute', i: 'signpost', t: 'Buat Perjalanan', d: 'Dari kota X ke kota Y, semua satuan biaya langsung muncul' },
+    { h: '#/hitung', i: 'calculator', t: 'Kalkulator Perjadin', d: 'Perkiraan biaya dari tujuan, lama, dan pelaksana; unduh PDF' },
+    { h: '#/daerah', i: 'map', t: 'Biaya Per Provinsi', d: 'Semua satuan biaya satu provinsi, bisa dibandingkan' },
+  ];
   return `
   <section class="hero hero-u">
     <h1>Standar Biaya Masukan TA ${Y.y} ${tip(`Baca ${Y.y === 2026 ? 'PMK 32/2025' : 'PMK 54/2026 dan KMK 296/2026'} tanpa membuka PDF. Semua angka diambil dari tabel ${Y.srcKind} dan dicek silang.`)}</h1>
     <label class="hero-search" for="hq">${ic('search')}<input id="hq" type="search" placeholder="Cari satuan biaya, provinsi, kota, atau aturan…" autocomplete="off" enterkeyhint="search"><kbd class="hide-sm">${isMac ? '⌘' : 'Ctrl'} K</kbd></label>
     <div class="hero-tags">${HOME_HINTS.map((h) => `<a href="#/cari?q=${encodeURIComponent(h)}" data-q="${esc(h)}">${esc(h)}</a>`).join('')}</div>
-    <div class="hero-law">
-      ${Y.y === 2026 ? `<a href="#/lainnya/tentang"><b>PMK 32/2025</b><span>Norma, besaran & penjelasan</span></a>` : `<a href="#/lainnya/tentang"><b>PMK 54/2026</b><span>Norma & jenis</span></a>
-      <a href="#/lainnya/tentang"><b>KMK 296/2026</b><span>Besaran rupiah</span></a>`}
-      <span><b>${total} butir</b><span>dalam ${BABS.length} bab</span></span>
-    </div>
   </section>
-  <h2 class="sec">${ic('layers-2')} Bab satuan biaya <small>${S.data.butir.length} butir ${Y.srcKind}</small></h2>
-  <div class="bab-grid">${babFeature(BABS[0], 0)}<div class="bab-rest">${BABS.slice(1).map((b, i) => babCard(b, i + 1)).join('')}</div></div>
+  <h2 class="sec">${ic('star')} Akses cepat ${tip(`Favorit Anda tampil di sini (maksimal 8, yang terbaru dulu). Bila belum 8, sisanya diisi rekomendasi. Tambah favorit dengan tombol ${ic('star')} Jadikan favorit di halaman satuan biaya.`)}${fav.length ? `<a class="sec-more" href="#/tersimpan">Semua favorit (${saved().length})</a>` : ''}</h2>
+  <div class="qa-grid">${fav.map((e) => qa(e, true)).join('')}${rec.map((e) => qa(e, false)).join('')}</div>
   <h2 class="sec">${ic('calculator')} Alat bantu <a class="sec-more" href="#/alat">Semua alat bantu</a></h2>
-  <div class="tools">
-    <section class="card card-pad tool-route">
-      <div class="row tr-head"><span class="tool-ico">${ic('route')}</span><div><b>Buat perjalanan</b><small>Dari kota X ke kota Y, semua satuan biaya langsung muncul</small></div>${tip('Mencakup 514 kabupaten/kota dan 38 provinsi. Kota asal bawaan: Jakarta.')}</div>
-      ${routeForm('jakarta', '', true)}
-    </section>
-    <div class="tool-list card">
-      ${tool('#/daerah', 'map', 'Biaya per provinsi', 'Semua satuan biaya per provinsi; bisa dibandingkan')}
-      ${tool('#/hitung', 'calculator', 'Kalkulator perjadin', 'Perkiraan biaya dari tujuan, lama, dan pelaksana')}
-      ${tool('#/daerah/ln', 'globe', 'Luar negeri', 'Uang harian per negara & tiket per kota')}
-      ${tool('#/alat/honor', 'shopping-cart', 'Pengadaan barang/jasa <span class="chip sm">Segera</span>', 'Hitung honorarium, invoice barang/jasa, dan perpajakan')}
-    </div>
-  </div>
-  <div class="two-col">
-    <div><h2 class="sec">${ic('history')} Terakhir dilihat</h2>${mini(recent, 'Halaman yang Anda buka akan muncul di sini.')}</div>
-    <div><h2 class="sec">${ic('star')} Tersimpan</h2>${mini(sv, `Tekan ${ic('star')} <b>Simpan</b> di halaman satuan biaya untuk menyimpannya di sini.`)}</div>
-  </div>
+  <div class="ht-grid">${tools.map((t) => `<a class="ht" href="${t.h}"><span class="tool-ico">${ic(t.i)}</span><span class="ht-tx"><b>${t.t}</b><small>${t.d}</small></span></a>`).join('')}</div>
+  ${recent.length ? `<h2 class="sec">${ic('history')} Terakhir dilihat</h2><div class="card list">${recent.map(entryRow).join('')}</div>` : ''}
 `;
 }
 function afterHome() {
-  let dari = 'jakarta';
-  attachAC('rDari', (it) => { dari = it.id; });
-  attachAC('rKe', (it) => { location.hash = `#/rute?dari=${encodeURIComponent(dari)}&ke=${encodeURIComponent(it.id)}`; });
-  $('#rSwap').style.visibility = 'hidden';
-  $$('[data-clear]').forEach((b) => b.onclick = () => { const i = $('#' + b.dataset.clear); i.value = ''; i.focus(); });
   const hq = $('#hq');
   hq.addEventListener('input', () => {
     if (isDesk()) { const v = hq.value; hq.value = ''; openPalette(v); }
@@ -980,7 +965,7 @@ function viewButir(id, params, anchor) {
     <div class="chips">${sifatChipTip(b)}${refChip(b)}</div>
     <div class="actions">
       ${pdfBtn(b)}
-      <button class="btn sm${isSaved(e.key) ? ' on' : ''}" id="saveBtn">${ic('star')} <span>${isSaved(e.key) ? 'Tersimpan' : 'Simpan'}</span></button>
+      <button class="btn sm${isSaved(e.key) ? ' on' : ''}" id="saveBtn">${ic('star')} <span>${isSaved(e.key) ? 'Favorit' : 'Jadikan favorit'}</span></button>
       <button class="btn sm" id="refBtn">${ic('copy')} Salin rujukan</button>
       ${navigator.share ? `<button class="btn sm" id="shareBtn">${ic('share')} Bagikan</button>` : ''}
     </div>
@@ -1035,8 +1020,8 @@ function viewButir(id, params, anchor) {
     $('#saveBtn').onclick = () => {
       const on = toggleSaved(e.key);
       $('#saveBtn').classList.toggle('on', on);
-      $('#saveBtn span').textContent = on ? 'Tersimpan' : 'Simpan';
-      toast(on ? 'Disimpan' : 'Dihapus dari tersimpan');
+      $('#saveBtn span').textContent = on ? 'Favorit' : 'Jadikan favorit';
+      toast(on ? 'Ditambahkan ke favorit' : 'Dihapus dari favorit');
     };
     $('#refBtn').onclick = () => copy(`${ref(b, { code: (params.r && b.tables[ti]?.rows.find((x) => x.c === params.r)?.v?.[0]) || params.r || b.no })} (${e.name})`, 'Rujukan disalin');
     const sh = $('#shareBtn');
@@ -1335,7 +1320,7 @@ function viewProv(pid, params = {}) {
   return { html, after };
 }
 
-/* ---------------- Tersimpan ---------------- */
+/* ---------------- Favorit ---------------- */
 /* ---------------- Kalkulator Perjadin ---------------- */
 function viewHitung() {
   const html = `<div class="page-head"><h1 class="title">Kalkulator Perjadin</h1><p class="subtitle">Isi tujuan surat tugas, lama perjalanan, dan pelaksananya. Perkiraan biaya muncul dari satuan biaya SBM TA ${Y.y}, lengkap dengan rujukan tabelnya. Persentase dibayar yang diatur di tiap tabel ikut dipakai.</p></div>
@@ -1444,8 +1429,8 @@ function viewSoonTool(t) {
 }
 function viewSaved() {
   const sv = saved().map(entry).filter(Boolean);
-  return `<div class="page-head"><h1 class="title">Tersimpan</h1><p class="subtitle">Jenis satuan biaya yang Anda simpan. Tersimpan di perangkat ini.</p></div>
-  ${sv.length ? `<div class="card list">${sv.map(entryRow).join('')}</div>` : `<div class="empty">Belum ada yang disimpan. Buka jenis satuan biaya lalu ketuk <b>Simpan</b>.</div>`}`;
+  return `<div class="page-head"><h1 class="title">Favorit</h1><p class="subtitle">Jenis satuan biaya yang Anda jadikan favorit, terbaru di atas. Delapan favorit terakhir tampil di Beranda. Tersimpan di perangkat ini.</p></div>
+  ${sv.length ? `<div class="card list">${sv.map(entryRow).join('')}</div>` : `<div class="empty">Belum ada favorit. Buka jenis satuan biaya lalu ketuk ${ic('star')} <b>Jadikan favorit</b>.</div>`}`;
 }
 
 /* ---------------- Lainnya ---------------- */
@@ -1536,7 +1521,7 @@ function viewMore(sub) {
   </div></div>
   <div class="group-title">Menu</div>
   <div class="card list">
-    <a class="li" href="#/tersimpan">${ic('star', 'chev')}<div class="grow"><div class="t">Tersimpan</div></div>${ic('chev', 'chev')}</a>
+    <a class="li" href="#/tersimpan">${ic('star', 'chev')}<div class="grow"><div class="t">Favorit</div></div>${ic('chev', 'chev')}</a>
     <a class="li" href="#/lainnya/catatan">${ic('list', 'chev')}<div class="grow"><div class="t">Catatan Umum ${Y.srcKind}</div></div>${ic('chev', 'chev')}</a>
     <a class="li" href="#/lainnya/singkatan">${ic('book', 'chev')}<div class="grow"><div class="t">Daftar singkatan</div></div>${ic('chev', 'chev')}</a>
     <a class="li" href="#/lainnya/dokumen">${ic('alert', 'chev')}<div class="grow"><div class="t">Catatan atas dokumen</div></div>${ic('chev', 'chev')}</a>
