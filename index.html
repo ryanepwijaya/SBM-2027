@@ -14,6 +14,37 @@
   <link rel="icon" type="image/png" href="icons/favicon-64.png">
   <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
   <link rel="stylesheet" href="css/app.css">
+  <link rel="canonical" href="https://cek-sbm.vercel.app/">
+  <script>
+    // Alamat lama sbm-2027.vercel.app pindah ke cek-sbm.vercel.app. Data di perangkat (favorit, draf, pengaturan)
+    // ikut dibawa lewat parameter ?pindah= karena penyimpanan browser terpisah per alamat.
+    (function () {
+      var NEW = 'https://cek-sbm.vercel.app';
+      try {
+        if (location.hostname === 'sbm-2027.vercel.app') {
+          var data = {};
+          for (var i = 0; i < localStorage.length; i++) { var k = localStorage.key(i); if (k && k.indexOf('sbm27:') === 0) data[k] = localStorage.getItem(k); }
+          var q = new URLSearchParams(location.search);
+          var keys = Object.keys(data);
+          if (keys.length) q.set('pindah', btoa(unescape(encodeURIComponent(JSON.stringify(data)))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, ''));
+          var qs = q.toString();
+          location.replace(NEW + location.pathname + (qs ? '?' + qs : '') + location.hash);
+          return;
+        }
+        var u = new URL(location.href);
+        var pk = u.searchParams.get('pindah');
+        if (pk) {
+          var b = pk.replace(/-/g, '+').replace(/_/g, '/');
+          while (b.length % 4) b += '=';
+          var obj = JSON.parse(decodeURIComponent(escape(atob(b))));
+          // Data yang sudah ada di alamat baru tidak ditimpa
+          for (var key in obj) if (key.indexOf('sbm27:') === 0 && localStorage.getItem(key) === null) localStorage.setItem(key, obj[key]);
+          u.searchParams.delete('pindah');
+          history.replaceState(null, '', u.pathname + (u.search || '') + u.hash);
+        }
+      } catch (e) { /* abaikan */ }
+    })();
+  </script>
   <script>
     // Terapkan tema sebelum render untuk menghindari kedip
     try {
