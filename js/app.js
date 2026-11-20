@@ -40,7 +40,7 @@ const TOOLS = [
     ],
   },
   {
-    k: 'provinsi', h: '#/daerah', t: 'Biaya Per Provinsi', i: 'map', d: 'Semua satuan biaya SBM yang ditetapkan per provinsi, dikelompokkan per jenis biaya; bisa dibandingkan sampai 3 provinsi',
+    k: 'provinsi', h: '#/daerah', t: 'Biaya Per Wilayah', i: 'map', d: 'Semua satuan biaya per provinsi (bisa dibandingkan sampai 3 provinsi) dan per negara untuk luar negeri',
     sub: [{ k: 'ln', h: '#/daerah/ln', t: 'Luar Negeri', i: 'globe', d: 'Uang harian per negara dan tiket per kota' }], flat: true, w: -1,
   },
   {
@@ -55,7 +55,7 @@ const TOOLS = [
   { k: 'pajak', h: '#/alat/pajak', t: 'Kalkulator Pajak', i: 'percent', d: 'PPN, PPh 22, PPh 23, dan PPh 4(2) dari satu nilai; bisa diambil dari Hitung Invoice', w: 1 },
   { k: 'kegiatan', h: '#/alat/kegiatan', t: 'Paket Kegiatan', i: 'presentation', d: 'Biaya rapat/pertemuan: konsumsi rapat atau paket halfday, fullday, fullboard, ditambah honor dan sewa gedung', w: 3 },
 ];
-// Urutan Alat Bantu: Biaya Per Provinsi paling atas, Unduh Tabel Biaya paling bawah (w = bobot urutan)
+// Urutan Alat Bantu: Biaya Per Wilayah paling atas, Unduh Tabel Biaya paling bawah (w = bobot urutan)
 TOOLS.forEach((t, i) => { t._i = i; });
 TOOLS.sort((a, b) => (a.w ?? 0) - (b.w ?? 0) || a._i - b._i);
 const isDesk = () => window.matchMedia('(min-width: 1024px)').matches;
@@ -455,7 +455,7 @@ function renderPalette(q) {
     secs.push({ t: 'Buka bab', items: BABS.map((b) => item({ href: `#/bab/${b.key}`, t: b.name, d: b.desc, i: b.icon, k: b.active ? `${b.count} jenis` : 'Segera' })) });
     secs.push({ t: 'Alat', items: [
       item({ href: '#/rute', t: 'SBM Perjalanan', d: 'Dari kota X ke kota Y: semua satuan biaya yang relevan', i: 'signpost' }),
-      item({ href: '#/daerah', t: 'Biaya Per Provinsi', d: 'Semua satuan biaya per provinsi; bisa dibandingkan sampai 3 provinsi', i: 'map' }),
+      item({ href: '#/daerah', t: 'Biaya Per Wilayah', d: 'Per provinsi (bisa dibandingkan sampai 3) dan per negara', i: 'map' }),
       item({ href: '#/hitung', t: 'Hitung Perjalanan', d: 'Perkiraan biaya dari tujuan, lama, dan pelaksana', i: 'calculator' }),
       item({ href: '#/alat/lembur', t: 'Hitung Lembur', d: 'Uang lembur dan uang makan lembur per golongan', i: 'clock' }),
       item({ href: '#/alat/kegiatan', t: 'Paket Kegiatan', d: 'Konsumsi rapat, paket halfday/fullday/fullboard, honor', i: 'presentation' }),
@@ -605,16 +605,16 @@ function route() {
         setNav('alat');
         side = ['provinsi'];
         cr.push(ALAT_CRUMB);
-        if (parts[1] === 'p') { cr.push({ t: 'Biaya Per Provinsi', h: '#/daerah', i: 'map' }, { t: S.prov[parts[2]]?.nama || 'Provinsi' }); ({ html, after } = viewProv(parts[2], params)); }
-        else if (parts[1] === 'ln') { cr.push({ t: 'Biaya Per Provinsi', h: '#/daerah', i: 'map' }, { t: 'Luar Negeri' }); ({ html, after } = viewDaerah('ln', params)); }
-        else { cr.push({ t: 'Biaya Per Provinsi', i: 'map' }); ({ html, after } = viewDaerah('dn', params)); }
+        if (parts[1] === 'p') { cr.push({ t: 'Biaya Per Wilayah', h: '#/daerah', i: 'map' }, { t: S.prov[parts[2]]?.nama || 'Provinsi' }); ({ html, after } = viewProv(parts[2], params)); }
+        else if (parts[1] === 'ln') { cr.push({ t: 'Biaya Per Wilayah', h: '#/daerah', i: 'map' }, { t: 'Luar Negeri' }); ({ html, after } = viewDaerah('ln', params)); }
+        else { cr.push({ t: 'Biaya Per Wilayah', i: 'map' }); ({ html, after } = viewDaerah('dn', params)); }
         break;
       case 'rute': setNav('alat'); side = [null, 'tool:rute', 'rute']; cr.push(ALAT_CRUMB, RUTE_CRUMB, { t: 'SBM Perjalanan' }); ({ html, after } = viewRute(params)); break;
       case 'massal': setNav('alat'); side = [null, 'tool:massal', 'rute']; cr.push(ALAT_CRUMB, RUTE_CRUMB, { t: 'Perjadin (banyak asal)' }); ({ html, after } = viewMassal({ $, $$, toast, effNotice, placeField, attachAC })); break;
       case 'tujuan': case 'pindah': { setNav('alat'); const rt = TOOLS.find((x) => x.k === 'rute'); const t = rt.sub.find((x) => x.k === key); side = [null, 'tool:' + key, 'rute']; cr.push(ALAT_CRUMB, RUTE_CRUMB, { t: t.t }); ({ html, after } = (key === 'tujuan' ? viewTujuan : viewPindah)({ $, $$, toast, effNotice, placeField, attachAC })); break; }
       case 'hitung': setNav('alat'); side = [null, 'tool:hitung', 'rute']; cr.push(ALAT_CRUMB, RUTE_CRUMB, { t: 'Hitung Perjalanan' }); ({ html, after } = viewHitung()); break;
       case 'bandingkan': {
-        // Bandingkan Wilayah dilebur ke Biaya Per Provinsi
+        // Bandingkan Wilayah dilebur ke Biaya Per Wilayah
         const ps = (params.p || '').split(',').filter((x) => S.prov[x]);
         location.replace(ps.length ? `#/daerah/p/${ps[0]}${ps.length > 1 ? '?vs=' + ps.slice(1, 3).join(',') : ''}` : '#/daerah');
         return;
@@ -711,7 +711,7 @@ function viewHome() {
   const tools = [
     { h: '#/rute', i: 'signpost', t: 'SBM Perjalanan', d: 'Dari kota X ke kota Y, semua satuan biaya langsung muncul' },
     { h: '#/hitung', i: 'calculator', t: 'Hitung Perjalanan', d: 'Perkiraan biaya dari tujuan, lama, dan pelaksana; unduh PDF' },
-    { h: '#/daerah', i: 'map', t: 'Biaya Per Provinsi', d: 'Semua satuan biaya satu provinsi, bisa dibandingkan' },
+    { h: '#/daerah', i: 'map', t: 'Biaya Per Wilayah', d: 'Semua satuan biaya per provinsi atau per negara' },
   ];
   return `
   <section class="hero hero-u hero-x">
@@ -773,7 +773,7 @@ function viewBab(bab) {
   const groups = bab.groups.map((g) => `${g.t ? `<div class="group-title">${esc(g.t)} <span class="count">${g.items.length}</span></div>` : ''}<div class="ent-grid">${g.items.map((it) => card(it, n++)).join('')}</div>`).join('');
   const tools = bab.key === 'perjadin' ? `<div class="bab-tools">
       <a href="#/rute">${ic('signpost')}<span><b>SBM perjalanan</b><small>Kota X ke kota Y</small></span></a>
-      <a href="#/daerah">${ic('map')}<span><b>Biaya per provinsi</b><small>Semua biaya, bisa dibandingkan</small></span></a>
+      <a href="#/daerah">${ic('map')}<span><b>Biaya per wilayah</b><small>Per provinsi dan per negara</small></span></a>
       <a href="#/hitung">${ic('calculator')}<span><b>Hitung perjalanan</b><small>Perkiraan biaya + PDF</small></span></a>
       <a href="#/daerah/ln">${ic('globe')}<span><b>Luar negeri</b><small>Per negara & kota</small></span></a>
     </div>` : '';
@@ -1217,7 +1217,7 @@ function viewDaerah(mode, params) {
   const seg = daerahSeg(mode);
   if (mode === 'dn') {
     const html = `
-    <div class="page-head"><h1 class="title">Biaya Per Provinsi</h1><p class="subtitle">Pilih provinsi untuk melihat semua satuan biaya SBM yang ditetapkan per provinsi, dikelompokkan per jenis biaya. Di halaman provinsi, Anda bisa menambahkan sampai 2 provinsi pembanding.</p></div>
+    <div class="page-head"><h1 class="title">Biaya Per Wilayah</h1><p class="subtitle">Pilih provinsi untuk melihat semua satuan biaya SBM yang ditetapkan per provinsi, dikelompokkan per jenis biaya. Di halaman provinsi, Anda bisa menambahkan sampai 2 provinsi pembanding. Untuk luar negeri, buka tab Luar negeri.</p></div>
     ${seg}
     <div class="tbl-tools"><label class="field">${ic('search')}<input id="pq" type="search" placeholder="Cari provinsi atau kabupaten/kota, mis. jatim, surakarta…"></label></div>
     <div id="provHint"></div>
