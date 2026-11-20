@@ -6,7 +6,7 @@ import { loadWilayah, suggest, resolve, routeHtml, placeLabel, routeHints, W } f
 import { KP, compute, formHtml, resultHtml, buildPdf, resetKP, autoMalam } from './hitung.js';
 import { viewMassal } from './massal.js';
 import { lnSuggest, negOfCity, cityOfNeg } from './ln.js';
-import { viewInvoice, viewPajak } from './pbj.js';
+import { viewInvoice, viewPajak, viewHonor } from './pbj.js';
 import { BABS, REF_LINKS, babByKey, babByKel, babOfButir } from './bab.js';
 
 const $ = (s, el = document) => el.querySelector(s);
@@ -38,9 +38,9 @@ const TOOLS = [
     sub: [{ k: 'ln', h: '#/daerah/ln', t: 'Luar Negeri', i: 'globe', d: 'Uang harian per negara dan tiket per kota' }], flat: true, last: true,
   },
   {
-    k: 'pbj', h: '#/alat/invoice', t: 'Pengadaan Barang/Jasa', i: 'shopping-cart', d: 'Hitung invoice barang/jasa dan pajaknya; honorarium menyusul',
+    k: 'pbj', h: '#/alat/honor', t: 'Pengadaan Barang/Jasa', i: 'shopping-cart', d: 'Hitung honorarium, invoice barang/jasa, dan pajaknya',
     sub: [
-      { k: 'honor', h: '#/alat/honor', t: 'Hitung Honorarium', i: 'hand-coins', d: 'Honorarium kegiatan sesuai SBM', soon: true },
+      { k: 'honor', h: '#/alat/honor', t: 'Hitung Honorarium', i: 'hand-coins', d: 'Honor narasumber, panitia, dan kegiatan: PPh 21 per status, rekap per golongan' },
       { k: 'invoice', h: '#/alat/invoice', t: 'Hitung Invoice Barang/Jasa', i: 'receipt', d: 'Daftar barang/jasa: volume × harga satuan × frekuensi, bisa diisi tanpa mouse' },
       { k: 'pajak', h: '#/alat/pajak', t: 'Kalkulator Pajak', i: 'percent', d: 'PPN, PPh 22/23/4(2), PPh konstruksi/konsultasi, dan PPh 21 dari satu nilai' },
     ],
@@ -449,6 +449,7 @@ function renderPalette(q) {
       item({ href: '#/hitung', t: 'Kalkulator Perjadin', d: 'Perkiraan biaya dari tujuan, lama, dan pelaksana', i: 'calculator' }),
       item({ href: '#/massal', t: 'Perjadin (banyak asal)', d: 'Satu kegiatan, peserta dari banyak kota asal; PDF dan Excel', i: 'users' }),
       item({ href: '#/daerah/ln', t: 'Luar Negeri', d: 'Uang harian per negara dan tiket per kota', i: 'globe' }),
+      item({ href: '#/alat/honor', t: 'Hitung Honorarium', d: 'PPh 21 per status, rekap per golongan', i: 'hand-coins' }),
       item({ href: '#/alat/invoice', t: 'Hitung Invoice Barang/Jasa', d: 'Daftar barang: volume × harga × frekuensi', i: 'receipt' }),
       item({ href: '#/alat/pajak', t: 'Kalkulator Pajak', d: 'PPN, PPh 22/23/4(2), konstruksi, PPh 21', i: 'percent' }),
     ] });
@@ -571,6 +572,7 @@ function route() {
           const ui = { $, $$, toast, copy, route };
           if (t.k === 'invoice') ({ html, after } = viewInvoice(ui));
           else if (t.k === 'pajak') ({ html, after } = viewPajak(ui, params));
+          else if (t.k === 'honor') ({ html, after } = viewHonor(ui));
           else html = viewSoonTool(t, pbj);
         }
         else { cr[cr.length - 1] = { t: 'Alat Bantu', i: 'calculator' }; html = viewAlat(); }
