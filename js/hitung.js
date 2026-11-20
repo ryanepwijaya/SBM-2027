@@ -1,6 +1,6 @@
 // Kalkulator Perjadin: perkiraan biaya perjalanan dinas dalam negeri dari tujuan, lama, dan pelaksana.
 // Hanya menampilkan angka SBM yang relevan dikali volume; tidak menerapkan aturan PMK Perjalanan Dinas.
-import { S, Y, esc, fmt, valueCols, money, effVal, effPct, pctTxt, fold, tip } from './store.js';
+import { S, Y, esc, fmt, valueCols, money, effVal, effPct, pctTxt, fold, tip, rapatTiers } from './store.js';
 import { resolve, computeRoute, rowBy } from './rute.js';
 import { ic } from './icons.js';
 
@@ -14,6 +14,10 @@ export const TINGKAT = [
   { k: 'e4', n: 'Pejabat Eselon IV/Golongan III/II/I', h: 3, rep: null },
 ];
 
+// Tingkat → kelompok tarif paket rapat (L1-29): 0 Menteri/Wamen, 1 Eselon I dan II/JF Utama, 2 Eselon III ke bawah
+export const FB_TIER = { pn: 0, e1: 1, pnl: 1, e2: 1, e3: 2, e4: 2 };
+const FB_TIER_N = ['Menteri/Wamen', 'Eselon I dan II/JF Utama', 'Eselon III/JF Madya ke bawah'];
+
 // Isian bertahan selama aplikasi terbuka (tidak disimpan ke perangkat)
 export const KP = {
   dari: 'jakarta', ke: '', jenis: 'lk', hari: 3, malam: 2, malamManual: false,
@@ -26,7 +30,7 @@ const refOf = (bid, ti, code) => {
   const r = code ? rowBy(bid, code, ti) : null;
   return { label: `${b.lamp === 1 ? 'Lamp. I' : 'Lamp. II'} angka ${r?.v?.[0] || b.no}`, href: `#/b/${bid}?t=${ti}${code ? '&r=' + encodeURIComponent(code) : ''}` };
 };
-const plain = (s) => String(s).replace(/⇄/g, '–').replace(/→/g, '–');
+export const plain = (s) => String(s).replace(/⇄/g, '–').replace(/→/g, '–');
 
 // Hitung semua baris biaya
 export function compute(state = KP) {
@@ -48,7 +52,7 @@ export function compute(state = KP) {
   for (const sec of r.sec.filter((s) => ['Keberangkatan', 'Perjalanan', 'Kedatangan'].includes(s.h))) {
     for (const it of sec.items) {
       const row = it.code ? rowBy(it.bid, it.code, it.ti) : null;
-      const base = { g: 'Transportasi', bid: it.bid, ti: it.ti, code: it.code, label: plain(it.title) };
+      const base = { g: 'Transportasi', cat: it.bid === 'L2-6' ? 'tiket' : it.bid === 'L2-5' ? 'taksi' : 'darat', bid: it.bid, ti: it.ti, code: it.code, label: plain(it.title) };
       if (!row) { add({ ...base, n: null, qty: 0, vol: 'Tidak tercantum di tabel; mengacu harga riil/pasar', missing: true }); continue; }
       if (it.bid === 'L2-6') {
         if (hasTiket) { alt.push(plain(it.title)); continue; }
@@ -65,22 +69,41 @@ export function compute(state = KP) {
     }
   }
   // Selama di tujuan
+  // Mode paket rapat fullboard (dipakai Kalkulator massal): hari paket memakai tarif paket + uang harian fullboard,
+  // sisa hari memakai uang harian biasa, malam di luar hari paket memakai penginapan.
+  const fb = state.mode === 'fb' ? Math.max(0, Math.min(state.paket || 0, state.hari)) : 0;
+  const uhDays = state.hari - fb;
+  const nights = Math.max(0, state.malam - fb);
+  const pName = S.prov[D.prov].nama;
   const tUH = S.butir['L1-25'].tables[0];
   const rUH = tUH.rows.find((x) => x.p === D.prov);
   const vUH = valueCols(tUH);
   const uhCol = state.jenis === 'diklat' ? vUH[2] : vUH[0];
-  add({ g: 'Selama di tujuan', bid: 'L1-25', ti: 0, code: rUH?.c, label: `Uang harian · ${S.prov[D.prov].nama}${state.jenis === 'diklat' ? ' (diklat)' : ''}`, n: rUH ? rUH.n[uhCol] : null, qty: state.hari * total, vol: `${state.hari} hari × ${total} orang`, perAll: state.hari, missing: !rUH });
+  if (uhDays > 0) add({ g: 'Selama di tujuan', cat: 'uh', bid: 'L1-25', ti: 0, code: rUH?.c, label: `Uang harian · ${pName}${state.jenis === 'diklat' ? ' (diklat)' : ''}`, n: rUH ? rUH.n[uhCol] : null, qty: uhDays * total, vol: `${uhDays} hari × ${total} orang`, perAll: uhDays, missing: !rUH });
+  if (fb > 0) {
+    const tP = S.butir['L1-29'].tables[0];
+    const fbCol = tP.cols.findIndex((c) => /fullboard/i.test(c));
+    const tiers = rapatTiers();
+    for (const p of people) {
+      const tier = tiers[FB_TIER[p.k]];
+      const row = tier?.rows.find((x) => x.p === D.prov);
+      add({ g: 'Selama di tujuan', cat: 'fb', bid: 'L1-29', ti: 0, code: row?.c, label: `Paket rapat fullboard · ${pName}`, sub: `${p.n} · tarif ${FB_TIER_N[FB_TIER[p.k]]}`, n: row ? row.n[fbCol] : null, qty: fb * p.c, vol: `${fb} paket × ${p.c} orang`, per: p.k, perQty: fb, missing: !row });
+    }
+    const tU = S.butir['L1-29'].tables[1];
+    const rU = tU.rows.find((x) => x.v && /fullboard/i.test(x.v[1]));
+    add({ g: 'Selama di tujuan', cat: 'uhfb', bid: 'L1-29', ti: 1, code: rU?.c, label: 'Uang harian rapat fullboard', n: rU ? rU.n[3] : null, qty: fb * total, vol: `${fb} hari × ${total} orang`, perAll: fb, missing: !rU });
+  }
   const tH = S.butir['L1-27'].tables[0];
   const rH = tH.rows.find((x) => x.p === D.prov);
   const vH = valueCols(tH);
-  if (state.malam > 0) {
-    for (const p of people) add({ g: 'Selama di tujuan', bid: 'L1-27', ti: 0, code: rH?.c, label: `Penginapan · ${S.prov[D.prov].nama}`, sub: p.n, n: rH ? rH.n[vH[p.h]] : null, qty: state.malam * p.c, vol: `${state.malam} malam × ${p.c} orang`, per: p.k, perQty: state.malam, missing: !rH });
+  if (nights > 0) {
+    for (const p of people) add({ g: 'Selama di tujuan', cat: 'inap', bid: 'L1-27', ti: 0, code: rH?.c, label: `Penginapan · ${pName}`, sub: p.n, n: rH ? rH.n[vH[p.h]] : null, qty: nights * p.c, vol: `${nights} malam × ${p.c} orang`, per: p.k, perQty: nights, missing: !rH });
   }
   const tRep = S.butir['L1-25'].tables[1];
   const repRows = tRep.rows.filter((x) => x.v);
   for (const p of people.filter((x) => x.rep != null)) {
     const rr = repRows[p.rep];
-    if (rr) add({ g: 'Selama di tujuan', bid: 'L1-25', ti: 1, code: rr.c, label: 'Uang representasi', sub: p.n, n: rr.n[valueCols(tRep)[0]], qty: state.hari * p.c, vol: `${state.hari} hari × ${p.c} orang`, per: p.k, perQty: state.hari });
+    if (rr) add({ g: 'Selama di tujuan', cat: 'rep', bid: 'L1-25', ti: 1, code: rr.c, label: 'Uang representasi', sub: p.n, n: rr.n[valueCols(tRep)[0]], qty: state.hari * p.c, vol: `${state.hari} hari × ${p.c} orang`, per: p.k, perQty: state.hari });
   }
   // Per orang per tingkat
   const perPerson = people.map((p) => {
@@ -164,10 +187,10 @@ export function resultHtml(res, effNotice) {
 
 // ---------- PDF ----------
 let pdfLib = null;
-function loadScript(src) {
+export function loadScript(src) {
   return new Promise((ok, no) => { const s = document.createElement('script'); s.src = src; s.onload = ok; s.onerror = no; document.head.appendChild(s); });
 }
-async function lib() {
+export async function lib() {
   if (!pdfLib) pdfLib = loadScript('vendor/jspdf.umd.min.js').then(() => loadScript('vendor/jspdf.plugin.autotable.min.js'));
   await pdfLib;
   return window.jspdf.jsPDF;
@@ -235,8 +258,8 @@ export async function buildPdf(res) {
   const stamp = new Date().toLocaleString('id-ID', { dateStyle: 'long', timeStyle: 'short' });
   for (let i = 1; i <= pages; i++) {
     doc.setPage(i); doc.setFontSize(7.5); doc.setTextColor(120, 126, 150);
-    doc.text(`Perkiraan dari aplikasi bantu baca SBM (cek-sbm.vercel.app, oleh @ryanepwijaya), bukan dokumen resmi. Cek ulang ke ketentuan aslinya. Dibuat ${stamp}.`, 14, 291);
-    doc.text(`${i}/${pages}`, W - 14, 291, { align: 'right' });
+    doc.text(doc.splitTextToSize(`Perkiraan dari aplikasi bantu baca SBM (cek-sbm.vercel.app, oleh @ryanepwijaya), bukan dokumen resmi. Cek ulang ke ketentuan aslinya. Dibuat ${stamp}.`, W - 48), 14, 288.5);
+    doc.text(`${i}/${pages}`, W - 14, 288.5, { align: 'right' });
   }
   const name = `Perkiraan-Perjadin-${plain(res.D.label).replace(/[^\w]+/g, '-')}-${KP.hari}hari-TA${Y.y}.pdf`.replace(/-+/g, '-');
   return { blob: doc.output('blob'), name };

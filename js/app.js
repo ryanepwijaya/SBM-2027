@@ -4,6 +4,7 @@ import { search, buildIndex, SEARCH_HINTS } from './search.js';
 import { ic } from './icons.js';
 import { loadWilayah, suggest, resolve, routeHtml, placeLabel, routeHints, W } from './rute.js';
 import { KP, compute, formHtml, resultHtml, buildPdf, resetKP } from './hitung.js';
+import { viewMassal } from './massal.js';
 import { BABS, REF_LINKS, babByKey, babByKel, babOfButir } from './bab.js';
 
 const $ = (s, el = document) => el.querySelector(s);
@@ -26,6 +27,7 @@ const TOOLS = [
     sub: [
       { k: 'rute', h: '#/rute', t: 'Buat Perjalanan', i: 'signpost', d: 'Dari kota X ke kota Y, semua satuan biaya perjalanan dinas langsung muncul' },
       { k: 'hitung', h: '#/hitung', t: 'Kalkulator Perjadin', i: 'calculator', d: 'Perkiraan biaya dari tujuan, lama, dan pelaksana surat tugas; bisa diunduh sebagai PDF' },
+      { k: 'massal', h: '#/massal', t: 'Kalkulator Perjadin (massal)', i: 'users', d: 'Satu kegiatan, peserta dari banyak kota asal; unduh PDF dan Excel' },
     ],
   },
   {
@@ -89,7 +91,7 @@ function effNotice() {
     return `<a class="chip" href="#/b/${bid}?t=${ti}">${esc(e ? (e.tab || e.name) : S.butir[bid].title)} ${pctTxt(v)}</a>`;
   }).filter(Boolean);
   if (!items.length) return '';
-  return `<div class="eff-note eff-sum" role="status">${ic('alert')}<div><b>Simulasi efisiensi aktif.</b> Angka berikut ditampilkan sebagian; besaran resmi tampil dicoret. <span class="chips">${items.join('')}</span></div><button type="button" class="btn sm" data-eff-clear>Kembali ke 100% semua</button></div>`;
+  return `<div class="eff-note eff-sum" role="status">${ic('triangle-alert')}<div><b>Simulasi efisiensi aktif.</b> Angka berikut ditampilkan sebagian; besaran resmi tampil dicoret. <span class="chips">${items.join('')}</span></div><button type="button" class="btn sm" data-eff-clear>Kembali ke 100% semua</button></div>`;
 }
 document.addEventListener('click', (e) => {
   const b = e.target.closest('[data-eff-clear]');
@@ -429,6 +431,7 @@ function renderPalette(q) {
       item({ href: '#/rute', t: 'Buat Perjalanan', d: 'Dari kota X ke kota Y: semua satuan biaya yang relevan', i: 'signpost' }),
       item({ href: '#/daerah', t: 'Biaya Per Provinsi', d: 'Semua satuan biaya per provinsi; bisa dibandingkan sampai 3 provinsi', i: 'map' }),
       item({ href: '#/hitung', t: 'Kalkulator Perjadin', d: 'Perkiraan biaya dari tujuan, lama, dan pelaksana', i: 'calculator' }),
+      item({ href: '#/massal', t: 'Kalkulator Perjadin (massal)', d: 'Satu kegiatan, peserta dari banyak kota asal; PDF dan Excel', i: 'users' }),
       item({ href: '#/daerah/ln', t: 'Luar Negeri', d: 'Uang harian per negara dan tiket per kota', i: 'globe' }),
     ] });
     const hist = store.get('qhist', []).slice(0, 5);
@@ -559,6 +562,7 @@ function route() {
         else { cr.push({ t: 'Biaya Per Provinsi', i: 'map' }); ({ html, after } = viewDaerah('dn', params)); }
         break;
       case 'rute': setNav('alat'); side = [null, 'tool:rute', 'rute']; cr.push(ALAT_CRUMB, RUTE_CRUMB, { t: 'Buat Perjalanan' }); ({ html, after } = viewRute(params)); break;
+      case 'massal': setNav('alat'); side = [null, 'tool:massal', 'rute']; cr.push(ALAT_CRUMB, RUTE_CRUMB, { t: 'Kalkulator Perjadin (massal)' }); ({ html, after } = viewMassal({ $, $$, toast, effNotice, placeField, attachAC })); break;
       case 'hitung': setNav('alat'); side = [null, 'tool:hitung', 'rute']; cr.push(ALAT_CRUMB, RUTE_CRUMB, { t: 'Kalkulator Perjadin' }); ({ html, after } = viewHitung()); break;
       case 'bandingkan': {
         // Bandingkan Wilayah dilebur ke Biaya Per Provinsi
