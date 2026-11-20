@@ -227,7 +227,9 @@ function ticketRoutes(O, D) {
   const t = S.butir['L2-6'].tables[0];
   const U = (x) => x.toUpperCase();
   const rows = t.rows.filter((r) => r.v && ((oc.includes(U(r.v[1])) && dc.includes(U(r.v[2]))) || (dc.includes(U(r.v[1])) && oc.includes(U(r.v[2])))));
-  rows.sort((a, b) => Math.min(...[a.v[1], a.v[2]].map((c) => { const i = dc.indexOf(U(c)); return i < 0 ? 99 : i; })) - Math.min(...[b.v[1], b.v[2]].map((c) => { const i = dc.indexOf(U(c)); return i < 0 ? 99 : i; })));
+  // urutkan: kota bandara utama tujuan dulu (ibu kota), lalu kota bandara utama asal
+  const rank = (r, list) => Math.min(...[r.v[1], r.v[2]].map((c) => { const i = list.indexOf(U(c)); return i < 0 ? 99 : i; }));
+  rows.sort((a, b) => rank(a, dc) - rank(b, dc) || rank(a, oc) - rank(b, oc));
   const items = rows.map((r) => {
     const fwd = oc.includes(U(r.v[1]));
     const a = fwd ? r.v[1] : r.v[2], b = fwd ? r.v[2] : r.v[1];

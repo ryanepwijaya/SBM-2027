@@ -9,6 +9,8 @@ import { lnSuggest, negOfCity, cityOfNeg } from './ln.js';
 import { viewInvoice, viewPajak, viewHonor } from './pbj.js';
 import { viewPerubahan, viewUnduh } from './perubahan.js';
 import { viewLembur, viewPemeliharaan, viewPaket } from './alat2.js';
+import { viewTujuan } from './tujuan.js';
+import { viewPindah } from './pindah.js';
 import { BABS, REF_LINKS, babByKey, babByKel, babOfButir } from './bab.js';
 
 const $ = (s, el = document) => el.querySelector(s);
@@ -32,8 +34,8 @@ const TOOLS = [
       { k: 'rute', h: '#/rute', t: 'SBM Perjalanan', i: 'signpost', d: 'Dari kota X ke kota Y, semua satuan biaya perjalanan dinas langsung muncul' },
       { k: 'hitung', h: '#/hitung', t: 'Hitung Perjalanan', i: 'calculator', d: 'Perkiraan biaya dari tujuan, lama, dan pelaksana surat tugas; bisa diunduh sebagai PDF' },
       { k: 'massal', h: '#/massal', t: 'Perjadin (banyak asal)', i: 'users', d: 'Satu kegiatan di satu kota, peserta dari banyak kota asal; unduh PDF dan Excel' },
-      { k: 'tujuan', h: '#/tujuan', t: 'Perjadin (banyak tujuan)', i: 'map-pin', d: 'Dari satu kota asal ke banyak kota tujuan', soon: true },
-      { k: 'pindah', h: '#/pindah', t: 'Dinas Pindah', i: 'package', d: 'Perkiraan biaya perjalanan dinas pindah: tiket, uang harian, dan angkutan barang', soon: true },
+      { k: 'tujuan', h: '#/tujuan', t: 'Perjadin (banyak tujuan)', i: 'map-pin', d: 'Satu surat tugas, rute berantai sampai 3 kota tujuan; unduh PDF' },
+      { k: 'pindah', h: '#/pindah', t: 'Dinas Pindah', i: 'package', d: 'Perkiraan biaya perjalanan dinas pindah dalam dan luar negeri: tiket, uang harian, angkutan barang' },
     ],
   },
   {
@@ -454,16 +456,17 @@ function renderPalette(q) {
       item({ href: '#/rute', t: 'SBM Perjalanan', d: 'Dari kota X ke kota Y: semua satuan biaya yang relevan', i: 'signpost' }),
       item({ href: '#/daerah', t: 'Biaya Per Provinsi', d: 'Semua satuan biaya per provinsi; bisa dibandingkan sampai 3 provinsi', i: 'map' }),
       item({ href: '#/hitung', t: 'Hitung Perjalanan', d: 'Perkiraan biaya dari tujuan, lama, dan pelaksana', i: 'calculator' }),
-      item({ href: '#/massal', t: 'Perjadin (banyak asal)', d: 'Satu kegiatan, peserta dari banyak kota asal; PDF dan Excel', i: 'users' }),
-      item({ href: '#/daerah/ln', t: 'Luar Negeri', d: 'Uang harian per negara dan tiket per kota', i: 'globe' }),
-      item({ href: '#/alat/honor', t: 'Hitung Honorarium', d: 'PPh 21 per status, rekap per golongan', i: 'hand-coins' }),
-      item({ href: '#/alat/invoice', t: 'Hitung Invoice Barang/Jasa', d: 'Daftar barang: volume × harga × frekuensi', i: 'receipt' }),
-      item({ href: '#/alat/pajak', t: 'Kalkulator Pajak', d: 'PPN, PPh 22/23/4(2), konstruksi, PPh 21', i: 'percent' }),
+      item({ href: '#/alat/lembur', t: 'Hitung Lembur', d: 'Uang lembur dan uang makan lembur per golongan', i: 'clock' }),
+      item({ href: '#/alat/kegiatan', t: 'Paket Kegiatan', d: 'Konsumsi rapat, paket halfday/fullday/fullboard, honor', i: 'presentation' }),
+      item({ href: '#/alat/pajak', t: 'Kalkulator Pajak', d: 'PPN, PPh 22, PPh 23, PPh 4 ayat (2), PNBP', i: 'percent' }),
     ] });
     const hist = store.get('qhist', []).slice(0, 5);
     if (hist.length) secs.push({ t: 'Pencarian terakhir', items: hist.map((h) => item({ href: '#q:' + h, t: h, i: 'history' })) });
   } else {
     const r = search(q);
+    const nq = norm(q);
+    const tools = TOOLS.flatMap((t) => (t.sub ? t.sub : [t])).filter((t, i, a) => a.findIndex((x) => x.h === t.h) === i && nq.length >= 3 && norm(`${t.t} ${t.d}`).includes(nq));
+    if (tools.length) secs.push({ t: 'Alat bantu', items: tools.slice(0, 4).map((t) => item({ href: t.h, t: t.t, d: t.d, i: t.i, k: 'Alat' })) });
     if (r.best.length) secs.push({ t: 'Langsung ke', items: r.best.slice(0, 6).map((x) => item({ ...x, i: x.kind === 'Rute' ? 'route' : x.kind === 'Daerah' ? 'map' : x.kind === 'Bab' ? 'plane' : 'corner-down-left', k: x.kind })) });
     if (r.menus.length) secs.push({ t: 'Jenis satuan biaya', items: r.menus.slice(0, 6).map((x) => item({ ...x, i: babIconOf(x.ref.id), k: lampShort(x.ref) })) });
     if (r.rows.length) secs.push({ t: 'Baris tabel', items: r.rows.slice(0, 6).map((x) => item({ ...x, d: (x.d || '') + (x.v ? ' · ' + x.v : ''), html: true, i: 'list', v: null })) });
@@ -607,7 +610,7 @@ function route() {
         break;
       case 'rute': setNav('alat'); side = [null, 'tool:rute', 'rute']; cr.push(ALAT_CRUMB, RUTE_CRUMB, { t: 'SBM Perjalanan' }); ({ html, after } = viewRute(params)); break;
       case 'massal': setNav('alat'); side = [null, 'tool:massal', 'rute']; cr.push(ALAT_CRUMB, RUTE_CRUMB, { t: 'Perjadin (banyak asal)' }); ({ html, after } = viewMassal({ $, $$, toast, effNotice, placeField, attachAC })); break;
-      case 'tujuan': case 'pindah': { setNav('alat'); const rt = TOOLS.find((x) => x.k === 'rute'); const t = rt.sub.find((x) => x.k === key); side = [null, 'tool:' + key, 'rute']; cr.push(ALAT_CRUMB, RUTE_CRUMB, { t: t.t }); html = viewSoonTool(t, rt); break; }
+      case 'tujuan': case 'pindah': { setNav('alat'); const rt = TOOLS.find((x) => x.k === 'rute'); const t = rt.sub.find((x) => x.k === key); side = [null, 'tool:' + key, 'rute']; cr.push(ALAT_CRUMB, RUTE_CRUMB, { t: t.t }); ({ html, after } = (key === 'tujuan' ? viewTujuan : viewPindah)({ $, $$, toast, effNotice, placeField, attachAC })); break; }
       case 'hitung': setNav('alat'); side = [null, 'tool:hitung', 'rute']; cr.push(ALAT_CRUMB, RUTE_CRUMB, { t: 'Hitung Perjalanan' }); ({ html, after } = viewHitung()); break;
       case 'bandingkan': {
         // Bandingkan Wilayah dilebur ke Biaya Per Provinsi

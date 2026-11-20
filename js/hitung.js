@@ -28,7 +28,7 @@ export const KP = {
   kelasLn: { pn: 'eko', e1: 'eko', pnl: 'eko', e2: 'eko', e3: 'eko', e4: 'eko' },
 };
 
-const refOf = (bid, ti, code) => {
+export const refOf = (bid, ti, code) => {
   const b = S.butir[bid];
   const r = code ? rowBy(bid, code, ti) : null;
   const num = r?.v?.[0];
@@ -36,15 +36,15 @@ const refOf = (bid, ti, code) => {
 };
 export const plain = (s) => String(s).replace(/⇄/g, '–').replace(/→/g, '–');
 
-const peopleOf = (state) => TINGKAT.filter((t) => state.org[t.k] > 0).map((t) => ({ ...t, c: state.org[t.k] }));
-const adder = (lines) => (x) => {
+export const peopleOf = (state) => TINGKAT.filter((t) => state.org[t.k] > 0).map((t) => ({ ...t, c: state.org[t.k] }));
+export const adder = (lines) => (x) => {
   const t = S.butir[x.bid].tables[x.ti];
   const cur = t.cur || 'IDR';
   const unit = x.n != null ? effVal(t, x.n, cur) : null;
-  lines.push({ ...x, t, cur, unit, amount: unit != null ? unit * x.qty : null, sifat: S.butir[x.bid].sifat, ref: refOf(x.bid, x.ti, x.code) });
+  lines.push({ ...x, t, cur, unit, amount: unit != null ? (cur === 'USD' ? unit * x.qty : Math.round(unit * x.qty)) : null, sifat: S.butir[x.bid].sifat, ref: refOf(x.bid, x.ti, x.code) });
 };
 // Penjumlahan per mata uang, per orang, dan total Rupiah (USD dikonversi bila kurs diisi)
-function finish(o, lines, people, kurs = 0) {
+export function finish(o, lines, people, kurs = 0) {
   const tot = {};
   for (const l of lines) if (l.amount != null) tot[l.cur] = (tot[l.cur] || 0) + l.amount;
   const perPerson = people.map((p) => {
@@ -287,17 +287,7 @@ export function resultHtml(res, effNotice) {
   if (!res.ready) return `<div class="empty small">${L === 'ln' ? 'Pilih kota atau negara tujuan untuk menghitung perkiraan biaya.' : L === 'dk' ? 'Pilih kabupaten/kota tempat kegiatan.' : 'Pilih kota tujuan untuk menghitung perkiraan biaya.'}</div>`;
   if (res.dalamKota) return `<div class="callout">${ic('info')}<div><b>Asal dan tujuan berada di kabupaten/kota yang sama.</b> Ini perjalanan dinas dalam kota. <button type="button" class="btn sm" data-to-dk>Hitung sebagai dalam kota</button></div></div>`;
   if (!res.total) return `<div class="empty small">Tambahkan minimal satu pelaksana di langkah 3.</div>`;
-  const rows = groupsOf(res.lines).map((g) => {
-    const ls = res.lines.filter((l) => l.g === g);
-    return `<tr class="grp"><td colspan="4">${esc(g)}</td></tr>` + ls.map((l) => `<tr${l.missing ? ' class="miss"' : ''}>
-      <td><div class="kp-k">${esc(l.label)}</div>${l.sub ? `<div class="kp-sub">${esc(l.sub)}</div>` : ''}<div class="kp-meta">${sifatChip(l.sifat)}<a class="chip ref" href="${l.ref.href}">${esc(l.ref.label)}</a>${l.missing ? '' : effMini([tableKey(l.t)])}</div></td>
-      <td class="n" data-l="Satuan biaya">${l.n != null ? money(l.t, l.n, l.cur) : '<span class="na">Tidak tercantum</span>'}</td>
-      <td class="vol" data-l="Volume">${esc(l.vol)}</td>
-      <td class="n tot" data-l="Jumlah">${l.amount != null ? (l.cur === 'USD' ? fmtUsd(l.amount) : fmt(l.amount)) : '–'}</td>
-    </tr>`).join('');
-  }).join('');
-  const foot = totalRows(res).map(([k, v], i, a) => `<tr${i < a.length - 1 ? ' class="sub"' : ''}><td colspan="2">${esc(k)}</td><td colspan="2" class="n">${v}</td></tr>`).join('');
-  const per = res.perPerson.map((p) => `<div class="kp-pp"><span>${esc(p.n)}${p.c > 1 ? ` <small>× ${p.c}</small>` : ''}</span><b>${sumsTxt(p.sums)}</b></div>`).join('');
+  const { table, per } = resTable(res);
   const check = res.lines.filter((l) => !l.missing).map((l) => `<li><b>${esc(l.label)}</b>${l.sub ? ` · ${esc(l.sub)}` : ''}: ${esc(l.vol)}</li>`).join('');
   const notes = [];
   if (res.alt.length) notes.push(`Rute tiket lain yang juga tercantum: ${res.alt.map(esc).join('; ')}. Perhitungan memakai rute pertama.`);
@@ -311,15 +301,32 @@ export function resultHtml(res, effNotice) {
   <div class="card kp-res">
     <div class="kp-res-h"><div><div class="kp-title">Perkiraan biaya perjalanan dinas${L === 'dk' ? ' dalam kota' : L === 'ln' ? ' luar negeri' : ''}</div><div class="muted small">${esc(summaryTxt(res))}</div></div>
       <div class="kp-actions"><button type="button" class="btn" id="kpPdf">${ic('download')} Unduh PDF</button></div></div>
-    <div class="tbl-wrap kp-tbl"><table class="t kp-t">
-      <thead><tr><th>Komponen</th><th class="n">Satuan biaya</th><th>Volume</th><th class="n">Jumlah</th></tr></thead>
-      <tbody>${rows}</tbody>
-      <tfoot>${foot}</tfoot>
-    </table></div>
-    <div class="kp-pps"><div class="kp-pps-h">Per orang</div>${per}</div>
+    ${table}
+    ${per}
     <div class="kp-foot muted small">Satuan biaya mengikuti SBM TA ${Y.y} (${esc(Y.src)})${res.effOn ? ', dengan persentase dibayar yang sedang aktif' : ''}. ${base} ${notes.join(' ')}</div>
   </div>
   ${fold('Daftar periksa komponen', `<ul class="kp-check">${check}</ul>`)}`;
+}
+
+// Tabel komponen + ringkasan per orang (dipakai Hitung Perjalanan, banyak tujuan, dinas pindah)
+export function resTable(res) {
+  const rows = groupsOf(res.lines).map((g) => {
+    const ls = res.lines.filter((l) => l.g === g);
+    return `<tr class="grp"><td colspan="4">${esc(g)}</td></tr>` + ls.map((l) => `<tr${l.missing ? ' class="miss"' : ''}>
+      <td><div class="kp-k">${esc(l.label)}</div>${l.sub ? `<div class="kp-sub">${esc(l.sub)}</div>` : ''}<div class="kp-meta">${sifatChip(l.sifat)}<a class="chip ref" href="${l.ref.href}">${esc(l.ref.label)}</a>${l.missing ? '' : effMini([tableKey(l.t)])}</div></td>
+      <td class="n" data-l="Satuan biaya">${l.n != null ? money(l.t, l.n, l.cur) : '<span class="na">Tidak tercantum</span>'}</td>
+      <td class="vol" data-l="Volume">${esc(l.vol)}</td>
+      <td class="n tot" data-l="Jumlah">${l.amount != null ? (l.cur === 'USD' ? fmtUsd(l.amount) : fmt(l.amount)) : '–'}</td>
+    </tr>`).join('');
+  }).join('');
+  const foot = totalRows(res).map(([k, v], i, a) => `<tr${i < a.length - 1 ? ' class="sub"' : ''}><td colspan="2">${esc(k)}</td><td colspan="2" class="n">${v}</td></tr>`).join('');
+  const per = res.perPerson.length ? `<div class="kp-pps"><div class="kp-pps-h">Per orang</div>${res.perPerson.map((p) => `<div class="kp-pp"><span>${esc(p.n)}${p.c > 1 ? ` <small>× ${p.c}</small>` : ''}</span><b>${sumsTxt(p.sums)}</b></div>`).join('')}</div>` : '';
+  const table = `<div class="tbl-wrap kp-tbl"><table class="t kp-t">
+      <thead><tr><th>Komponen</th><th class="n">Satuan biaya</th><th>Volume</th><th class="n">Jumlah</th></tr></thead>
+      <tbody>${rows}</tbody>
+      <tfoot>${foot}</tfoot>
+    </table></div>`;
+  return { table, per };
 }
 
 // ---------- PDF ----------
@@ -332,6 +339,8 @@ export async function lib() {
   await pdfLib;
   return window.jspdf.jsPDF;
 }
+// Teks aman untuk font standar PDF (helvetica WinAnsi tidak memuat · dan ³ dengan benar)
+const pt = (s) => plain(s).replace(/ · /g, ' - ').replace(/·/g, '-').replace(/³/g, '3');
 const fmtPdf = (n) => (n == null ? '-' : fmt(n));
 export async function buildPdf(res) {
   const jsPDF = await lib();
@@ -341,12 +350,13 @@ export async function buildPdf(res) {
   doc.setFillColor(...navy); doc.rect(0, 0, W, 4, 'F');
   doc.setFillColor(244, 190, 22); doc.rect(0, 4, W, 1.2, 'F');
   doc.setTextColor(...navy); doc.setFont('helvetica', 'bold'); doc.setFontSize(15);
-  doc.text(`Perkiraan Biaya Perjalanan Dinas${res.lingkup === 'dk' ? ' Dalam Kota' : res.lingkup === 'ln' ? ' Luar Negeri' : ''}`, 14, 16);
+  const C = res.custom || null;
+  doc.text(C ? C.title : `Perkiraan Biaya Perjalanan Dinas${res.lingkup === 'dk' ? ' Dalam Kota' : res.lingkup === 'ln' ? ' Luar Negeri' : ''}`, 14, 16);
   doc.setFont('helvetica', 'normal'); doc.setFontSize(9.5); doc.setTextColor(80, 86, 110);
   doc.text(`Standar Biaya Masukan TA ${Y.y} (${Y.src})`, 14, 21.5);
   const L = res.lingkup;
   const ppl = ['Pelaksana', res.people.map((p) => `${p.n}${L === 'ln' ? ` [Gol. ${GOL[p.k]}]` : ''} (${p.c})`).join('; ')];
-  const info = L === 'dk' ? [
+  const info = C ? C.info : L === 'dk' ? [
     ['Lingkup', 'Dalam kota'], ['Tempat', `${plain(res.D.label)} (${S.prov[res.D.prov].nama})`],
     ['Lama', `${KP.hari} hari${KP.delapan ? ', lebih dari 8 jam' : ', tidak lebih dari 8 jam'}`], ppl,
   ] : L === 'ln' ? [
@@ -356,16 +366,16 @@ export async function buildPdf(res) {
     ['Asal', plain(res.O.label)], ['Tujuan', `${plain(res.D.label)} (${S.prov[res.D.prov].nama})`],
     ['Lama', `${KP.hari} hari, ${KP.malam} malam`], ['Uang harian', KP.jenis === 'diklat' ? 'Diklat' : 'Luar kota'], ppl,
   ];
-  doc.autoTable({ startY: 26, body: info, theme: 'plain', styles: { fontSize: 9.5, cellPadding: 1.2, textColor: [30, 34, 52] }, columnStyles: { 0: { cellWidth: 28, fontStyle: 'bold' } }, margin: { left: 14, right: 14 } });
+  doc.autoTable({ startY: 26, body: info.map((r) => r.map((c) => pt(c))), theme: 'plain', styles: { fontSize: 9.5, cellPadding: 1.2, textColor: [30, 34, 52] }, columnStyles: { 0: { cellWidth: 28, fontStyle: 'bold' } }, margin: { left: 14, right: 14 } });
   const body = [];
   const fc = (n, cur) => (n == null ? '-' : cur === 'USD' ? fmtUsd(n) : fmt(n));
   for (const g of groupsOf(res.lines)) {
     const ls = res.lines.filter((l) => l.g === g);
-    body.push([{ content: g, colSpan: 5, styles: { fontStyle: 'bold', fillColor: [238, 241, 250], textColor: navy } }]);
+    body.push([{ content: pt(g), colSpan: 5, styles: { fontStyle: 'bold', fillColor: [238, 241, 250], textColor: navy } }]);
     for (const l of ls) {
       const p = effPct(l.t);
       const unit = l.n == null ? 'Tidak tercantum' : p < 100 ? `${fc(l.unit, l.cur)}\n(${pctTxt(p)} dari ${fc(l.n, l.cur)})` : fc(l.n, l.cur);
-      body.push([`${plain(l.label)}${l.sub ? '\n' + l.sub : ''}`, l.ref.label, unit, l.vol, fc(l.amount, l.cur)]);
+      body.push([`${pt(l.label)}${l.sub ? '\n' + pt(l.sub) : ''}`, l.ref.label, unit, pt(l.vol), fc(l.amount, l.cur)]);
     }
   }
   doc.autoTable({
@@ -384,12 +394,12 @@ export async function buildPdf(res) {
   doc.autoTable({
     startY: doc.lastAutoTable.finalY + 4,
     head: [['Per orang', 'Jumlah']],
-    body: res.perPerson.map((p) => [`${p.n}${p.c > 1 ? ` (x ${p.c})` : ''}`, sumsTxt(p.sums)]),
+    body: (res.perPerson.length ? res.perPerson : [{ n: '-', c: 1, sums: {} }]).map((p) => [`${p.n}${p.c > 1 ? ` (x ${p.c})` : ''}`, sumsTxt(p.sums)]),
     theme: 'grid', styles: { fontSize: 8.6, cellPadding: 1.8, lineColor: [215, 219, 232], lineWidth: 0.2 },
     headStyles: { fillColor: [238, 241, 250], textColor: navy, fontStyle: 'bold' },
     columnStyles: { 1: { halign: 'right', cellWidth: 50 } }, margin: { left: 14, right: 14 },
   });
-  const notes = L === 'dk' ? [
+  const notes = C ? [...C.notes] : L === 'dk' ? [
     'Transpor kegiatan dalam kabupaten/kota dihitung satu kali pergi-pulang per hari per orang.',
     KP.delapan ? 'Uang harian dan representasi dalam kota memakai kolom lebih dari 8 jam.' : 'Uang harian dan representasi dalam kota tidak dihitung (tidak lebih dari 8 jam).',
   ] : L === 'ln' ? [
@@ -406,7 +416,7 @@ export async function buildPdf(res) {
   if (res.missing.length) notes.push('Komponen yang tidak tercantum di tabel SBM tidak ikut dijumlahkan.');
   let y = doc.lastAutoTable.finalY + 6;
   doc.setFontSize(8); doc.setTextColor(90, 96, 120);
-  for (const n of notes) { const t = doc.splitTextToSize('- ' + n, W - 28); if (y + t.length * 3.6 > 285) { doc.addPage(); y = 16; } doc.text(t, 14, y); y += t.length * 3.6 + 0.8; }
+  for (const n of notes) { const t = doc.splitTextToSize('- ' + pt(n), W - 28); if (y + t.length * 3.6 > 285) { doc.addPage(); y = 16; } doc.text(t, 14, y); y += t.length * 3.6 + 0.8; }
   const pages = doc.getNumberOfPages();
   const stamp = new Date().toLocaleString('id-ID', { dateStyle: 'long', timeStyle: 'short' });
   for (let i = 1; i <= pages; i++) {
@@ -414,6 +424,7 @@ export async function buildPdf(res) {
     doc.text(doc.splitTextToSize(`Perkiraan dari aplikasi bantu baca SBM (cek-sbm.vercel.app, oleh @ryanepwijaya), bukan dokumen resmi. Cek ulang ke ketentuan aslinya. Dibuat ${stamp}.`, W - 48), 14, 288.5);
     doc.text(`${i}/${pages}`, W - 14, 288.5, { align: 'right' });
   }
+  if (C) return { blob: doc.output('blob'), name: C.file };
   const dest = res.lingkup === 'ln' ? `LN-${res.city || res.neg}` : `${res.lingkup === 'dk' ? 'Dalam-Kota-' : ''}${plain(res.D.label)}`;
   const name = `Perkiraan-Perjadin-${dest.replace(/[^\w]+/g, '-')}-${KP.hari}hari-TA${Y.y}.pdf`.replace(/-+/g, '-');
   return { blob: doc.output('blob'), name };
