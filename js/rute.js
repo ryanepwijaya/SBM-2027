@@ -1,5 +1,5 @@
 // Fitur Rute Perjadin: dari kota X ke kota Y → satuan biaya yang relevan
-import { S, Y, norm, esc, fmt, money, moneyTxt, valueCols, shortCol, rapatTiers, tip } from './store.js';
+import { S, Y, norm, esc, fmt, money, moneyTxt, valueCols, shortCol, rapatTiers, tip, effMini } from './store.js';
 
 export const W = { data: null, byId: {}, list: [], ticketByReg: {} };
 
@@ -244,7 +244,7 @@ function compHtml(c) {
     ? `<div class="callout warn" style="margin-top:8px"><div>${esc(c.missing)}</div></div>`
     : `<div class="kv" style="margin-top:10px">${c.vals.map((v) => `<div${v.hl ? ' class="hlv"' : ''}><div class="k">${esc(v.k)}</div><div class="v ${c.vals.length > 2 ? 'sm' : ''}">${v.v}</div></div>`).join('')}</div>`;
   const info = [c.sub, c.note].filter(Boolean).map(esc).join('<br><br>');
-  return `<div class="rcomp"><div class="rhead"><div class="t">${esc(c.title)} ${tip(info)}</div><div class="chips">${sif}${ref}</div></div>${vals}</div>`;
+  return `<div class="rcomp"><div class="rhead"><div class="t">${esc(c.title)} ${tip(info)}</div><div class="chips">${sif}${ref}${c.missing ? '' : effMini([`${c.bid}:${c.ti}`])}</div></div>${vals}</div>`;
 }
 
 export function routeHtml(O, D) {
@@ -257,7 +257,7 @@ export function routeHtml(O, D) {
     n++;
     if (s.table) {
       return `<section class="rsec"><h2 class="sec"><span class="step">${n}</span>${esc(s.h)} ${tip(esc(s.table.note))}</h2><div class="card card-pad"><div style="overflow:auto"><table class="mini"><thead><tr>${s.table.cols.map((c, i) => `<th${i ? ' class="n"' : ''}>${esc(c)}</th>`).join('')}</tr></thead><tbody>${s.table.rows.map((row) => `<tr>${row.map((c, i) => `<td${i ? ' class="n"' : ''}>${c}</td>`).join('')}</tr>`).join('')}</tbody></table></div>
-        <div class="chips" style="margin-top:10px"><span class="chip bt">Batas Tertinggi</span><a class="chip ref" href="#/b/L1-29?t=0${s.table.code ? '&r=' + encodeURIComponent(s.table.code) : ''}">Lamp. I angka ${S.butir['L1-29'].no}</a></div></div></section>`;
+        <div class="chips" style="margin-top:10px"><span class="chip bt">Batas Tertinggi</span><a class="chip ref" href="#/b/L1-29?t=0${s.table.code ? '&r=' + encodeURIComponent(s.table.code) : ''}">Lamp. I angka ${S.butir['L1-29'].no}</a>${effMini(['L1-29:0'])}</div></div></section>`;
     }
     return `<section class="rsec"><h2 class="sec"><span class="step">${n}</span>${esc(s.h)}</h2><div class="card rlist">${s.items.map(compHtml).join('')}</div></section>`;
   }).join('');

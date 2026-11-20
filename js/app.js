@@ -1,5 +1,5 @@
 import { ENTRIES, GROUPS, SHORTCUTS, SIFAT, KEL_ORDER, DOC_NOTES, TOL, applyYear } from './catalog.js';
-import { S, Y, YEARS, switchYear, initYear, loadData, entry, entriesOf, esc, norm, ref, lampShort, fmt, valueCols, unitCol, shortCol, UNIT, rowsOfProv, rapatTiers, pdfLink, store, tip, fold, money, effPct, setEffPct, clearEff, effAll, pctTxt } from './store.js';
+import { S, Y, YEARS, switchYear, initYear, loadData, entry, entriesOf, esc, norm, ref, lampShort, fmt, valueCols, unitCol, shortCol, UNIT, rowsOfProv, rapatTiers, pdfLink, store, tip, fold, money, effPct, setEffPct, clearEff, effAll, pctTxt, setEffKey } from './store.js';
 import { search, buildIndex, SEARCH_HINTS } from './search.js';
 import { ic } from './icons.js';
 import { loadWilayah, suggest, resolve, routeHtml, placeLabel, routeHints, W } from './rute.js';
@@ -95,6 +95,19 @@ function effNotice() {
   if (!items.length) return '';
   return `<div class="eff-note eff-sum" role="status">${ic('triangle-alert')}<div><b>Simulasi efisiensi aktif.</b> Angka berikut ditampilkan sebagian; besaran resmi tampil dicoret. <span class="chips">${items.join('')}</span></div><button type="button" class="btn sm" data-eff-clear>Kembali ke 100% semua</button></div>`;
 }
+// Kotak "Dibayar %" per komponen di alat Rute Perjadin: simpan saat selesai diketik (Enter atau keluar kotak)
+document.addEventListener('change', (e) => {
+  const i = e.target.closest('[data-effk]');
+  if (!i) return;
+  const raw = i.value.trim().replace(',', '.').replace('%', '');
+  const v = raw === '' ? 100 : Number(raw);
+  if (!(v > 0 && v <= 100)) { toast('Isi persentase 1 sampai 100'); route(); return; }
+  for (const k of i.dataset.effk.split(',')) setEffKey(k, v);
+  toast(v === 100 ? 'Kembali ke 100%' : `Dibayar ${pctTxt(v)}`);
+  route();
+});
+document.addEventListener('keydown', (e) => { const i = e.target.closest('[data-effk]'); if (i && e.key === 'Enter') { e.preventDefault(); i.blur(); } });
+document.addEventListener('focusin', (e) => { const i = e.target.closest('[data-effk]'); if (i) i.select(); });
 document.addEventListener('click', (e) => {
   const b = e.target.closest('[data-eff-clear]');
   if (!b) return;

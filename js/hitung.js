@@ -1,6 +1,6 @@
 // Kalkulator Perjadin: perkiraan biaya perjalanan dinas (dalam negeri luar kota, dalam kota, luar negeri).
 // Hanya menampilkan angka SBM yang relevan dikali volume; tidak menerapkan aturan PMK Perjalanan Dinas.
-import { S, Y, esc, fmt, valueCols, money, effVal, effPct, pctTxt, fold, tip, rapatTiers } from './store.js';
+import { S, Y, esc, fmt, valueCols, money, effVal, effPct, pctTxt, fold, tip, rapatTiers, effMini, tableKey } from './store.js';
 import { W, resolve, computeRoute, rowBy, capName } from './rute.js';
 import { GOL, KELAS_LN, tiketTable, uhTable, cityRow, negRow, negList } from './ln.js';
 import { ic } from './icons.js';
@@ -290,7 +290,7 @@ export function resultHtml(res, effNotice) {
   const rows = groupsOf(res.lines).map((g) => {
     const ls = res.lines.filter((l) => l.g === g);
     return `<tr class="grp"><td colspan="4">${esc(g)}</td></tr>` + ls.map((l) => `<tr${l.missing ? ' class="miss"' : ''}>
-      <td><div class="kp-k">${esc(l.label)}</div>${l.sub ? `<div class="kp-sub">${esc(l.sub)}</div>` : ''}<div class="kp-meta">${sifatChip(l.sifat)}<a class="chip ref" href="${l.ref.href}">${esc(l.ref.label)}</a></div></td>
+      <td><div class="kp-k">${esc(l.label)}</div>${l.sub ? `<div class="kp-sub">${esc(l.sub)}</div>` : ''}<div class="kp-meta">${sifatChip(l.sifat)}<a class="chip ref" href="${l.ref.href}">${esc(l.ref.label)}</a>${l.missing ? '' : effMini([tableKey(l.t)])}</div></td>
       <td class="n" data-l="Satuan biaya">${l.n != null ? money(l.t, l.n, l.cur) : '<span class="na">Tidak tercantum</span>'}</td>
       <td class="vol" data-l="Volume">${esc(l.vol)}</td>
       <td class="n tot" data-l="Jumlah">${l.amount != null ? (l.cur === 'USD' ? fmtUsd(l.amount) : fmt(l.amount)) : '–'}</td>

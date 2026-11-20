@@ -1,7 +1,7 @@
 // Perjadin (banyak asal): perkiraan biaya satu kegiatan dengan peserta dari banyak kota asal.
 // Memakai mesin hitung Kalkulator Perjadin per kota asal, lalu menjumlahkan. Hanya menampilkan angka SBM × volume.
 // Isian tersimpan di localStorage perangkat ini saja (tanpa akun, tanpa server).
-import { S, Y, esc, fmt, store, tip, effPct, pctTxt } from './store.js';
+import { S, Y, esc, fmt, store, tip, effPct, pctTxt, effMini, tableKey } from './store.js';
 import { W, resolve, suggest, placeLabel } from './rute.js';
 import { ic } from './icons.js';
 import { TINGKAT, compute, plain, lib as pdfLib, loadScript, autoMalam } from './hitung.js';
@@ -230,8 +230,9 @@ function step3() {
   </div>`;
 }
 
+const catKeys = (res, k) => [...new Set(res.live.flatMap((r) => r.res.lines.filter((l) => l.cat === k && !l.missing).map((l) => tableKey(l.t))))];
 function catRows(res) {
-  return CATS.filter(([k]) => res.cats[k]).map(([k, n]) => `<tr><td>${n}</td><td class="n">${fmt(res.cats[k])}</td><td class="n muted">${res.grand ? ((res.cats[k] / res.grand) * 100).toLocaleString('id-ID', { maximumFractionDigits: 1 }) : 0}%</td></tr>`).join('');
+  return CATS.filter(([k]) => res.cats[k]).map(([k, n]) => `<tr><td>${n}</td><td class="ms-eff">${effMini(catKeys(res, k))}</td><td class="n">${fmt(res.cats[k])}</td><td class="n muted">${res.grand ? ((res.cats[k] / res.grand) * 100).toLocaleString('id-ID', { maximumFractionDigits: 1 }) : 0}%</td></tr>`).join('');
 }
 function detailLines(r) {
   return `<table class="t ms-dt"><thead><tr><th>Komponen</th><th class="n">Satuan biaya</th><th>Volume</th><th class="n">Jumlah</th></tr></thead><tbody>${r.res.lines.filter((l) => l.qty || l.missing).map((l) => `<tr${l.missing ? ' class="miss"' : ''}><td>${esc(l.label)}${l.sub ? `<small>${esc(l.sub)}</small>` : ''}<a class="chip ref" href="${l.ref.href}">${esc(l.ref.label)}</a></td><td class="n">${l.unit != null ? fmt(l.unit) + (effPct(l.t) < 100 ? `<small>${pctTxt(effPct(l.t))} dari ${fmt(l.n)}</small>` : '') : '<span class="na">Tidak tercantum</span>'}</td><td>${esc(l.vol)}</td><td class="n">${l.amount != null ? fmt(l.amount) : '–'}</td></tr>`).join('')}</tbody></table>`;
@@ -275,8 +276,8 @@ function step4(effNotice) {
         <button type="button" class="btn" id="msXls">${ic('file-spreadsheet')} Unduh Excel</button>
       </div>
     </div>
-    <div class="card ms-cat"><table class="t ms-ct"><thead><tr><th>Komponen</th><th class="n">Jumlah</th><th class="n">Porsi</th></tr></thead><tbody>${catRows(res)}</tbody>
-      <tfoot><tr><td>Total</td><td class="n">${fmt(res.grand)}</td><td></td></tr></tfoot></table></div>
+    <div class="card ms-cat"><table class="t ms-ct"><thead><tr><th>Komponen</th><th>Dibayar ${tip('Simulasi efisiensi per komponen. Bawaan 100%. Berlaku untuk tabel SBM komponen itu di seluruh aplikasi dan tersimpan di perangkat ini.')}</th><th class="n">Jumlah</th><th class="n">Porsi</th></tr></thead><tbody>${catRows(res)}</tbody>
+      <tfoot><tr><td>Total</td><td></td><td class="n">${fmt(res.grand)}</td><td></td></tr></tfoot></table></div>
   </div>
   ${warn.length ? `<div class="callout warn ms-warn">${ic('triangle-alert')}<div>${warn.map((w) => `<p>${w}</p>`).join('')}</div></div>` : ''}
   <div class="card ms-res">

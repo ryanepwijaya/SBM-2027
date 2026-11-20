@@ -1495,3 +1495,13 @@ table.t.ms-dt tr.miss td { color: var(--muted); }
 .kp-tbl tfoot tr.sub td { font-size: 14px; font-weight: 700; border-top: 1px solid var(--border-2); background: color-mix(in srgb, var(--gold) 7%, var(--surface)); }
 .kp-tbl tfoot tr.sub + tr:not(.sub) td { border-top: 2px solid var(--gold); }
 .callout [data-to-dk] { margin-left: 6px; vertical-align: middle; }
+
+/* Kotak Dibayar % per komponen (alat Rute Perjadin) */
+.eff-mini { display: inline-flex; align-items: center; gap: 3px; height: 26px; padding: 0 7px 0 8px; border-radius: 999px; border: 1px solid var(--border); background: var(--surface); font-size: 11.5px; font-weight: 600; color: var(--muted); cursor: text; vertical-align: middle; }
+.eff-mini input { width: 34px; border: 0; background: transparent; font: inherit; font-size: 12.5px; font-weight: 800; text-align: right; color: var(--text); font-variant-numeric: tabular-nums; padding: 0; }
+.eff-mini input:focus { outline: none; }
+.eff-mini input::placeholder { color: var(--faint); font-weight: 600; }
+.eff-mini:focus-within { border-color: var(--navy); box-shadow: 0 0 0 2px color-mix(in srgb, var(--navy) 20%, transparent); }
+[data-theme="dark"] .eff-mini:focus-within { border-color: var(--gold-2); box-shadow: none; }
+.eff-mini.on { border-color: var(--gold); background: color-mix(in srgb, var(--gold) 16%, var(--surface)); color: var(--text); }
+.ms-eff { white-space: nowrap; }
