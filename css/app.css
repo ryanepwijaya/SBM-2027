@@ -1242,3 +1242,7 @@ table.t.pv-t tr.pv-lrow td { padding-top: 0; }
 .al-sub .chip { margin-left: auto; align-self: center; flex: none; }
 
 @media (min-width: 1024px) { .side-tools .acc-it span { white-space: normal; line-height: 1.25; } }
+.city-hint { display: flex; align-items: flex-start; gap: 8px; padding: 9px 12px; margin: 0 0 8px; border-radius: 10px; background: var(--surface-2); border: 1px solid var(--border); font-size: 13.5px; line-height: 1.45; }
+.city-hint svg { width: 16px; height: 16px; flex: none; margin-top: 2px; color: var(--navy-700); }
+[data-theme="dark"] .city-hint svg { color: var(--gold-2); }
+

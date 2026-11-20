@@ -26,6 +26,7 @@ function buildPlaceList() {
     L.push({
       id: r.id, n: r.n, sub: `${r.t === 'kota' ? 'Kota' : 'Kabupaten'} · ${S.prov[r.p].nama}`, t: r.dki ? 'DKI' : r.t === 'kota' ? 'Kota' : 'Kab.',
       p: r.p, air, s: norm([r.n.replace(/^Kab\. /, ''), r.n, ...(r.a || []), S.prov[r.p].nama].join(' ')), rank: air ? 2 : r.t === 'kota' ? 3 : 4,
+      al: r.a || [], kind: r.t,
     });
   }
   W.list = L;

@@ -733,6 +733,30 @@ function cellVal(t, r, i) {
   return esc(r.v[i]);
 }
 
+// Cocokkan kata kunci ke nama kabupaten/kota (data wilayah), kembalikan tempat beserta provinsinya
+function cityToProv(toks) {
+  if (!W.list || !toks.length || toks.join('').length < 3) return [];
+  // "kab"/"kabupaten"/"kota" dipakai sebagai penyaring jenis, bukan bagian nama
+  const kind = toks.some((t) => t === 'kab' || t === 'kabupaten') ? 'kab' : toks.includes('kota') ? 'kota' : null;
+  const name = toks.filter((t) => !['kab', 'kabupaten', 'kota'].includes(t));
+  if (!name.length || name.join('').length < 3) return [];
+  const q = name.join(' ');
+  const hitP = (words) => name.every((tk) => words.some((w) => w.startsWith(tk)));
+  const out = [];
+  for (const it of W.list) {
+    if (it.t === 'Provinsi' || it.id === 'jakarta' || !it.kind) continue;
+    if (kind && it.kind !== kind) continue;
+    const pv = S.prov[it.p];
+    if (hitP(norm([pv.nama, ...(pv.alias || [])].join(' ')).split(' '))) continue; // nama provinsi sudah cocok sendiri
+    const nm = norm(it.n.replace(/^(Kab\.|Kota|Kabupaten)\s+/i, ''));
+    const als = (it.al || []).map(norm);
+    if (hitP(nm.split(' ')) || als.some((a) => hitP(a.split(' ')))) out.push({ n: it.n, p: it.p, exact: nm === q || als.includes(q) });
+  }
+  // Bila ada yang persis sama (nama atau sebutan, mis. "solo"), tampilkan itu saja.
+  // Bila kata kunci persis nama provinsi (mis. "bali"), kota yang hanya mirip awalannya diabaikan.
+  const provExact = S.provList.some((pv) => [pv.nama, ...(pv.alias || [])].some((x) => norm(x) === q));
+  return out.some((x) => x.exact) || provExact ? out.filter((x) => x.exact) : out;
+}
 function renderTable(t, opt = {}) {
   const vc = new Set(valueCols(t));
   const uc = unitCol(t);
@@ -741,14 +765,21 @@ function renderTable(t, opt = {}) {
   const cols = t.cols.map((c, i) => ({ c, i })).filter((x) => !hideCols.has(x.i));
   let rows = opt.rows || t.rows;
   const f = norm(opt.filter || '');
+  let cityHits = [];
   if (f) {
     const toks = f.split(' ');
+    // Tabel per provinsi: kata kunci kabupaten/kota ikut menampilkan baris provinsinya
+    const provRows = opt.cityToProv && rows.some((r) => r.v && r.p);
+    if (provRows) cityHits = cityToProv(toks);
+    const hitProv = new Set(cityHits.map((x) => x.p));
+    // singkatan provinsi (jatim, sumut, ntt, …)
+    if (provRows) for (const pv of S.provList) if (toks.every((tk) => norm((pv.alias || []).join(' ')).split(' ').some((w) => w.startsWith(tk)))) hitProv.add(pv.id);
     const keep = [];
     let pendingGroup = null;
     for (const r of rows) {
       if (r.g) { pendingGroup = r; continue; }
       const hay = norm(r.v.join(' ') + ' ' + (pendingGroup ? pendingGroup.g : ''));
-      if (toks.every((tk) => hay.split(' ').some((w) => w.startsWith(tk)))) {
+      if ((r.p && hitProv.has(r.p)) || toks.every((tk) => hay.split(' ').some((w) => w.startsWith(tk)))) {
         if (pendingGroup && !keep.includes(pendingGroup)) keep.push(pendingGroup);
         keep.push(r);
       }
@@ -790,7 +821,8 @@ function renderTable(t, opt = {}) {
   else if (rows.some((r) => r.cu === 'USD')) meta.push('Sebagian nilai dalam <b>US$</b>');
   const dataRows = rows.filter((r) => r.v).length;
   meta.push(`${dataRows} baris`);
-  return `<div class="tbl-meta">${meta.join('<span>·</span>')}</div>
+  const hint = cityHits.length ? `<div class="city-hint">${ic('map-pin')}<div>${cityHits.slice(0, 4).map((x) => `<b>${esc(x.n)}</b> ada di <b>${esc(S.prov[x.p].nama)}</b>`).join('; ')}${cityHits.length > 4 ? `; dan ${cityHits.length - 4} lainnya` : ''}. Baris provinsinya ditampilkan.</div></div>` : '';
+  return `${hint}<div class="tbl-meta">${meta.join('<span>·</span>')}</div>
   <div class="tbl-wrap"><table class="t${hasCode ? '' : ' nocode'}"><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table></div>`;
 }
 
@@ -857,15 +889,16 @@ function viewButir(id, params, anchor) {
   }
 
   const big = b.tables[ti].rows.length > 12;
+  const provTable = b.tables[ti].rows.some((r) => r.p) && !['L2-2', 'L2-3', 'L2-6'].includes(id);
   const effCtl = `<div class="eff-ctl"><label for="effIn">Dibayar</label><span class="eff-box"><input id="effIn" type="text" inputmode="decimal" autocomplete="off" maxlength="6" value="100" aria-describedby="effHelp"><span>%</span></span>${tip('Untuk simulasi efisiensi, misalnya kebijakan pemotongan perjalanan dinas. Isi persentase yang dibayar (1–100); semua angka di tabel ini dihitung ulang dan besaran SBM aslinya tetap tampil dicoret di bawahnya. Tersimpan di perangkat ini per tabel dan per tahun anggaran, dan ikut dipakai di halaman Rute, Daerah, dan Bandingkan. Besaran resmi SBM tidak berubah.')}</div>`;
   if (id === 'L2-2') {
     tools = `<div class="tbl-tools"><select class="sel" id="provSel"><option value="">Semua provinsi (31)</option>${[...new Set(b.tables[0].rows.filter((r) => r.p).map((r) => r.p))].map((p) => `<option value="${p}"${p === state.prov ? ' selected' : ''}>${esc(S.prov[p].nama)}</option>`).join('')}</select><label class="field">${ic('search')}<input id="tblq" type="search" placeholder="Cari kabupaten/kota…" value="${esc(state.filter)}"></label>${effCtl}</div>`;
   } else if (id === 'L2-6') {
     tools = `<div class="tbl-tools"><label class="field">${ic('search')}<input id="tblq" type="search" placeholder="Cari kota, mis. surabaya atau jakarta makassar…" value="${esc(state.filter)}"></label>${effCtl}</div>`;
   } else if (big && !(id === 'L1-29')) {
-    tools = `<div class="tbl-tools"><label class="field">${ic('search')}<input id="tblq" type="search" placeholder="Saring baris tabel…" value="${esc(state.filter)}"></label>${effCtl}</div>`;
+    tools = `<div class="tbl-tools"><label class="field">${ic('search')}<input id="tblq" type="search" placeholder="${provTable ? 'Cari provinsi atau kabupaten/kota, mis. surakarta…' : 'Saring baris tabel…'}" value="${esc(state.filter)}"></label>${effCtl}</div>`;
   } else if (id === 'L1-29') {
-    tools = `<div class="tbl-tools" id="rapatTools"><label class="field">${ic('search')}<input id="tblq" type="search" placeholder="Saring provinsi…" value="${esc(state.filter)}"></label>${effCtl}</div>`;
+    tools = `<div class="tbl-tools" id="rapatTools"><label class="field">${ic('search')}<input id="tblq" type="search" placeholder="Cari provinsi atau kabupaten/kota…" value="${esc(state.filter)}"></label>${effCtl}</div>`;
   } else if (valueCols(b.tables[ti]).length) {
     tools = `<div class="tbl-tools">${effCtl}</div>`;
   }
@@ -896,7 +929,7 @@ function viewButir(id, params, anchor) {
     const ctl = $('.eff-ctl');
     if (ctl) ctl.classList.toggle('on', p < 100);
     const effNote = p < 100 ? `<div class="eff-note" role="status">${ic('alert')}<div><b>Ditampilkan ${pctTxt(p)} dari besaran SBM.</b> Angka dicoret di bawahnya adalah besaran resmi ${Y.src}. Dibulatkan ke rupiah terdekat.</div><button type="button" class="btn sm" id="effReset">Kembali ke 100%</button></div>` : '';
-    host.innerHTML = effNote + renderTable(t, { rows, filter, sort: state.sort, hl: params.r });
+    host.innerHTML = effNote + renderTable(t, { rows, filter, sort: state.sort, hl: params.r, cityToProv: !['L2-2', 'L2-3', 'L2-6'].includes(id) });
     const rs = $('#effReset');
     if (rs) rs.onclick = () => { setEffPct(t, 100); draw(); toast('Kembali ke 100%'); };
     scrollHint(host);
@@ -1124,13 +1157,17 @@ function viewDaerah(mode, params) {
     const html = `
     <div class="page-head"><h1 class="title">Biaya Per Provinsi</h1><p class="subtitle">Pilih provinsi untuk melihat semua satuan biaya SBM yang ditetapkan per provinsi, dikelompokkan per jenis biaya. Di halaman provinsi, Anda bisa menambahkan sampai 2 provinsi pembanding.</p></div>
     ${seg}
-    <div class="tbl-tools"><label class="field">${ic('search')}<input id="pq" type="search" placeholder="Cari provinsi atau kota, mis. jatim, surabaya…"></label></div>
+    <div class="tbl-tools"><label class="field">${ic('search')}<input id="pq" type="search" placeholder="Cari provinsi atau kabupaten/kota, mis. jatim, surakarta…"></label></div>
+    <div id="provHint"></div>
     <div class="prov-grid" id="provGrid">${S.provList.map((p) => `<a class="prov" href="#/daerah/p/${p.id}" data-s="${esc(norm([p.nama, ...p.alias, ...p.kota].join(' ')))}"><b>${esc(p.nama)}</b><small>${esc(p.kota[0])}</small></a>`).join('')}</div>`;
     const after = () => {
       const pq = $('#pq');
       pq.oninput = () => {
         const toks = norm(pq.value).split(' ').filter(Boolean);
-        $$('#provGrid .prov').forEach((a) => { a.style.display = toks.every((t) => a.dataset.s.split(' ').some((w) => w.startsWith(t))) ? '' : 'none'; });
+        const hits = cityToProv(toks);
+        const viaCity = new Set(hits.map((x) => x.p));
+        $$('#provGrid .prov').forEach((a) => { const id = a.getAttribute('href').split('/').pop(); a.style.display = !toks.length || viaCity.has(id) || toks.every((t) => a.dataset.s.split(' ').some((w) => w.startsWith(t))) ? '' : 'none'; });
+        $('#provHint').innerHTML = hits.length ? `<div class="city-hint">${ic('map-pin')}<div>${hits.slice(0, 4).map((x) => `<b>${esc(x.n)}</b> ada di <b>${esc(S.prov[x.p].nama)}</b>`).join('; ')}${hits.length > 4 ? `; dan ${hits.length - 4} lainnya` : ''}.</div></div>` : '';
       };
     };
     return { html, after };
