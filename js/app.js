@@ -21,10 +21,11 @@ const SIDE_MAIN = [
 // Alat Bantu: alat hitung cepat untuk menguji pengadaan/pembayaran
 const TOOLS = [
   {
-    k: 'rute', h: '#/rute', t: 'Rute Perjadin', i: 'route', d: 'Dari kota X ke kota Y, semua satuan biaya perjalanan dinas langsung muncul',
+    k: 'rute', h: '#/rute', t: 'Rute Perjadin', i: 'route', d: 'Satuan biaya perjalanan dinas dari kota asal ke kota tujuan, per provinsi, dan perbandingannya',
     sub: [
-      { k: 'daerah', h: '#/daerah', t: 'Per Provinsi', i: 'map', d: 'Semua satuan biaya per provinsi, semua bab' },
-      { k: 'bandingkan', h: '#/bandingkan', t: 'Bandingkan Provinsi', i: 'scale', d: 'Sampai 3 provinsi berdampingan' },
+      { k: 'rute', h: '#/rute', t: 'Buat Perjalanan', i: 'signpost', d: 'Dari kota X ke kota Y, semua satuan biaya perjalanan dinas langsung muncul' },
+      { k: 'daerah', h: '#/daerah', t: 'Cek Per Provinsi', i: 'map', d: 'Semua satuan biaya per provinsi, semua bab' },
+      { k: 'bandingkan', h: '#/bandingkan', t: 'Bandingkan Wilayah', i: 'scale', d: 'Sampai 3 provinsi berdampingan' },
       { k: 'ln', h: '#/daerah/ln', t: 'Luar Negeri', i: 'globe', d: 'Uang harian per negara dan tiket per kota', hideSide: true },
     ],
   },
@@ -241,13 +242,16 @@ function sideHtml() {
   }).join('');
   const refBody = stagger([`<div class="fly-h">${ic('library')}Referensi</div>`, ...REF_LINKS.map((r) => `<a class="acc-it" href="${r.h}" data-item="ref:${r.h}">${ic(r.icon)}<span>${esc(r.n)}</span></a>`)]);
   const toolLinks = TOOLS.map((t) => {
-    const one = (x, sub) => `<a class="side-link${sub ? ' sub' : ''}" href="${x.h}" data-side="${x.k}" data-tip="${esc(x.t)}">${ic(x.i)}<span>${esc(x.t)}</span>${x.soon ? '<em class="side-soon">Segera</em>' : ''}</a>`;
-    return one(t) + (t.sub || []).filter((x) => !x.hideSide).map((x) => one(x, true)).join('');
+    if (t.sub) {
+      const body = stagger([`<div class="fly-h">${ic(t.i)}${esc(t.t)}</div>`, ...t.sub.filter((x) => !x.hideSide).map((x) => `<a class="acc-it" href="${x.h}" data-item="tool:${x.k}">${ic(x.i)}<span>${esc(x.t)}</span></a>`)]);
+      return acc(t.k, t.t, t.i, '', body);
+    }
+    return `<a class="side-link" href="${t.h}" data-side="${t.k}" data-tip="${esc(t.t)}">${ic(t.i)}<span>${esc(t.t)}</span>${t.soon ? '<em class="side-soon">Segera</em>' : ''}</a>`;
   }).join('');
   return `
     <nav class="side-main">${main}</nav>
     <div class="side-label">Alat bantu</div>
-    <nav class="side-main" aria-label="Alat bantu">${toolLinks}</nav>
+    <div class="side-babs side-tools" aria-label="Alat bantu">${toolLinks}</div>
     <div class="side-label">Bab satuan biaya</div>
     <div class="side-babs">${babs}</div>
     <div class="side-label">Referensi</div>
@@ -314,8 +318,9 @@ function initSidebar() {
     if (!h) return;
     const acc = h.closest('.acc');
     const key = acc.dataset.acc;
-    const target = babByKey(key) ? '#/bab/' + key : null; // Referensi tidak punya halaman ringkasan
-    const onTarget = target && location.hash === target;
+    const tool = TOOLS.find((t) => t.k === key && t.sub);
+    const target = babByKey(key) ? '#/bab/' + key : tool ? tool.h : null; // Referensi tidak punya halaman ringkasan
+    const onTarget = target && location.hash.split('?')[0] === target;
     if (document.documentElement.dataset.rail === '1') {
       const wasFly = acc.classList.contains('fly');
       if (!wasFly || !target || onTarget) openFly(acc); // buka/tutup flyout
@@ -409,9 +414,9 @@ function renderPalette(q) {
     if (recent.length) secs.push({ t: 'Terakhir dilihat', items: recent.map((e) => item({ href: `#/b/${e.butir}?t=${e.table}`, t: e.name, d: e.desc, i: e.icon })) });
     secs.push({ t: 'Buka bab', items: BABS.map((b) => item({ href: `#/bab/${b.key}`, t: b.name, d: b.desc, i: b.icon, k: b.active ? `${b.count} jenis` : 'Segera' })) });
     secs.push({ t: 'Alat', items: [
-      item({ href: '#/rute', t: 'Rute Perjadin', d: 'Dari kota X ke kota Y: semua satuan biaya yang relevan', i: 'route' }),
-      item({ href: '#/daerah', t: 'Per Provinsi', d: 'Semua satuan biaya per provinsi, semua bab', i: 'map' }),
-      item({ href: '#/bandingkan', t: 'Bandingkan Provinsi', d: 'Sampai 3 provinsi berdampingan', i: 'scale' }),
+      item({ href: '#/rute', t: 'Buat Perjalanan', d: 'Dari kota X ke kota Y: semua satuan biaya yang relevan', i: 'signpost' }),
+      item({ href: '#/daerah', t: 'Cek Per Provinsi', d: 'Semua satuan biaya per provinsi, semua bab', i: 'map' }),
+      item({ href: '#/bandingkan', t: 'Bandingkan Wilayah', d: 'Sampai 3 provinsi berdampingan', i: 'scale' }),
       item({ href: '#/daerah/ln', t: 'Luar Negeri', d: 'Uang harian per negara dan tiket per kota', i: 'globe' }),
     ] });
     const hist = store.get('qhist', []).slice(0, 5);
@@ -480,6 +485,7 @@ function parseHash() {
 
 let lastPath = null;
 const ALAT_CRUMB = { t: 'Alat Bantu', h: '#/alat' };
+const RUTE_CRUMB = { t: 'Rute Perjadin', h: '#/rute', i: 'route' };
 function route() {
   const { parts, params, anchor } = parseHash();
   const main = $('#main');
@@ -529,13 +535,13 @@ function route() {
         break;
       case 'daerah':
         setNav('alat');
-        side = [parts[1] === 'ln' ? null : 'daerah'];
-        cr.push(ALAT_CRUMB, { t: 'Daerah', h: '#/daerah', i: 'map' });
-        if (parts[1] === 'p') { cr.push({ t: S.prov[parts[2]]?.nama || 'Provinsi' }); ({ html, after } = viewProv(parts[2])); }
-        else { cr.push({ t: parts[1] === 'ln' ? 'Luar Negeri' : 'Per Provinsi' }); ({ html, after } = viewDaerah(parts[1] === 'ln' ? 'ln' : 'dn', params)); }
+        side = [null, parts[1] === 'ln' ? null : 'tool:daerah', 'rute'];
+        cr.push(ALAT_CRUMB, RUTE_CRUMB);
+        if (parts[1] === 'p') { cr.push({ t: 'Cek Per Provinsi', h: '#/daerah' }, { t: S.prov[parts[2]]?.nama || 'Provinsi' }); ({ html, after } = viewProv(parts[2])); }
+        else { cr.push({ t: parts[1] === 'ln' ? 'Luar Negeri' : 'Cek Per Provinsi' }); ({ html, after } = viewDaerah(parts[1] === 'ln' ? 'ln' : 'dn', params)); }
         break;
-      case 'rute': setNav('alat'); side = ['rute']; cr.push(ALAT_CRUMB, { t: 'Rute Perjadin', i: 'route' }); ({ html, after } = viewRute(params)); break;
-      case 'bandingkan': setNav('alat'); side = ['bandingkan']; cr.push(ALAT_CRUMB, { t: 'Bandingkan Provinsi', i: 'scale' }); ({ html, after } = viewCompare(params)); break;
+      case 'rute': setNav('alat'); side = [null, 'tool:rute', 'rute']; cr.push(ALAT_CRUMB, RUTE_CRUMB, { t: 'Buat Perjalanan' }); ({ html, after } = viewRute(params)); break;
+      case 'bandingkan': setNav('alat'); side = [null, 'tool:bandingkan', 'rute']; cr.push(ALAT_CRUMB, RUTE_CRUMB, { t: 'Bandingkan Wilayah' }); ({ html, after } = viewCompare(params)); break;
       case 'tersimpan': setNav('tersimpan'); side = ['tersimpan']; cr.push({ t: 'Tersimpan', i: 'star' }); html = viewSaved(); break;
       case 'lainnya': {
         setNav('lainnya');
@@ -618,12 +624,12 @@ function viewHome() {
   <h2 class="sec">${ic('calculator')} Alat bantu <a class="sec-more" href="#/alat">Semua alat bantu</a></h2>
   <div class="tools">
     <section class="card card-pad tool-route">
-      <div class="row tr-head"><span class="tool-ico">${ic('route')}</span><div><b>Rute perjadin</b><small>Dari kota X ke kota Y, semua satuan biaya langsung muncul</small></div>${tip('Mencakup 514 kabupaten/kota dan 38 provinsi. Kota asal bawaan: Jakarta.')}</div>
+      <div class="row tr-head"><span class="tool-ico">${ic('route')}</span><div><b>Buat perjalanan</b><small>Dari kota X ke kota Y, semua satuan biaya langsung muncul</small></div>${tip('Mencakup 514 kabupaten/kota dan 38 provinsi. Kota asal bawaan: Jakarta.')}</div>
       ${routeForm('jakarta', '', true)}
     </section>
     <div class="tool-list card">
-      ${tool('#/daerah', 'map', 'Per provinsi', 'Semua satuan biaya per provinsi, semua bab')}
-      ${tool('#/bandingkan', 'scale', 'Bandingkan provinsi', 'Sampai 3 provinsi berdampingan')}
+      ${tool('#/daerah', 'map', 'Cek per provinsi', 'Semua satuan biaya per provinsi, semua bab')}
+      ${tool('#/bandingkan', 'scale', 'Bandingkan wilayah', 'Sampai 3 provinsi berdampingan')}
       ${tool('#/daerah/ln', 'globe', 'Luar negeri', 'Uang harian per negara & tiket per kota')}
       ${tool('#/alat/pajak', 'percent', 'Perpajakan <span class="chip sm">Segera</span>', 'PPN dan PPh atas pembayaran oleh bendahara')}
     </div>
@@ -680,9 +686,9 @@ function viewBab(bab) {
   let n = 0;
   const groups = bab.groups.map((g) => `${g.t ? `<div class="group-title">${esc(g.t)} <span class="count">${g.items.length}</span></div>` : ''}<div class="ent-grid">${g.items.map((it) => card(it, n++)).join('')}</div>`).join('');
   const tools = bab.key === 'perjadin' ? `<div class="bab-tools">
-      <a href="#/rute">${ic('route')}<span><b>Rute perjadin</b><small>Kota X ke kota Y</small></span></a>
-      <a href="#/daerah">${ic('map')}<span><b>Per provinsi</b><small>Semua biaya satu provinsi</small></span></a>
-      <a href="#/bandingkan">${ic('scale')}<span><b>Bandingkan</b><small>Sampai 3 provinsi</small></span></a>
+      <a href="#/rute">${ic('signpost')}<span><b>Buat perjalanan</b><small>Kota X ke kota Y</small></span></a>
+      <a href="#/daerah">${ic('map')}<span><b>Cek per provinsi</b><small>Semua biaya satu provinsi</small></span></a>
+      <a href="#/bandingkan">${ic('scale')}<span><b>Bandingkan wilayah</b><small>Sampai 3 provinsi</small></span></a>
       <a href="#/daerah/ln">${ic('globe')}<span><b>Luar negeri</b><small>Per negara & kota</small></span></a>
     </div>` : '';
   const html = `
@@ -1030,7 +1036,7 @@ function updateResults(q) {
 
 /* ---------------- Daerah ---------------- */
 function daerahSeg(mode) {
-  return `<div class="seg"><a href="#/rute" class="${mode === 'rute' ? 'on' : ''}">Rute</a><a href="#/daerah" class="${mode === 'dn' ? 'on' : ''}">Per Provinsi</a><a href="#/daerah/ln" class="${mode === 'ln' ? 'on' : ''}">Luar Negeri</a></div>`;
+  return `<div class="seg"><a href="#/rute" class="${mode === 'rute' ? 'on' : ''}">Buat Perjalanan</a><a href="#/daerah" class="${mode === 'dn' ? 'on' : ''}">Cek Per Provinsi</a><a href="#/daerah/ln" class="${mode === 'ln' ? 'on' : ''}">Luar Negeri</a></div>`;
 }
 
 /* ---------------- Rute ---------------- */
@@ -1074,7 +1080,7 @@ function viewRute(params) {
   const go = (d, k) => { location.hash = `#/rute?dari=${encodeURIComponent(d)}${k ? '&ke=' + encodeURIComponent(k) : ''}`; };
   const hints = routeHints();
   const html = `
-  <div class="page-head"><h1 class="title">Rute Perjalanan Dinas</h1><p class="subtitle">Pilih kota asal dan tujuan. Semua satuan biaya yang relevan muncul berurutan: taksi, tiket, transport darat, uang harian, penginapan. Rekomendasi mencakup 514 kabupaten/kota dan 38 provinsi. Contoh tujuan: ${hints.map((h) => esc(h.n)).join(', ')}.</p></div>
+  <div class="page-head"><h1 class="title">Buat Perjalanan</h1><p class="subtitle">Pilih kota asal dan tujuan. Semua satuan biaya yang relevan muncul berurutan: taksi, tiket, transport darat, uang harian, penginapan. Rekomendasi mencakup 514 kabupaten/kota dan 38 provinsi. Contoh tujuan: ${hints.map((h) => esc(h.n)).join(', ')}.</p></div>
   ${daerahSeg('rute')}
   <div class="card card-pad">${routeForm(dari, ke)}
   </div>
@@ -1093,7 +1099,7 @@ function viewDaerah(mode, params) {
   const seg = daerahSeg(mode);
   if (mode === 'dn') {
     const html = `
-    <div class="page-head"><h1 class="title">Daerah</h1><p class="subtitle">Pilih provinsi untuk melihat semua satuan biaya yang ditetapkan per provinsi (perjalanan dinas dan bab lain) dalam satu halaman.</p></div>
+    <div class="page-head"><h1 class="title">Cek Per Provinsi</h1><p class="subtitle">Pilih provinsi untuk melihat semua satuan biaya yang ditetapkan per provinsi (perjalanan dinas dan bab lain) dalam satu halaman.</p></div>
     ${seg}
     <div class="tbl-tools"><label class="field">${ic('search')}<input id="pq" type="search" placeholder="Cari provinsi atau kota, mis. jatim, surabaya…"></label><a class="btn" href="#/bandingkan">${ic('compare')} Bandingkan provinsi</a></div>
     <div class="prov-grid" id="provGrid">${S.provList.map((p) => `<a class="prov" href="#/daerah/p/${p.id}" data-s="${esc(norm([p.nama, ...p.alias, ...p.kota].join(' ')))}"><b>${esc(p.nama)}</b><small>${esc(p.kota[0])}</small></a>`).join('')}</div>`;
@@ -1109,7 +1115,7 @@ function viewDaerah(mode, params) {
   const tab = params.tab === 'tiket' ? 'tiket' : 'uh';
   const b = S.butir[tab === 'uh' ? 'L1-26' : 'L2-7'];
   const html = `
-  <div class="page-head"><h1 class="title">Daerah</h1><p class="subtitle">Uang harian per negara dan tiket pesawat per kota tujuan, dalam US$.</p></div>
+  <div class="page-head"><h1 class="title">Luar Negeri</h1><p class="subtitle">Uang harian per negara dan tiket pesawat per kota tujuan, dalam US$.</p></div>
   ${seg}
   <div class="tabs"><button class="tab${tab === 'uh' ? ' on' : ''}" data-ln="uh">Uang harian per negara</button><button class="tab${tab === 'tiket' ? ' on' : ''}" data-ln="tiket">Tiket PP dari Jakarta per kota</button></div>
   <div class="tbl-tools"><label class="field">${ic('search')}<input id="lnq" type="search" placeholder="${tab === 'uh' ? 'Cari negara, mis. jepang, belanda…' : 'Cari kota, mis. tokyo, amsterdam…'}"></label><a class="btn" href="#/b/${b.id}">${ic('book')} Buka butir & penjelasan</a></div>
@@ -1236,8 +1242,8 @@ function metrics() {
 function viewCompare(params) {
   let sel = (params.p || '').split(',').filter((x) => S.prov[x]).slice(0, 3);
   const html = `
-  <div class="page-head"><div class="crumb"><a href="#/daerah">Daerah</a><span class="sep">›</span>Bandingkan</div>
-  <h1 class="title">Bandingkan Provinsi</h1><p class="subtitle">Pilih sampai 3 provinsi untuk membandingkan uang harian, penginapan, taksi, dan paket rapat. Uang harian, penginapan, dan paket rapat bersifat batas tertinggi; taksi dapat dilampaui.</p></div>
+  <div class="page-head">
+  <h1 class="title">Bandingkan Wilayah</h1><p class="subtitle">Pilih sampai 3 provinsi untuk membandingkan uang harian, penginapan, taksi, dan paket rapat. Uang harian, penginapan, dan paket rapat bersifat batas tertinggi; taksi dapat dilampaui.</p></div>
   <div class="tbl-tools">
     ${[0, 1, 2].map((k) => `<select class="sel" data-slot="${k}"><option value="">Pilih provinsi ${k + 1}</option>${S.provList.map((p) => `<option value="${p.id}"${sel[k] === p.id ? ' selected' : ''}>${esc(p.nama)}</option>`).join('')}</select>`).join('')}
   </div>
@@ -1379,7 +1385,7 @@ function viewMore(sub) {
   <div class="group-title">Menu</div>
   <div class="card list">
     <a class="li" href="#/tersimpan">${ic('star', 'chev')}<div class="grow"><div class="t">Tersimpan</div></div>${ic('chev', 'chev')}</a>
-    <a class="li" href="#/bandingkan">${ic('compare', 'chev')}<div class="grow"><div class="t">Bandingkan provinsi</div></div>${ic('chev', 'chev')}</a>
+    <a class="li" href="#/bandingkan">${ic('compare', 'chev')}<div class="grow"><div class="t">Bandingkan wilayah</div></div>${ic('chev', 'chev')}</a>
     <a class="li" href="#/lainnya/catatan">${ic('list', 'chev')}<div class="grow"><div class="t">Catatan Umum ${Y.srcKind}</div></div>${ic('chev', 'chev')}</a>
     <a class="li" href="#/lainnya/singkatan">${ic('book', 'chev')}<div class="grow"><div class="t">Daftar singkatan</div></div>${ic('chev', 'chev')}</a>
     <a class="li" href="#/lainnya/dokumen">${ic('alert', 'chev')}<div class="grow"><div class="t">Catatan atas dokumen</div></div>${ic('chev', 'chev')}</a>
