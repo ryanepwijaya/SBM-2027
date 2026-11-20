@@ -4,7 +4,7 @@
 import { S, Y, esc, fmt, store, tip, effPct, pctTxt } from './store.js';
 import { W, resolve, suggest, placeLabel } from './rute.js';
 import { ic } from './icons.js';
-import { TINGKAT, compute, plain, lib as pdfLib, loadScript } from './hitung.js';
+import { TINGKAT, compute, plain, lib as pdfLib, loadScript, autoMalam } from './hitung.js';
 
 const KEY = 'massal';
 const SHORT = { pn: 'PN/Wamen', e1: 'Eselon I', pnl: 'PN Lainnya', e2: 'Eselon II', e3: 'Es. III/Gol. IV', e4: 'Es. IV/Gol. III–I' };
@@ -15,9 +15,11 @@ const CATS = [
 ];
 const clone = (o) => JSON.parse(JSON.stringify(o));
 const zeroOrg = () => Object.fromEntries(TINGKAT.map((t) => [t.k, 0]));
+// Kota asal baru langsung berisi 1 pelaksana Eselon IV/Golongan III/II/I, sama seperti Kalkulator Perjadin
+const newOrg = () => ({ ...zeroOrg(), e4: 1 });
 const sumOrg = (o) => TINGKAT.reduce((a, t) => a + (o[t.k] || 0), 0);
 const DEF = {
-  v: 1, step: 1, ke: '', jenis: 'lk', mode: 'non', hari: 3, malam: 2, malamManual: false, paket: 2, paketManual: false,
+  v: 1, step: 1, ke: '', jenis: 'lk', mode: 'non', hari: 1, malam: 1, malamManual: false, paket: 1, paketManual: false,
   kelas: Object.fromEntries(TINGKAT.map((t) => [t.k, 'eko'])), asal: [], pdfBy: 'kota', single: 'e4', sort: { k: 'prov', d: 1 },
 };
 function load() {
@@ -57,7 +59,7 @@ function sameAsDest(id) {
 function addAsal(id) {
   const n = normId(id);
   if (!n || MS.asal.some((a) => a.id === n)) return false;
-  MS.asal.push({ id: n, org: zeroOrg(), dh: 0 });
+  MS.asal.push({ id: n, org: newOrg(), dh: 0 });
   return true;
 }
 const sortAsal = () => MS.asal.sort((a, b) => provOrder(provOf(a.id)) - provOrder(provOf(b.id)) || (isCap(b.id) - isCap(a.id)) || labelOf(a.id).localeCompare(labelOf(b.id), 'id'));
@@ -128,14 +130,14 @@ function step1(ui) {
     ? `Hari paket memakai tarif <b>paket rapat fullboard</b> (per tingkat) ditambah <b>uang harian rapat fullboard</b>. Hari di luar paket memakai uang harian ${MS.jenis === 'diklat' ? 'diklat' : 'luar kota'}, dan malam di luar paket memakai tarif penginapan. Bawaan hari paket sama dengan jumlah malam.`
     : `Untuk kegiatan di kantor atau tempat tanpa paket rapat: uang harian ${MS.jenis === 'diklat' ? 'diklat' : 'luar kota'} penuh tiap hari, penginapan tiap malam, ditambah transportasi dari kota asal.`;
   return `<div class="card card-pad ms-card">
-    <h2 class="kp-h"><span class="step">1</span>Acara<button type="button" class="btn sm kp-reset" id="msReset">${ic('history')} Reset semua</button></h2>
+    <h2 class="kp-h"><span class="step">1</span>Acara</h2>
     <div class="ms-one">${ui.placeField('mKe', 'Kota tempat acara', MS.ke ? labelOf(MS.ke) : '', 'Ketik kota tujuan, mis. Surabaya, Bandung…')}</div>
     <div class="ms-f"><span class="kp-lbl">Jenis kegiatan</span>${seg('mode', [{ v: 'non', t: 'Tanpa paket rapat' }, { v: 'fb', t: 'Paket rapat fullboard' }], MS.mode)}</div>
     <div class="ms-f"><span class="kp-lbl">Uang harian</span>${seg('jenis', [{ v: 'lk', t: 'Luar kota' }, { v: 'diklat', t: 'Diklat' }], MS.jenis)}</div>
     <div class="callout ms-info">${ic('info')}<div>${fbInfo}</div></div>
     <div class="ms-days">
       <div class="ms-f"><span class="kp-lbl">Hari</span>${stp('hari', MS.hari, 1, 365, 'Jumlah hari')}</div>
-      <div class="ms-f"><span class="kp-lbl">Malam ${tip('Bawaan jumlah hari dikurangi satu. Bisa 0 sampai sama dengan jumlah hari.')}</span>${stp('malam', MS.malam, 0, MS.hari, 'Jumlah malam')}</div>
+      <div class="ms-f"><span class="kp-lbl">Malam ${tip('Bawaan 1 malam untuk 1 hari, lalu jumlah hari dikurangi satu (2 hari 1 malam, 3 hari 2 malam, dan seterusnya). Bisa 0 sampai sama dengan jumlah hari.')}</span>${stp('malam', MS.malam, 0, MS.hari, 'Jumlah malam')}</div>
       ${MS.mode === 'fb' ? `<div class="ms-f"><span class="kp-lbl">Hari paket ${tip('Jumlah paket fullboard per orang (1 paket = 1 hari dan 1 malam). Bawaan sama dengan jumlah malam.')}</span>${stp('paket', MS.paket, 0, MS.hari, 'Jumlah hari paket')}</div>` : ''}
     </div>
     <div class="muted small">Lama ini berlaku untuk semua kota asal. Di langkah 3, tiap kota asal bisa ditambah atau dikurangi harinya (misalnya datang sehari lebih awal).</div>
@@ -219,7 +221,7 @@ function step3() {
     </table></div>
     <details class="fold ms-paste"><summary><span>${ic('copy')} Tempel dari Excel</span><small>salin kolom kota dan jumlahnya</small></summary><div class="fold-body">
       <p class="small muted">Satu baris per kota. Kolom pertama nama kota/kabupaten, lalu jumlah per tingkat berurutan: ${TINGKAT.map((t) => esc(SHORT[t.k])).join(', ')}. Kolom ke-8 (opsional) ± hari. Bila hanya ada satu angka, angka itu masuk ke tingkat
-      <select class="sel sm" id="msSingle">${TINGKAT.map((t) => `<option value="${t.k}"${MS.single === t.k ? ' selected' : ''}>${esc(SHORT[t.k])}</option>`).join('')}</select>. Baris tanpa angka hanya menambah kota asal. Kota yang belum dipilih otomatis ditambahkan.</p>
+      <select class="sel sm" id="msSingle">${TINGKAT.map((t) => `<option value="${t.k}"${MS.single === t.k ? ' selected' : ''}>${esc(SHORT[t.k])}</option>`).join('')}</select>. Baris tanpa angka hanya menambah kota asal (berisi 1 pelaksana bawaan). Kota yang belum dipilih otomatis ditambahkan.</p>
       <textarea id="msPasteIn" class="ms-ta" rows="6" placeholder="Surabaya&#9;0&#9;0&#9;0&#9;1&#9;2&#9;10&#10;Kab. Bojonegoro&#9;5"></textarea>
       <div class="ms-paste-a"><button type="button" class="btn" id="msPasteGo">Proses tempelan</button></div>
       <div id="msPasteOut"></div>
@@ -320,6 +322,7 @@ function applyPaste(p) {
     if (addAsal(r.id)) added++;
     const a = MS.asal.find((x) => x.id === r.id);
     if (!r.nums.length) continue;
+    a.org = zeroOrg();
     if (r.nums.length === 1) a.org[MS.single] = Math.max(0, Math.min(9999, Math.round(r.nums[0])));
     else TINGKAT.forEach((t, i) => { if (r.nums[i] != null) a.org[t.k] = Math.max(0, Math.min(9999, Math.round(r.nums[i]))); });
     if (r.nums.length >= 7) a.dh = Math.max(-(MS.hari - 1), Math.min(30, Math.round(r.nums[6])));
@@ -331,6 +334,7 @@ function applyPaste(p) {
 /* ---------------- View ---------------- */
 export function viewMassal(ui) {
   const html = `<div class="page-head"><h1 class="title">Perjadin (banyak asal)</h1><p class="subtitle">Perkiraan biaya satu kegiatan di kota tertentu dengan peserta dari banyak kota asal. Hasilnya bisa diunduh sebagai PDF (ringkasan di halaman pertama, lalu rincian) dan Excel. Isian tersimpan otomatis di perangkat ini saja, tanpa akun dan tidak dikirim ke mana pun.</p></div>
+  <div class="ms-bar"><span class="muted small">${ic('check')} Draf tersimpan otomatis di perangkat ini</span><button type="button" class="btn sm" id="msReset">${ic('history')} Reset semua</button></div>
   <div id="msNav"></div><div id="msBody"></div>`;
   const { $, $$, toast, effNotice } = ui;
   const go = (s) => { MS.step = s; save(); render(); window.scrollTo({ top: 0 }); };
@@ -338,7 +342,10 @@ export function viewMassal(ui) {
   function render() {
     const nav = $('#msNav');
     nav.innerHTML = stepsNav();
-    if (!nav.dataset.w) { nav.dataset.w = 1; nav.addEventListener('click', onGo); }
+    if (!nav.dataset.w) {
+      nav.dataset.w = 1; nav.addEventListener('click', onGo);
+      $('#msReset').onclick = () => { if (!confirmReset()) return; resetMS(); render(); window.scrollTo({ top: 0 }); toast('Semua isian dikembalikan ke awal'); };
+    }
     // Elemen baru tiap render agar pendengar event langkah sebelumnya ikut terbuang
     const old = $('#msBody');
     const body = old.cloneNode(false);
@@ -394,14 +401,13 @@ export function viewMassal(ui) {
     $$('[data-mode]', body).forEach((b) => b.onclick = () => { MS.mode = b.dataset.mode; save(); render(); });
     $$('[data-jenis]', body).forEach((b) => b.onclick = () => { MS.jenis = b.dataset.jenis; save(); render(); });
     $$('[data-kelas]', body).forEach((s) => s.onchange = () => { MS.kelas[s.dataset.kelas] = s.value; save(); });
-    $('#msReset').onclick = () => { if (!confirmReset()) return; resetMS(); render(); toast('Semua isian dikosongkan'); };
     const el = (id) => $(`[data-stp="${id}"]`, body);
     wireStp(body, (id) => MS[id], (stpEl, v, keep) => {
       const id = stpEl.dataset.stp;
       if (id === 'hari') {
         MS.hari = setStp(stpEl, v, keep);
         el('malam').dataset.max = MS.hari;
-        MS.malam = setStp(el('malam'), MS.malamManual ? Math.min(MS.malam, MS.hari) : MS.hari - 1);
+        MS.malam = setStp(el('malam'), MS.malamManual ? Math.min(MS.malam, MS.hari) : Math.min(MS.hari, autoMalam(MS.hari)));
         if (el('paket')) { el('paket').dataset.max = MS.hari; MS.paket = setStp(el('paket'), MS.paketManual ? Math.min(MS.paket, MS.hari) : MS.malam); }
         else MS.paket = MS.paketManual ? Math.min(MS.paket, MS.hari) : MS.malam;
       } else if (id === 'malam') {

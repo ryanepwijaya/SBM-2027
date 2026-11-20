@@ -20,7 +20,7 @@ const FB_TIER_N = ['Menteri/Wamen', 'Eselon I dan II/JF Utama', 'Eselon III/JF M
 
 // Isian bertahan selama aplikasi terbuka (tidak disimpan ke perangkat)
 export const KP = {
-  dari: 'jakarta', ke: '', jenis: 'lk', hari: 3, malam: 2, malamManual: false,
+  dari: 'jakarta', ke: '', jenis: 'lk', hari: 1, malam: 1, malamManual: false,
   org: { pn: 0, e1: 0, pnl: 0, e2: 0, e3: 0, e4: 1 },
   kelas: { pn: 'eko', e1: 'eko', pnl: 'eko', e2: 'eko', e3: 'eko', e4: 'eko' },
 };
@@ -121,6 +121,8 @@ export function compute(state = KP) {
 }
 
 const stepper = (id, val, min, max, label) => `<div class="stp" data-stp="${id}" data-min="${min}" data-max="${max}"><button type="button" data-d="-1" aria-label="Kurangi ${esc(label)}"${val <= min ? ' disabled' : ''}>−</button><input class="stp-in" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="3" value="${val}" aria-label="Jumlah ${esc(label)}"><button type="button" data-d="1" aria-label="Tambah ${esc(label)}"${val >= max ? ' disabled' : ''}>+</button></div>`;
+// Malam bawaan mengikuti hari: 1 hari 1 malam, selebihnya hari dikurangi satu
+export const autoMalam = (h) => Math.max(1, h - 1);
 export const KP_DEFAULT = JSON.parse(JSON.stringify(KP));
 export function resetKP() { Object.assign(KP, JSON.parse(JSON.stringify(KP_DEFAULT))); }
 
@@ -134,7 +136,7 @@ export function formHtml(routeForm) {
     </div>
     <div class="kp-step"><h2 class="kp-h"><span class="step">2</span>Lama perjalanan</h2>
       <div class="kp-row"><span class="kp-lbl">Hari</span>${stepper('hari', KP.hari, 1, 365, 'hari')}</div>
-      <div class="kp-row"><span class="kp-lbl">Malam menginap ${tip('Bawaan jumlah hari dikurangi satu. Bisa diubah dari 0 sampai sama dengan jumlah hari.')}</span>${stepper('malam', KP.malam, 0, KP.hari, 'malam')}</div>
+      <div class="kp-row"><span class="kp-lbl">Malam menginap ${tip('Bawaan 1 malam untuk 1 hari, lalu jumlah hari dikurangi satu (2 hari 1 malam, 3 hari 2 malam, dan seterusnya). Bisa diubah dari 0 sampai sama dengan jumlah hari.')}</span>${stepper('malam', KP.malam, 0, KP.hari, 'malam')}</div>
     </div>
     <div class="kp-step"><h2 class="kp-h"><span class="step">3</span>Pelaksana</h2>
       <div class="kp-people">${TINGKAT.map((t) => `<div class="kp-p">

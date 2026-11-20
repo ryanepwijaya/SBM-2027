@@ -3,7 +3,7 @@ import { S, Y, YEARS, switchYear, initYear, loadData, entry, entriesOf, esc, nor
 import { search, buildIndex, SEARCH_HINTS } from './search.js';
 import { ic } from './icons.js';
 import { loadWilayah, suggest, resolve, routeHtml, placeLabel, routeHints, W } from './rute.js';
-import { KP, compute, formHtml, resultHtml, buildPdf, resetKP } from './hitung.js';
+import { KP, compute, formHtml, resultHtml, buildPdf, resetKP, autoMalam } from './hitung.js';
 import { viewMassal } from './massal.js';
 import { BABS, REF_LINKS, babByKey, babByKel, babOfButir } from './bab.js';
 
@@ -1373,7 +1373,7 @@ function viewHitung() {
       if (id === 'hari') {
         KP.hari = setStp('hari', v, keepText);
         const m = $('[data-stp="malam"]'); m.dataset.max = KP.hari;
-        KP.malam = setStp('malam', KP.malamManual ? Math.min(KP.malam, KP.hari) : KP.hari - 1);
+        KP.malam = setStp('malam', KP.malamManual ? Math.min(KP.malam, KP.hari) : Math.min(KP.hari, autoMalam(KP.hari)));
       } else if (id === 'malam') { KP.malamManual = true; KP.malam = setStp('malam', v, keepText); }
       else if (id.startsWith('org:')) { const k = id.slice(4); KP.org[k] = setStp(id, v, keepText); }
       draw();

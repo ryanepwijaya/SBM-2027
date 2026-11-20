@@ -1468,3 +1468,8 @@ table.t.ms-dt tr.miss td { color: var(--muted); }
   .ms-dt > tbody > tr > td:nth-child(3)::before { content: '× '; }
   .ms-paste summary small { display: none; }
 }
+
+.ms-bar { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: -4px 0 12px; }
+.ms-bar > span { display: inline-flex; align-items: center; gap: 6px; }
+.ms-bar > span svg { width: 15px; height: 15px; color: var(--ok, var(--muted)); }
+.ms-bar .btn { white-space: nowrap; flex: none; }
