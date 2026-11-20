@@ -40,16 +40,16 @@ const TOOLS = [
     sub: [{ k: 'ln', h: '#/daerah/ln', t: 'Luar Negeri', i: 'globe', d: 'Uang harian per negara dan tiket per kota' }], flat: true, w: -1,
   },
   {
-    k: 'pbj', h: '#/alat/honor', t: 'Pengadaan Barang/Jasa', i: 'shopping-cart', d: 'Hitung honorarium, invoice barang/jasa, dan pajaknya',
+    k: 'pbj', h: '#/alat/honor', t: 'Pengadaan Barang/Jasa', i: 'shopping-cart', d: 'Hitung honorarium, invoice barang/jasa, lembur, serta pemeliharaan dan operasional',
     sub: [
       { k: 'honor', h: '#/alat/honor', t: 'Hitung Honorarium', i: 'hand-coins', d: 'Honor narasumber, panitia, dan kegiatan: PPh 21 per status, rekap per golongan' },
       { k: 'invoice', h: '#/alat/invoice', t: 'Hitung Invoice Barang/Jasa', i: 'receipt', d: 'Daftar barang/jasa: volume × harga satuan × frekuensi, bisa diisi tanpa mouse' },
-      { k: 'pajak', h: '#/alat/pajak', t: 'Kalkulator Pajak', i: 'percent', d: 'PPN, PPh 22, PPh 23, dan PPh 4(2) dari satu nilai' },
+      { k: 'lembur', h: '#/alat/lembur', t: 'Hitung Lembur', i: 'clock', d: 'Uang lembur dan uang makan lembur per golongan, hari kerja atau hari libur', soon: true },
       { k: 'pemeliharaan', h: '#/alat/pemeliharaan', t: 'Hitung Pemeliharaan dan Operasional', i: 'wrench', d: 'Pagu pemeliharaan gedung, kendaraan dinas, dan sarana kantor per tahun', soon: true },
     ],
   },
+  { k: 'pajak', h: '#/alat/pajak', t: 'Kalkulator Pajak', i: 'percent', d: 'PPN, PPh 22, PPh 23, dan PPh 4(2) dari satu nilai; bisa diambil dari Hitung Invoice', w: 1 },
   { k: 'kegiatan', h: '#/alat/kegiatan', t: 'Paket Kegiatan', i: 'presentation', d: 'Biaya rapat/pertemuan: paket halfday, fullday, fullboard atau konsumsi, ditambah honor narasumber', soon: true, w: 3 },
-  { k: 'lembur', h: '#/alat/lembur', t: 'Belanja Lembur', i: 'clock', d: 'Uang lembur dan uang makan lembur per golongan, hari kerja atau hari libur', soon: true, w: 4 },
 ];
 // Urutan Alat Bantu: Biaya Per Provinsi paling atas, Unduh Tabel Biaya paling bawah (w = bobot urutan)
 TOOLS.forEach((t, i) => { t._i = i; });
@@ -570,18 +570,22 @@ function route() {
       case 'alat':
         setNav('alat');
         cr.push({ t: 'Alat Bantu', h: '#/alat', i: 'calculator' });
-        if (['honor', 'invoice', 'pajak', 'pemeliharaan'].includes(parts[1])) {
+        if (['honor', 'invoice', 'lembur', 'pemeliharaan'].includes(parts[1])) {
           const pbj = TOOLS.find((x) => x.k === 'pbj');
           const t = pbj.sub.find((x) => x.k === parts[1]);
           side = [null, 'tool:' + t.k, 'pbj'];
           cr.push({ t: 'Pengadaan Barang/Jasa', h: pbj.h, i: 'shopping-cart' }, { t: t.t });
           const ui = { $, $$, toast, copy, route };
           if (t.k === 'invoice') ({ html, after } = viewInvoice(ui));
-          else if (t.k === 'pajak') ({ html, after } = viewPajak(ui, params));
           else if (t.k === 'honor') ({ html, after } = viewHonor(ui));
           else html = viewSoonTool(t, pbj);
         }
-        else if (['kegiatan', 'lembur'].includes(parts[1])) {
+        else if (parts[1] === 'pajak') {
+          side = ['pajak'];
+          cr.push({ t: 'Kalkulator Pajak' });
+          ({ html, after } = viewPajak({ $, $$, toast, copy, route }, params));
+        }
+        else if (['kegiatan'].includes(parts[1])) {
           const t = TOOLS.find((x) => x.k === parts[1]);
           side = [t.k];
           cr.push({ t: t.t });
