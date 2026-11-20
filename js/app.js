@@ -27,8 +27,8 @@ const TOOLS = [
   {
     k: 'rute', h: '#/rute', t: 'Rute Perjadin', i: 'route', d: 'Satuan biaya perjalanan dinas dari kota asal ke kota tujuan, dan perkiraan biayanya',
     sub: [
-      { k: 'rute', h: '#/rute', t: 'Buat Perjalanan', i: 'signpost', d: 'Dari kota X ke kota Y, semua satuan biaya perjalanan dinas langsung muncul' },
-      { k: 'hitung', h: '#/hitung', t: 'Kalkulator Perjadin', i: 'calculator', d: 'Perkiraan biaya dari tujuan, lama, dan pelaksana surat tugas; bisa diunduh sebagai PDF' },
+      { k: 'rute', h: '#/rute', t: 'SBM Perjalanan', i: 'signpost', d: 'Dari kota X ke kota Y, semua satuan biaya perjalanan dinas langsung muncul' },
+      { k: 'hitung', h: '#/hitung', t: 'Hitung Perjalanan', i: 'calculator', d: 'Perkiraan biaya dari tujuan, lama, dan pelaksana surat tugas; bisa diunduh sebagai PDF' },
       { k: 'massal', h: '#/massal', t: 'Perjadin (banyak asal)', i: 'users', d: 'Satu kegiatan di satu kota, peserta dari banyak kota asal; unduh PDF dan Excel' },
       { k: 'tujuan', h: '#/tujuan', t: 'Perjadin (banyak tujuan)', i: 'map-pin', d: 'Dari satu kota asal ke banyak kota tujuan', soon: true },
     ],
@@ -444,9 +444,9 @@ function renderPalette(q) {
     if (recent.length) secs.push({ t: 'Terakhir dilihat', items: recent.map((e) => item({ href: `#/b/${e.butir}?t=${e.table}`, t: e.name, d: e.desc, i: e.icon })) });
     secs.push({ t: 'Buka bab', items: BABS.map((b) => item({ href: `#/bab/${b.key}`, t: b.name, d: b.desc, i: b.icon, k: b.active ? `${b.count} jenis` : 'Segera' })) });
     secs.push({ t: 'Alat', items: [
-      item({ href: '#/rute', t: 'Buat Perjalanan', d: 'Dari kota X ke kota Y: semua satuan biaya yang relevan', i: 'signpost' }),
+      item({ href: '#/rute', t: 'SBM Perjalanan', d: 'Dari kota X ke kota Y: semua satuan biaya yang relevan', i: 'signpost' }),
       item({ href: '#/daerah', t: 'Biaya Per Provinsi', d: 'Semua satuan biaya per provinsi; bisa dibandingkan sampai 3 provinsi', i: 'map' }),
-      item({ href: '#/hitung', t: 'Kalkulator Perjadin', d: 'Perkiraan biaya dari tujuan, lama, dan pelaksana', i: 'calculator' }),
+      item({ href: '#/hitung', t: 'Hitung Perjalanan', d: 'Perkiraan biaya dari tujuan, lama, dan pelaksana', i: 'calculator' }),
       item({ href: '#/massal', t: 'Perjadin (banyak asal)', d: 'Satu kegiatan, peserta dari banyak kota asal; PDF dan Excel', i: 'users' }),
       item({ href: '#/daerah/ln', t: 'Luar Negeri', d: 'Uang harian per negara dan tiket per kota', i: 'globe' }),
       item({ href: '#/alat/honor', t: 'Hitung Honorarium', d: 'PPh 21 per status, rekap per golongan', i: 'hand-coins' }),
@@ -585,10 +585,10 @@ function route() {
         else if (parts[1] === 'ln') { cr.push({ t: 'Biaya Per Provinsi', h: '#/daerah', i: 'map' }, { t: 'Luar Negeri' }); ({ html, after } = viewDaerah('ln', params)); }
         else { cr.push({ t: 'Biaya Per Provinsi', i: 'map' }); ({ html, after } = viewDaerah('dn', params)); }
         break;
-      case 'rute': setNav('alat'); side = [null, 'tool:rute', 'rute']; cr.push(ALAT_CRUMB, RUTE_CRUMB, { t: 'Buat Perjalanan' }); ({ html, after } = viewRute(params)); break;
+      case 'rute': setNav('alat'); side = [null, 'tool:rute', 'rute']; cr.push(ALAT_CRUMB, RUTE_CRUMB, { t: 'SBM Perjalanan' }); ({ html, after } = viewRute(params)); break;
       case 'massal': setNav('alat'); side = [null, 'tool:massal', 'rute']; cr.push(ALAT_CRUMB, RUTE_CRUMB, { t: 'Perjadin (banyak asal)' }); ({ html, after } = viewMassal({ $, $$, toast, effNotice, placeField, attachAC })); break;
       case 'tujuan': { setNav('alat'); const rt = TOOLS.find((x) => x.k === 'rute'); const t = rt.sub.find((x) => x.k === 'tujuan'); side = [null, 'tool:tujuan', 'rute']; cr.push(ALAT_CRUMB, RUTE_CRUMB, { t: t.t }); html = viewSoonTool(t, rt); break; }
-      case 'hitung': setNav('alat'); side = [null, 'tool:hitung', 'rute']; cr.push(ALAT_CRUMB, RUTE_CRUMB, { t: 'Kalkulator Perjadin' }); ({ html, after } = viewHitung()); break;
+      case 'hitung': setNav('alat'); side = [null, 'tool:hitung', 'rute']; cr.push(ALAT_CRUMB, RUTE_CRUMB, { t: 'Hitung Perjalanan' }); ({ html, after } = viewHitung()); break;
       case 'bandingkan': {
         // Bandingkan Wilayah dilebur ke Biaya Per Provinsi
         const ps = (params.p || '').split(',').filter((x) => S.prov[x]);
@@ -641,7 +641,7 @@ function disclaimerCard() {
     <ol class="disc-list">
       <li>Aplikasi ini adalah alat bantu baca yang disusun secara mandiri, <b>bukan dokumen atau publikasi resmi</b> Kementerian Keuangan.</li>
       <li>Angka dan teks diambil dari ${esc(Y.src)}${Y.y === 2027 ? ' dan PMK 54/2026' : ''} dan sudah dicek silang, tetapi kesalahan ekstraksi tetap mungkin terjadi. <b>Selalu cek ulang ke ketentuan aslinya</b> sebelum dipakai untuk penyusunan anggaran, pengujian tagihan, atau pertanggungjawaban. Tombol PDF di setiap halaman membuka halaman dokumen yang dirujuk.</li>
-      <li>Hasil Kalkulator Perjadin dan simulasi persentase dibayar adalah <b>perkiraan</b>, bukan dasar pembayaran.</li>
+      <li>Hasil Hitung Perjalanan dan simulasi persentase dibayar adalah <b>perkiraan</b>, bukan dasar pembayaran.</li>
       <li>Satker dapat menetapkan kebijakan internal, misalnya efisiensi atau pembatasan tertentu. <b>Konsultasikan dengan pejabat perbendaharaan di satker Anda</b> (PPK, PPSPM, atau bendahara) untuk kebijakan yang berlaku di satker.</li>
     </ol>
     <p class="disc-by">© 2026 Dibuat oleh ${authorLink()}.</p>
@@ -683,8 +683,8 @@ function viewHome() {
     return `<a class="qa${isFav ? ' fav' : ''}" href="#/b/${e.butir}?t=${e.table}"><span class="qa-ico">${ic(e.icon)}</span><span class="qa-tx"><b>${esc(e.name)}</b><small title="${esc(lampShort(b))}">${isFav ? `${ic('star')} Favorit` : 'Rekomendasi'}</small></span></a>`;
   };
   const tools = [
-    { h: '#/rute', i: 'signpost', t: 'Buat Perjalanan', d: 'Dari kota X ke kota Y, semua satuan biaya langsung muncul' },
-    { h: '#/hitung', i: 'calculator', t: 'Kalkulator Perjadin', d: 'Perkiraan biaya dari tujuan, lama, dan pelaksana; unduh PDF' },
+    { h: '#/rute', i: 'signpost', t: 'SBM Perjalanan', d: 'Dari kota X ke kota Y, semua satuan biaya langsung muncul' },
+    { h: '#/hitung', i: 'calculator', t: 'Hitung Perjalanan', d: 'Perkiraan biaya dari tujuan, lama, dan pelaksana; unduh PDF' },
     { h: '#/daerah', i: 'map', t: 'Biaya Per Provinsi', d: 'Semua satuan biaya satu provinsi, bisa dibandingkan' },
   ];
   return `
@@ -741,9 +741,9 @@ function viewBab(bab) {
   let n = 0;
   const groups = bab.groups.map((g) => `${g.t ? `<div class="group-title">${esc(g.t)} <span class="count">${g.items.length}</span></div>` : ''}<div class="ent-grid">${g.items.map((it) => card(it, n++)).join('')}</div>`).join('');
   const tools = bab.key === 'perjadin' ? `<div class="bab-tools">
-      <a href="#/rute">${ic('signpost')}<span><b>Buat perjalanan</b><small>Kota X ke kota Y</small></span></a>
+      <a href="#/rute">${ic('signpost')}<span><b>SBM perjalanan</b><small>Kota X ke kota Y</small></span></a>
       <a href="#/daerah">${ic('map')}<span><b>Biaya per provinsi</b><small>Semua biaya, bisa dibandingkan</small></span></a>
-      <a href="#/hitung">${ic('calculator')}<span><b>Kalkulator perjadin</b><small>Perkiraan biaya + PDF</small></span></a>
+      <a href="#/hitung">${ic('calculator')}<span><b>Hitung perjalanan</b><small>Perkiraan biaya + PDF</small></span></a>
       <a href="#/daerah/ln">${ic('globe')}<span><b>Luar negeri</b><small>Per negara & kota</small></span></a>
     </div>` : '';
   const html = `
@@ -1168,7 +1168,7 @@ function viewRute(params) {
   const go = (d, k) => { location.hash = `#/rute?dari=${encodeURIComponent(d)}${k ? '&ke=' + encodeURIComponent(k) : ''}`; };
   const hints = routeHints();
   const html = `
-  <div class="page-head"><h1 class="title">Buat Perjalanan</h1><p class="subtitle">Pilih kota asal dan tujuan. Semua satuan biaya yang relevan muncul berurutan: taksi, tiket, transport darat, uang harian, penginapan. Rekomendasi mencakup 514 kabupaten/kota dan 38 provinsi. Contoh tujuan: ${hints.map((h) => esc(h.n)).join(', ')}.</p></div>
+  <div class="page-head"><h1 class="title">SBM Perjalanan</h1><p class="subtitle">Pilih kota asal dan tujuan. Semua satuan biaya yang relevan muncul berurutan: taksi, tiket, transport darat, uang harian, penginapan. Rekomendasi mencakup 514 kabupaten/kota dan 38 provinsi. Contoh tujuan: ${hints.map((h) => esc(h.n)).join(', ')}.</p></div>
   <div class="card card-pad">${routeForm(dari, ke)}
   </div>
   <div id="routeHost" style="margin-top:16px">${O && D ? effNotice() + routeHtml(O, D) : `<div class="empty small">Pilih tujuan untuk melihat satuan biayanya.</div>`}</div>`;
@@ -1350,10 +1350,10 @@ function viewProv(pid, params = {}) {
 }
 
 /* ---------------- Favorit ---------------- */
-/* ---------------- Kalkulator Perjadin ---------------- */
+/* ---------------- Hitung Perjalanan ---------------- */
 function viewHitung() {
   if (!KP.kurs) KP.kurs = Number(store.get('kurs', 0)) || 0;
-  const html = `<div class="page-head"><h1 class="title">Kalkulator Perjadin</h1><p class="subtitle">Isi tujuan surat tugas, lama perjalanan, dan pelaksananya: dalam negeri luar kota, dalam kota, atau luar negeri. Perkiraan biaya muncul dari satuan biaya SBM TA ${Y.y}, lengkap dengan rujukan tabelnya. Persentase dibayar yang diatur di tiap tabel ikut dipakai.</p></div>
+  const html = `<div class="page-head"><h1 class="title">Hitung Perjalanan</h1><p class="subtitle">Isi tujuan surat tugas, lama perjalanan, dan pelaksananya: dalam negeri luar kota, dalam kota, atau luar negeri. Perkiraan biaya muncul dari satuan biaya SBM TA ${Y.y}, lengkap dengan rujukan tabelnya. Persentase dibayar yang diatur di tiap tabel ikut dipakai.</p></div>
   <div class="kp">${formHtml({ routeForm, placeField, placeLabel })}<div id="kpHost"></div></div>`;
   const after = () => {
     const draw = () => {
@@ -1516,7 +1516,7 @@ function viewMore(sub) {
       </tbody></table><div class="actions"><a class="btn" href="${Y.doc}" target="_blank" rel="noopener">${ic('download')} PDF PMK 32/2025</a></div></div>
       <div class="card card-pad"><table class="plain"><tbody><tr><th colspan="2">Penomoran butir</th></tr><tr><td colspan="2">Urutan butir PMK 32/2025 berbeda dengan TA 2027 (misalnya penginapan: angka 30 di TA 2026, angka 27 di TA 2027). Aplikasi memakai menu yang sama untuk kedua tahun; nomor yang tampil di tabel, rujukan, dan tombol PDF adalah nomor asli PMK 32/2025.</td></tr></tbody></table></div>
       <div class="card card-pad"><table class="plain"><tbody><tr><th colspan="2">Data wilayah (fitur Rute)</th></tr><tr><td>Sumber</td><td>idn-area-data v4.0.1 oleh Fityan Nugroho, dari data wilayah administrasi Kemendagri. Dilisensikan dengan Open Database License (ODbL).</td></tr><tr><td>Isi</td><td>38 provinsi dan 514 kabupaten/kota, dipetakan ke baris PMK (transport darat, Bodetabek) dan kota tiket.</td></tr></tbody></table></div>
-      <div class="card card-pad"><table class="plain"><tbody><tr><th colspan="2">Pembuat PDF</th></tr><tr><td>Sumber</td><td>jsPDF v2.5.2 dan jspdf-autotable v3.8.4, dilisensikan dengan MIT License. Disematkan di aplikasi untuk fitur Unduh PDF di Kalkulator Perjadin.</td></tr></tbody></table></div>
+      <div class="card card-pad"><table class="plain"><tbody><tr><th colspan="2">Pembuat PDF</th></tr><tr><td>Sumber</td><td>jsPDF v2.5.2 dan jspdf-autotable v3.8.4, dilisensikan dengan MIT License. Disematkan di aplikasi untuk fitur Unduh PDF di Hitung Perjalanan.</td></tr></tbody></table></div>
       <div class="card card-pad"><table class="plain"><tbody><tr><th colspan="2">Ikon</th></tr><tr><td>Sumber</td><td>Lucide (lucide.dev), lucide-static v1.75.0. Dilisensikan dengan ISC License, © Lucide Contributors. Disematkan di aplikasi agar berfungsi tanpa internet.</td></tr></tbody></table></div>
       <div class="callout">${ic('info')}<div>Seluruh angka diambil langsung dari tabel PDF PMK 32/2025 dan dicek silang dengan ekstraksi teks kedua (${Y.rows} baris data; semua nominal rupiah di tabel cocok dengan teks). Aplikasi ini alat bantu baca; untuk keperluan formal, rujuk dokumen aslinya.</div></div>
     </div>` };
@@ -1540,7 +1540,7 @@ function viewMore(sub) {
         <tr><td>Isi</td><td>Lampiran I (batas tertinggi) beserta Penjelasan, Lampiran II (dapat dilampaui) beserta Penjelasan. ${M.kmk.halaman} halaman.</td></tr>
       </tbody></table><div class="actions"><a class="btn" href="docs/kmk-296-2026.pdf" target="_blank" rel="noopener">${ic('download')} PDF KMK 296/2026</a></div></div>
       <div class="card card-pad"><table class="plain"><tbody><tr><th colspan="2">Data wilayah (fitur Rute)</th></tr><tr><td>Sumber</td><td>idn-area-data v4.0.1 oleh Fityan Nugroho, dari data wilayah administrasi Kemendagri. Dilisensikan dengan Open Database License (ODbL).</td></tr><tr><td>Isi</td><td>38 provinsi dan 514 kabupaten/kota, dipetakan ke baris KMK (transport darat, Bodetabek) dan kota tiket. Pemetaan nama yang berbeda dicatat di Catatan atas dokumen.</td></tr></tbody></table></div>
-      <div class="card card-pad"><table class="plain"><tbody><tr><th colspan="2">Pembuat PDF</th></tr><tr><td>Sumber</td><td>jsPDF v2.5.2 dan jspdf-autotable v3.8.4, dilisensikan dengan MIT License. Disematkan di aplikasi untuk fitur Unduh PDF di Kalkulator Perjadin.</td></tr></tbody></table></div>
+      <div class="card card-pad"><table class="plain"><tbody><tr><th colspan="2">Pembuat PDF</th></tr><tr><td>Sumber</td><td>jsPDF v2.5.2 dan jspdf-autotable v3.8.4, dilisensikan dengan MIT License. Disematkan di aplikasi untuk fitur Unduh PDF di Hitung Perjalanan.</td></tr></tbody></table></div>
       <div class="card card-pad"><table class="plain"><tbody><tr><th colspan="2">Ikon</th></tr><tr><td>Sumber</td><td>Lucide (lucide.dev), lucide-static v1.75.0. Dilisensikan dengan ISC License, © Lucide Contributors. Disematkan di aplikasi agar berfungsi tanpa internet.</td></tr></tbody></table></div>
       <div class="callout">${ic('info')}<div>Seluruh angka diambil langsung dari tabel PDF KMK 296/2026 dan dicek silang dengan ekstraksi teks kedua (3.168 baris bernomor cocok). Aplikasi ini alat bantu baca; untuk keperluan formal, rujuk dokumen aslinya.</div></div>
     </div>` };

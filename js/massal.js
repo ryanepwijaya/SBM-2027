@@ -1,5 +1,5 @@
 // Perjadin (banyak asal): perkiraan biaya satu kegiatan dengan peserta dari banyak kota asal.
-// Memakai mesin hitung Kalkulator Perjadin per kota asal, lalu menjumlahkan. Hanya menampilkan angka SBM × volume.
+// Memakai mesin hitung Hitung Perjalanan per kota asal, lalu menjumlahkan. Hanya menampilkan angka SBM × volume.
 // Isian tersimpan di localStorage perangkat ini saja (tanpa akun, tanpa server).
 import { S, Y, esc, fmt, store, tip, effPct, pctTxt, effMini, tableKey } from './store.js';
 import { W, resolve, suggest, placeLabel } from './rute.js';
@@ -15,7 +15,7 @@ const CATS = [
 ];
 const clone = (o) => JSON.parse(JSON.stringify(o));
 const zeroOrg = () => Object.fromEntries(TINGKAT.map((t) => [t.k, 0]));
-// Kota asal baru langsung berisi 1 pelaksana Eselon IV/Golongan III/II/I, sama seperti Kalkulator Perjadin
+// Kota asal baru langsung berisi 1 pelaksana Eselon IV/Golongan III/II/I, sama seperti Hitung Perjalanan
 const newOrg = () => ({ ...zeroOrg(), e4: 1 });
 const sumOrg = (o) => TINGKAT.reduce((a, t) => a + (o[t.k] || 0), 0);
 const DEF = {

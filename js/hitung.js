@@ -1,4 +1,4 @@
-// Kalkulator Perjadin: perkiraan biaya perjalanan dinas (dalam negeri luar kota, dalam kota, luar negeri).
+// Hitung Perjalanan: perkiraan biaya perjalanan dinas (dalam negeri luar kota, dalam kota, luar negeri).
 // Hanya menampilkan angka SBM yang relevan dikali volume; tidak menerapkan aturan PMK Perjalanan Dinas.
 import { S, Y, esc, fmt, valueCols, money, effVal, effPct, pctTxt, fold, tip, rapatTiers, effMini, tableKey } from './store.js';
 import { W, resolve, computeRoute, rowBy, capName } from './rute.js';
@@ -305,7 +305,7 @@ export function resultHtml(res, effNotice) {
   const base = L === 'dk'
     ? `Transpor kegiatan dihitung satu kali pergi-pulang per hari per orang.${KP.delapan ? '' : ' Uang harian dan representasi dalam kota tidak dihitung karena tidak lebih dari 8 jam.'}`
     : L === 'ln'
-      ? `Angka luar negeri dalam dolar AS sesuai SBM. ${res.O.dki ? 'Taksi di Jakarta dihitung 2 kali (berangkat dan pulang).' : 'Perjalanan ke Jakarta mengikuti Buat Perjalanan (taksi di kota asal 2 kali, tiket PP ke Jakarta).'} SBM tidak menetapkan satuan biaya penginapan luar negeri, jadi tidak dihitung.${res.hasUsd && !res.kurs ? ' Isi kurs untuk melihat total dalam Rupiah.' : ''}`
+      ? `Angka luar negeri dalam dolar AS sesuai SBM. ${res.O.dki ? 'Taksi di Jakarta dihitung 2 kali (berangkat dan pulang).' : 'Perjalanan ke Jakarta mengikuti SBM Perjalanan (taksi di kota asal 2 kali, tiket PP ke Jakarta).'} SBM tidak menetapkan satuan biaya penginapan luar negeri, jadi tidak dihitung.${res.hasUsd && !res.kurs ? ' Isi kurs untuk melihat total dalam Rupiah.' : ''}`
       : 'Volume taksi dan transport darat dihitung 2 kali (berangkat dan pulang). Tiket dan taksi bersifat dapat dilampaui, jadi angkanya acuan, bukan batas.';
   return `${effNotice()}
   <div class="card kp-res">
