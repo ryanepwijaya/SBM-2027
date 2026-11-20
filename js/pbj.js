@@ -337,26 +337,46 @@ export const P42N = {
   undian: { n: 'Hadiah undian', r: 0.25, p: '25%', d: 'Misalnya doorprize undian pada kegiatan' },
   alih: { n: 'Pengalihan hak atas tanah dan/atau bangunan', r: 0.025, p: '2,5%', d: 'Disetor sendiri oleh penjual; pengadaan tanah untuk kepentingan umum 0%' },
 };
+const taxOn = (N, S) => { const R = {}; for (const g of TAX) for (const r of g.rows) R[r.k] = r.c(N, R, S); R.total = N + R.ppn; return R; };
+// Nilai yang sudah termasuk PPN: cari nilai sebelum PPN (B) sehingga B + PPN(B) = N persis.
+// PPN efektif 11% (12% × 11/12), jadi B ≈ N/1,11; dicek beberapa rupiah di sekitarnya karena pembulatan.
+export function basisOf(N, S) {
+  const g = Math.round(N / 1.11);
+  let best = g, diff = Infinity;
+  for (let b = g - 3; b <= g + 3; b++) { if (b < 0) continue; const d = Math.abs(taxOn(b, S).total - N); if (d < diff) { diff = d; best = b; } }
+  return best;
+}
 export function computeTax(N, S = { p42n: 'sewa' }) {
   if (!P42N[S.p42n]) S = { ...S, p42n: 'sewa' };
-  const R = {};
-  for (const g of TAX) for (const r of g.rows) R[r.k] = r.c(N, R, S);
-  R.total = N + R.ppn;
+  const base = S.incl ? basisOf(N, S) : N;
+  const R = taxOn(base, S);
+  R.base = base;
   return R;
 }
+// Potongan yang bisa dipilih untuk menghitung netto diterima penyedia
+const POT = [
+  { k: 'ppn', n: 'PPN' }, { k: 'pph22', n: 'PPh 22' }, { k: 'pph23', n: 'PPh 23' },
+  { k: 'pph42', n: 'PPh 4(2) UMKM' }, { k: 'pph42n', n: 'PPh 4(2) non-UMKM' },
+];
 const SRC = { invoice: { t: 'Hitung Invoice', h: '#/alat/invoice' } };
 
 export function viewPajak(ui, params) {
   if (params.n != null) store.set('pajak', { ...store.get('pajak', {}), n: parseRp(params.n), dari: SRC[params.dari] ? params.dari : null });
   const P = store.get('pajak', { n: 0, dari: null });
   P.n = Math.max(0, Number(P.n) || 0);
+  P.incl = P.incl === true;
+  if (!P.pot || typeof P.pot !== 'object') P.pot = { ppn: true };
   if (!SRC[P.dari]) P.dari = null;
 
   const src = P.dari && SRC[P.dari] ? `<div class="tx-src">${ic('corner-down-left')} Diambil dari <a href="${SRC[P.dari].h}">${SRC[P.dari].t}</a>. Ubah angkanya di sini atau kembali ke sumbernya.</div>` : '';
-  const html = `<div class="page-head"><h1 class="title">Kalkulator Pajak</h1><p class="subtitle">Isi nilai (N) langsung, atau buka Hitung Invoice lalu tekan Hitung pajak. PPN, PPh 22, PPh 23, dan PPh 4(2) langsung dihitung dengan rumusnya. Klik angka untuk menyalin. Semua hasil dibulatkan ke rupiah terdekat.</p></div>
+  const html = `<div class="page-head"><h1 class="title">Kalkulator Pajak</h1><p class="subtitle">Isi nilai (N) langsung, atau buka Hitung Invoice lalu tekan Hitung pajak. PPN, PPh 22, PPh 23, dan PPh 4(2) langsung dihitung dengan rumusnya. Bila nilai sudah termasuk PPN, nyalakan sakelarnya: N di rumus menjadi nilai sebelum PPN. Klik angka untuk menyalin. Semua hasil dibulatkan ke rupiah terdekat.</p></div>
   <div class="card tx-in">
     <label class="tx-lbl" for="txN">Nilai (N)</label>
     <div class="tx-box"><b>Rp</b><input id="txN" inputmode="numeric" autocomplete="off" placeholder="0" value="${fmtRp(P.n)}"></div>
+    <div class="tx-incl">
+      <label class="sw"><input type="checkbox" role="switch" id="txIncl"${P.incl ? ' checked' : ''}><span class="sw-t" aria-hidden="true"></span><span class="sw-l">Nilai sudah termasuk PPN</span></label>
+      <span class="tx-base muted small" id="txBase"></span>
+    </div>
     ${src}
     <div class="tx-pick">
       <span class="muted small">Ambil dari:</span>
@@ -385,7 +405,23 @@ export function viewPajak(ui, params) {
       ${g.total ? `<button type="button" class="tx-r tx-total" data-copy="${R.total}" title="Salin total nilai"><span class="tx-n"><b>${esc(g.total.n)}</b><small class="tx-d">${esc(g.total.d)}</small><small class="tx-f">${esc(g.total.f)}</small></span><span class="tx-v">${fmt(R.total)}</span>${ic('copy', 'tx-c')}</button>` : ''}
     </section>`;
     // PC: baris atas PPN dan pemotongan/pemungutan (paling sering dipakai), baris bawah konstruksi dan PPh 21
-    $('#txOut').innerHTML = TAX.map(card).join('');
+    $('#txOut').innerHTML = TAX.map(card).join('') + netCard(R);
+    $('#txBase').innerHTML = P.incl && N ? `Dasar hitung (sebelum PPN) <b>${fmt(R.base)}</b> · PPN di dalamnya <b>${fmt(R.ppn)}</b>` : 'Nilai dianggap belum termasuk PPN';
+  };
+  const netCard = (R) => {
+    const tagihan = R.total;
+    const sel = POT.filter((p) => P.pot[p.k]);
+    const pot = sel.reduce((a, p) => a + (R[p.k] || 0), 0);
+    const net = tagihan - pot;
+    return `<section class="card tx-g tx-net">
+      <h2 class="tx-gh">${ic('wallet')}<span>Netto diterima penyedia</span></h2>
+      <div class="tx-potpick"><span class="muted small">Potongan yang berlaku:</span>${POT.map((p) => `<label class="tx-chk${P.pot[p.k] ? ' on' : ''}"><input type="checkbox" data-pot="${p.k}"${P.pot[p.k] ? ' checked' : ''}>${ic('check')}<span>${esc(p.n)}${p.k === 'pph42n' ? ` <small>${esc(P42N[P.p42n].p)}</small>` : ''}</span></label>`).join('')}</div>
+      <div class="tx-rows">
+        <button type="button" class="tx-r" data-copy="${tagihan}" title="Salin total tagihan"><span class="tx-n"><b>Total tagihan</b><small class="tx-d">Nilai sebelum PPN ditambah PPN</small></span><span class="tx-v">${fmt(tagihan)}</span>${ic('copy', 'tx-c')}</button>
+        ${sel.map((p) => `<button type="button" class="tx-r tx-minus" data-copy="${R[p.k]}" title="Salin ${esc(p.n)}"><span class="tx-n"><b>${esc(p.n)}</b><small class="tx-d">${p.k === 'ppn' ? 'Dipungut bendahara' : 'Dipotong/dipungut bendahara'}</small></span><span class="tx-v">− ${fmt(R[p.k])}</span>${ic('copy', 'tx-c')}</button>`).join('')}
+        <button type="button" class="tx-r tx-total" data-copy="${net}" title="Salin netto"><span class="tx-n"><b>Netto diterima penyedia</b><small class="tx-d">Total tagihan dikurangi potongan yang dipilih</small><small class="tx-f">${['Tagihan', ...sel.map((p) => p.n)].join(' − ')}</small></span><span class="tx-v">${fmt(net)}</span>${ic('copy', 'tx-c')}</button>
+      </div>
+    </section>`;
   };
   const after = () => {
     draw();
@@ -393,7 +429,12 @@ export function viewPajak(ui, params) {
     inp.addEventListener('input', () => { liveRp(inp); P.n = parseRp(inp.value); P.dari = null; store.set('pajak', P); const s = $('.tx-src'); if (s) s.remove(); draw(); });
     inp.addEventListener('focus', () => inp.select());
     $('#txOut').addEventListener('click', (e) => { const b = e.target.closest('[data-copy]'); if (b) ui.copy(b.dataset.copy, `${(b.querySelector('b') || b.closest('.tx-r').querySelector('b')).textContent} disalin`); });
-    $('#txOut').addEventListener('change', (e) => { if (e.target.id !== 'txP42') return; P.p42n = e.target.value; store.set('pajak', P); draw(); $('#txP42').focus(); });
+    $('#txOut').addEventListener('change', (e) => {
+      const c = e.target.closest('[data-pot]');
+      if (c) { P.pot[c.dataset.pot] = c.checked; store.set('pajak', P); draw(); $(`[data-pot="${c.dataset.pot}"]`)?.focus(); return; }
+      if (e.target.id !== 'txP42') return; P.p42n = e.target.value; store.set('pajak', P); draw(); $('#txP42').focus();
+    });
+    $('#txIncl').addEventListener('change', (e) => { P.incl = e.target.checked; store.set('pajak', P); draw(); });
     $('#txClear').onclick = () => { P.n = 0; P.dari = null; /* pilihan dropdown dipertahankan */ store.set('pajak', P); history.replaceState(null, '', '#/alat/pajak'); ui.route(); };
     // Bersihkan ?n= dari alamat agar muat ulang tidak menimpa angka yang sudah diubah
     if (params.n != null) history.replaceState(null, '', '#/alat/pajak');
