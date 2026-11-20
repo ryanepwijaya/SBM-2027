@@ -1763,6 +1763,9 @@ tr.k-turun .pb-d, tr.k-turun .pb-p { color: var(--red); }
 .hx-in > *:nth-child(4) { animation-delay: .18s; }
 .hx-in > *:nth-child(5) { animation-delay: .24s; }
 @keyframes hxUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+/* Judul memuat keterangan (i) berposisi fixed: hanya pudar, tanpa transform, agar posisinya tidak bergeser */
+.hx-in > h1 { animation-name: hxFade; }
+@keyframes hxFade { from { opacity: 0; } to { opacity: 1; } }
 @media (min-width: 1024px) { .hero.hero-x { padding: 52px 40px 28px; } .hero-x h1 { font-size: 32px; } .hx-sub { font-size: 15.5px; } }
 @media (max-width: 639px) { .hero.hero-x { padding: 30px 16px 20px; border-radius: 16px; } .hx-stats { gap: 4px 16px; font-size: 12px; } .hx-stats b { font-size: 13.5px; } .hx-try { display: none; } }
 @media (prefers-reduced-motion: reduce) { .hx-grid, .hx-glow, .hx-in > * { animation: none !important; } }
