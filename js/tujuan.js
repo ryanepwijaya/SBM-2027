@@ -5,13 +5,15 @@
 import { S, Y, esc, fmt, store, tip, valueCols, pdRef, pdTxt } from './store.js';
 import { resolve, computeRoute, rowBy, placeLabel } from './rute.js';
 import { ic } from './icons.js';
-import { TINGKAT, plain, adder, finish, peopleOf, resTable, buildPdf, autoMalam, KELAS_IV, kelasNm, peopleTable } from './hitung.js';
+import { TINGKAT, plain, adder, finish, peopleOf, resTable, buildPdf, autoMalam, KELAS_IV, kelasOf, kelasCellIV, peopleTable, wizHead, wizBar, wizUpdate, wizGo, editBtn } from './hitung.js';
+
+let WZ = 1; // halaman alur: 1 isi data, 2 estimasi
 
 export const MAX_TUJUAN = 3;
 const KEY = 'tujuan';
 const DEF = () => ({
   asal: 'jakarta', dest: [{ id: '', h: 1, m: 1, mm: false }], tiket: 'half', jenis: 'lk', inap: 'hotel',
-  org: { pn: 0, e1: 0, pnl: 0, e2: 0, e3: 0, e4: 1 },
+  org: { pn: 0, e1: 0, pnl: 0, e2: 0, e3: 0, e4: 1 }, kelasA: {},
 });
 function load() {
   const d = store.get(KEY, null);
@@ -22,6 +24,7 @@ function load() {
     if (d.tiket === 'full') T.tiket = 'full';
     if (d.jenis === 'diklat') T.jenis = 'diklat';
     if (d.inap === 'non') T.inap = 'non';
+    if (d.kelasA && typeof d.kelasA === 'object') for (const k of ['pn', 'e1']) if (d.kelasA[k] === 'eko') T.kelasA[k] = 'eko';
     for (const t of TINGKAT) { if (d.org && Number.isFinite(d.org[t.k])) T.org[t.k] = Math.max(0, Math.min(999, d.org[t.k])); }
   }
   return T;
@@ -71,7 +74,7 @@ export function computeChain(T) {
   const tRep = S.butir['L1-25'].tables[1], repRows = tRep.rows.filter((x) => x.v);
   for (let i = 0; i < stops.length - 1; i++) {
     const A = stops[i], B = stops[i + 1];
-    hasTiket = addLeg(add, alt, notes, A, B, people, total, f, `Ruas ${i + 1}: ${plain(A.label)} → ${plain(B.label)}`) || hasTiket;
+    hasTiket = addLeg(add, alt, notes, A, B, people, total, f, `Ruas ${i + 1}: ${plain(A.label)} → ${plain(B.label)}`, kelasOf(T.kelasA)) || hasTiket;
     if (i === stops.length - 2) break;
     // Selama di tujuan ke-(i+1)
     const d = T.dest[i], P = S.prov[B.prov].nama, g = `Selama di ${plain(B.label)} (${P})`;
@@ -112,8 +115,8 @@ function formHtml(T, ui) {
       <div class="kp-pd">${pdRef('inap30')}</div>
     </div>
     <div class="kp-step"><h2 class="kp-h"><span class="step">2</span>Pelaksana</h2>
-      ${peopleTable(TINGKAT, (t) => `<span class="kp-kc ${KELAS_IV[t.k]}">${kelasNm(KELAS_IV[t.k])}</span>`, (t) => stp('org:' + t.k, T.org[t.k], 0, 999, 'Pelaksana ' + t.n))}
-      <div class="muted small kp-note">Kelas pesawat mengikuti ${pdRef('lamp4')}: Tingkat A (Pejabat Negara setingkat menteri dan Eselon I) Bisnis, lainnya Ekonomi. Hanya dipakai bila ruasnya memakai tiket pesawat.</div>
+      ${peopleTable(TINGKAT, (t) => kelasCellIV(t, T.kelasA), (t) => stp('org:' + t.k, T.org[t.k], 0, 999, 'Pelaksana ' + t.n))}
+      <div class="muted small kp-note">Kelas pesawat sesuai ${pdRef('lamp4')}.</div>
     </div>
   </div>`;
 }
@@ -129,7 +132,7 @@ function resultHtml(T, res, effNotice) {
   return `${effNotice()}
   <div class="card kp-res">
     <div class="kp-res-h"><div><div class="kp-title">Perkiraan biaya perjalanan dinas banyak tujuan</div><div class="muted small">${esc(routeTxt(T))} · ${hari} hari ${malam} malam · ${res.total} orang</div></div>
-      <div class="kp-actions"><button type="button" class="btn primary" id="tjPdf">${ic('download')} Unduh PDF</button></div></div>
+      <div class="kp-actions">${editBtn()}<button type="button" class="btn primary" id="tjPdf">${ic('download')} Unduh PDF</button></div></div>
     ${table}${per}
     <div class="kp-foot muted small">Satuan biaya mengikuti SBM TA ${Y.y} (${esc(Y.src)})${res.effOn ? ', dengan persentase dibayar yang sedang aktif' : ''}. Tiap ruas dihitung sekali jalan: taksi di kota keberangkatan dan kedatangan masing-masing 1 kali, transport darat 1 kali, tiket ${res.f === 1 ? 'tarif PP penuh' : 'sekali jalan (½ dari tarif PP SBM)'}. Uang harian, penginapan, dan representasi mengikuti provinsi tiap tujuan.${res.non ? ' Penginapan dihitung 30% dari tarif hotel karena tidak menginap di hotel.' : ''} ${notes.join(' ')}</div>
   </div>`;
@@ -139,13 +142,23 @@ export function viewTujuan(ui) {
   const T = load();
   const save = () => store.set(KEY, T);
   const html = `<div class="page-head"><h1 class="title">Perjadin (banyak tujuan)</h1><p class="subtitle">Satu surat tugas dengan rute berantai: dari kota asal ke tujuan 1, lanjut ke tujuan berikutnya, lalu kembali ke kota asal. Paling banyak ${MAX_TUJUAN} tujuan. Transportasi dihitung per ruas; uang harian, penginapan, dan representasi per kota tujuan.</p></div>
-  <div class="kp tj" id="tjRoot"></div>`;
+  <div class="kp tj wz" id="tjRoot" data-wz="${WZ}"></div>`;
   const after = () => {
     const { $, $$, toast, effNotice } = ui;
     const root = $('#tjRoot');
+    const missingOf = () => {
+      const m = [];
+      T.dest.forEach((d, i) => { if (!d.id) m.push(`kota tujuan ${i + 1}`); });
+      if (!Object.values(T.org).some((v) => v > 0)) m.push('jumlah pelaksana');
+      return m;
+    };
     const draw = () => {
       const res = computeChain(T);
       $('.kp-form').classList.toggle('no-tiket', !(res.ready && res.hasTiket));
+      const miss = missingOf();
+      wizUpdate(root, miss);
+      $('.wz-s1', root).textContent = miss.length ? 'Belum lengkap' : `${T.dest.length} tujuan · ${res.total} orang`;
+      if (miss.length && WZ === 2) { WZ = 1; wizGo(root, 1); }
       $('#tjRoute').textContent = routeTxt(T);
       $('#tjHost').innerHTML = resultHtml(T, res, effNotice);
       const pdf = $('#tjPdf');
@@ -174,7 +187,7 @@ export function viewTujuan(ui) {
       };
     };
     const render = (focusId) => {
-      root.innerHTML = formHtml(T, ui) + '<div id="tjHost"></div>';
+      root.innerHTML = wizHead(WZ, 'Rute, lama, pelaksana', 'Rincian dan PDF') + formHtml(T, ui) + wizBar() + '<div id="tjHost"></div>';
       ui.attachAC('tjAsal', (it) => { T.asal = it.id; save(); draw(); });
       T.dest.forEach((d, i) => ui.attachAC('tjD' + i, (it) => { T.dest[i].id = it.id; save(); draw(); const nx = $('#tjD' + (i + 1)); if (nx && !T.dest[i + 1].id) setTimeout(() => nx.focus(), 50); }));
       $$('[data-clear]', root).forEach((b) => b.onclick = () => { const inp = $('#' + b.dataset.clear); inp.value = ''; inp.focus(); inp.dispatchEvent(new Event('input')); });
@@ -199,12 +212,14 @@ export function viewTujuan(ui) {
       save(); draw();
     };
     root.addEventListener('click', (e) => {
+      const w = e.target.closest('button[data-wz]');
+      if (w) { if (!w.disabled) { WZ = Number(w.dataset.wz); wizGo(root, WZ); } return; }
       const b = e.target.closest('.stp button');
       if (b) { const el = b.closest('.stp'); apply(el, get(el.dataset.stp) + Number(b.dataset.d)); return; }
       const del = e.target.closest('[data-del]');
       if (del) { T.dest.splice(Number(del.dataset.del), 1); save(); render(); return; }
       if (e.target.closest('#tjAdd')) { if (T.dest.length < MAX_TUJUAN) { T.dest.push({ id: '', h: 1, m: 1, mm: false }); save(); render('tjD' + (T.dest.length - 1)); } return; }
-      if (e.target.closest('#tjReset')) { Object.assign(T, DEF()); save(); render(); toast('Isian dikembalikan ke awal'); return; }
+      if (e.target.closest('#tjReset')) { Object.assign(T, DEF()); WZ = 1; root.dataset.wz = '1'; save(); render(); toast('Isian dikembalikan ke awal'); return; }
       const sg = e.target.closest('[data-tiket],[data-jenis],[data-inap]');
       if (sg) {
         const k = ['tiket', 'jenis', 'inap'].find((x) => sg.dataset[x] != null);
@@ -221,6 +236,7 @@ export function viewTujuan(ui) {
     });
     root.addEventListener('focusout', (e) => { const inp = e.target.closest('.stp-in'); if (!inp) return; const el = inp.closest('.stp'); apply(el, inp.value === '' ? get(el.dataset.stp) : Number(inp.value)); });
     root.addEventListener('focusin', (e) => { const inp = e.target.closest('.stp-in'); if (inp) inp.select(); });
+    root.addEventListener('change', (e) => { const s = e.target.closest('[data-kelasa]'); if (s) { T.kelasA[s.dataset.kelasa] = s.value; save(); draw(); } });
     root.addEventListener('keydown', (e) => { const inp = e.target.closest('.stp-in'); if (inp && e.key === 'Enter') inp.blur(); });
     render();
   };

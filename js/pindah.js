@@ -7,10 +7,12 @@
 import { S, Y, esc, fmt, store, tip, valueCols, pdRef, pdTxt } from './store.js';
 import { resolve, computeRoute, rowBy, placeLabel } from './rute.js';
 import { ic } from './icons.js';
-import { TINGKAT, plain, adder, finish, resTable, buildPdf, kursTxt, KELAS_IV, kelasNm } from './hitung.js';
+import { TINGKAT, plain, adder, finish, resTable, buildPdf, kursTxt, KELAS_IV, TIER_A, kelasNm, wizHead, wizBar, wizUpdate, wizGo, editBtn } from './hitung.js';
+
+let WZ = 1; // halaman alur: 1 isi data, 2 estimasi
 
 const KEY = 'pindah';
-const DEF = () => ({ lingkup: 'dn', asal: 'jakarta', ke: '', tk: 'e4', kel: 0, tiket: 'half', transit: 0, hTransit: 0, tahan: 0, prt: false, gol: 'III', stat: 'tidak', moda: 'truk', jawa: '', dekat: '', km: '', per: '', arah: 'out', kln: 'pub' });
+const DEF = () => ({ lingkup: 'dn', asal: 'jakarta', ke: '', tk: 'e4', kelasP: 'bis', kel: 0, tiket: 'half', transit: 0, hTransit: 0, tahan: 0, prt: false, gol: 'III', stat: 'tidak', moda: 'truk', jawa: '', dekat: '', km: '', per: '', arah: 'out', kln: 'pub' });
 // Lampiran VI: satuan volume pengepakan dan angkutan barang (m³) per status keluarga dan golongan
 const VOL6 = { anak: { IV: 25, III: 20, II: 15, I: 10 }, tanpa: { IV: 15, III: 12, II: 9, I: 6 }, tidak: { IV: 5, III: 4, II: 3, I: 2 } };
 const STAT = [['anak', 'Berkeluarga dengan anak'], ['tanpa', 'Berkeluarga tanpa anak'], ['tidak', 'Tidak berkeluarga']];
@@ -28,6 +30,8 @@ function load() {
   const d = store.get(KEY, null);
   if (d && typeof d === 'object') for (const k of Object.keys(T)) if (d[k] != null && typeof d[k] === typeof T[k]) T[k] = d[k];
   if (!TINGKAT.some((t) => t.k === T.tk)) T.tk = 'e4';
+  T.lingkup = 'dn'; // selalu dibuka di dalam negeri
+  if (T.kelasP !== 'eko') T.kelasP = 'bis';
   if (!VOL6[T.stat]) T.stat = 'tidak';
   if (!GOLS.includes(T.gol)) T.gol = 'III';
   T.hTransit = Math.min(T.hTransit, 2 * T.transit);
@@ -36,7 +40,7 @@ function load() {
 }
 const peopleOf = (T) => {
   const t = TINGKAT.find((x) => x.k === T.tk);
-  const kl = KELAS_IV[T.tk];
+  const kl = TIER_A.includes(T.tk) ? T.kelasP : KELAS_IV[T.tk];
   const ps = [{ ...t, c: 1, kl }];
   if (T.kel > 0) ps.push({ k: 'kel', n: 'Anggota keluarga', h: t.h, rep: null, c: T.kel, kl });
   if (T.prt && PRT_OK.includes(T.tk)) ps.push({ k: 'prt', n: 'Pembantu rumah tangga (tarif Gol. I)', h: 3, rep: null, c: 1, kl: KELAS_IV.e4 });
@@ -150,7 +154,7 @@ function formHtml(T, ui, kurs) {
       <div class="route-form">${ui.placeField('pdAsal', 'Dari', placeLabel(T.asal), 'Kota/kabupaten asal')}${ui.placeField('pdKe', 'Ke', T.ke ? placeLabel(T.ke) : '', 'Kota/kabupaten tempat kerja baru')}</div>
       <div class="kp-row"><span class="kp-lbl">Tiket ${tip('Tabel tiket SBM memuat tarif pergi-pulang (PP), sedangkan pindah sekali jalan. Tiket sekali jalan dihitung ½ dari tarif PP SBM.')}</span>${seg('tiket', [['half', 'Sekali jalan'], ['full', 'Tarif PP penuh']], T.tiket)}</div>
       <div class="muted small kp-mini">${T.tiket === 'half' ? 'Sekali jalan = ½ dari tarif PP di tabel tiket SBM.' : 'Memakai tarif PP di tabel tiket SBM apa adanya.'} Taksi dan transport darat 1 kali.</div>
-      <div class="kp-row"><span class="kp-lbl">Kelas pesawat</span><span class="kp-kc ${KELAS_IV[T.tk]}">${kelasNm(KELAS_IV[T.tk])}</span></div>
+      <div class="kp-row"><span class="kp-lbl">Kelas pesawat</span>${TIER_A.includes(T.tk) ? seg('kelasP', [['bis', 'Bisnis'], ['eko', 'Ekonomi']], T.kelasP) : `<span class="kp-kc eko" title="Dikunci sesuai Lampiran IV">${ic('lock')}Ekonomi</span>`}</div>
       <div class="kp-pd">${pdRef('lamp4')}</div>
     </div>
     <div class="kp-step"><h2 class="kp-h"><span class="step">2</span>Pegawai dan keluarga</h2>${tkSel}</div>
@@ -193,7 +197,7 @@ function resultHtml(T, res, effNotice) {
   return `${effNotice()}
   <div class="card kp-res">
     <div class="kp-res-h"><div><div class="kp-title">Perkiraan biaya perjalanan dinas pindah${T.lingkup === 'ln' ? ' luar negeri' : ''}</div><div class="muted small">${esc(sum)}</div></div>
-      <div class="kp-actions"><button type="button" class="btn primary" id="pdPdf">${ic('download')} Unduh PDF</button></div></div>
+      <div class="kp-actions">${editBtn()}<button type="button" class="btn primary" id="pdPdf">${ic('download')} Unduh PDF</button></div></div>
     ${table}${per}
     <div class="kp-foot muted small">Satuan biaya mengikuti SBM TA ${Y.y} (${esc(Y.src)})${res.effOn ? ', dengan persentase dibayar yang sedang aktif' : ''}. ${base} ${notes.join(' ')}</div>
   </div>`;
@@ -204,13 +208,25 @@ export function viewPindah(ui) {
   let kurs = Number(store.get('kurs', 0)) || 0;
   const save = () => store.set(KEY, T);
   const html = `<div class="page-head"><h1 class="title">Dinas Pindah</h1><p class="subtitle">Perkiraan biaya perjalanan dinas pindah. Dalam negeri: tiket atau transport sekali jalan untuk pegawai dan keluarga, taksi, uang harian, serta pengepakan dan angkutan barang (${S.butir['L1-24'].lamp === 1 ? 'Lamp. I' : 'Lamp. II'} angka ${S.butir['L1-24'].no}). Luar negeri: tiket pindah sekali jalan Jakarta–perwakilan (${S.butir['L1-28'].lamp === 1 ? 'Lamp. I' : 'Lamp. II'} angka ${S.butir['L1-28'].no}).</p></div>
-  <div class="kp pd" id="pdRoot"></div>`;
+  <div class="kp pd wz" id="pdRoot" data-wz="${WZ}"></div>`;
   const after = () => {
     const { $, $$, toast, effNotice } = ui;
     const root = $('#pdRoot');
     const calc = () => (T.lingkup === 'ln' ? computeLN(T, kurs) : computeDN(T));
+    const missingOf = () => {
+      const m = [];
+      if (T.lingkup === 'ln') { if (!T.per) m.push('perwakilan'); return m; }
+      if (!T.ke) m.push('kota tujuan pindah');
+      if (T.moda !== 'kereta' && !num(T.km)) m.push('jarak (km)');
+      if (T.moda === 'truk') { if (!T.jawa) m.push('jawaban Pulau Jawa/Madura'); else if (!T.dekat) m.push(`jawaban jarak kurang dari ${T.jawa === 'y' ? 100 : 50} km`); }
+      return m;
+    };
     const draw = () => {
       const res = calc();
+      const miss = missingOf();
+      wizUpdate(root, miss);
+      $('.wz-s1', root).textContent = miss.length ? 'Belum lengkap' : (T.lingkup === 'ln' ? res.dir : `${plain(res.O.label)} → ${plain(res.D.label)}`);
+      if (miss.length && WZ === 2) { WZ = 1; wizGo(root, 1); }
       $('#pdHost').innerHTML = resultHtml(T, res, effNotice);
       const pdf = $('#pdPdf');
       if (pdf) pdf.onclick = async () => {
@@ -244,7 +260,7 @@ export function viewPindah(ui) {
       };
     };
     const render = () => {
-      root.innerHTML = formHtml(T, ui, kurs) + '<div id="pdHost"></div>';
+      root.innerHTML = wizHead(WZ, 'Tujuan, keluarga, barang', 'Rincian dan PDF') + formHtml(T, ui, kurs) + wizBar() + '<div id="pdHost"></div>';
       if ($('#pdAsal')) {
         ui.attachAC('pdAsal', (it) => { T.asal = it.id; save(); draw(); });
         ui.attachAC('pdKe', (it) => { T.ke = it.id; save(); draw(); });
@@ -264,12 +280,15 @@ export function viewPindah(ui) {
       if (T.lingkup === 'dn') { const all = $$('.kp-note', root); const u = all.find((x) => x.textContent.startsWith('Total ')); if (u) u.firstChild.textContent = `Total ${uhDays(T)} hari, untuk pegawai dan tiap anggota keluarga yang sah, memakai uang harian provinsi tujuan. `; }
     };
     root.addEventListener('click', (e) => {
+      const w = e.target.closest('button[data-wz]');
+      if (w) { if (!w.disabled) { WZ = Number(w.dataset.wz); wizGo(root, WZ); } return; }
       const b = e.target.closest('.stp button');
       if (b) { const el = b.closest('.stp'); apply(el, T[el.dataset.stp] + Number(b.dataset.d)); return; }
-      if (e.target.closest('#pdReset')) { const l = T.lingkup; Object.assign(T, DEF(), { lingkup: l }); save(); render(); toast('Isian dikembalikan ke awal'); return; }
-      const sg = e.target.closest('[data-lingkup],[data-tiket],[data-moda],[data-arah],[data-kln],[data-gol],[data-stat],[data-jawa],[data-dekat]');
+      if (e.target.closest('#pdReset')) { const l = T.lingkup; Object.assign(T, DEF(), { lingkup: l }); WZ = 1; root.dataset.wz = '1'; save(); render(); toast('Isian dikembalikan ke awal'); return; }
+      const sg = e.target.closest('[data-lingkup],[data-tiket],[data-moda],[data-arah],[data-kln],[data-gol],[data-stat],[data-jawa],[data-dekat],[data-kelasp]');
       if (!sg) return;
-      const k = ['lingkup', 'tiket', 'moda', 'arah', 'kln', 'gol', 'stat', 'jawa', 'dekat'].find((x) => sg.dataset[x] != null);
+      const k = ['lingkup', 'tiket', 'moda', 'arah', 'kln', 'gol', 'stat', 'jawa', 'dekat', 'kelasp'].find((x) => sg.dataset[x] != null);
+      if (k === 'kelasp') { T.kelasP = sg.dataset.kelasp; save(); $$('[data-kelasp]', root).forEach((x) => { x.classList.toggle('on', x === sg); x.setAttribute('aria-checked', String(x === sg)); }); draw(); return; }
       if (T[k] === sg.dataset[k]) return;
       T[k] = sg.dataset[k];
       if (k === 'jawa') T.dekat = '';

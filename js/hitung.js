@@ -21,6 +21,35 @@ export const TINGKAT = [
 // Tingkat B (Pejabat Negara Lainnya, Eselon II) dan Tingkat C (Eselon III ke bawah) Ekonomi. Berlaku juga untuk keluarga (dinas pindah).
 export const KELAS_IV = { pn: 'bis', e1: 'bis', pnl: 'eko', e2: 'eko', e3: 'eko', e4: 'eko' };
 export const kelasNm = (k) => (k === 'bis' ? 'Bisnis' : 'Ekonomi');
+// Tingkat A berhak Bisnis tetapi boleh memakai Ekonomi; tingkat lain dikunci Ekonomi
+export const TIER_A = ['pn', 'e1'];
+export const kelasOf = (pick = {}) => Object.fromEntries(Object.entries(KELAS_IV).map(([k, v]) => [k, TIER_A.includes(k) && pick[k] === 'eko' ? 'eko' : v]));
+// Sel kelas pesawat: pilihan untuk Tingkat A, terkunci untuk lainnya. attr = nama data-atribut untuk pilihan.
+export const kelasCellIV = (t, pick = {}, attr = 'kelasa') => (TIER_A.includes(t.k)
+  ? `<select class="sel kp-kelas" data-${attr}="${t.k}" aria-label="Kelas pesawat ${esc(t.n)}"><option value="bis"${pick[t.k] !== 'eko' ? ' selected' : ''}>Bisnis</option><option value="eko"${pick[t.k] === 'eko' ? ' selected' : ''}>Ekonomi</option></select>`
+  : `<span class="kp-kc eko" title="Dikunci sesuai Lampiran IV">${ic('lock')}Ekonomi</span>`);
+
+// Alur dua halaman: 1 isi data, 2 estimasi biaya (estimasi baru tampil setelah semua isian lengkap)
+export function wizHead(step, sub1, sub2) {
+  return `<nav class="ms-steps wz-steps" aria-label="Langkah">
+    <button type="button" class="ms-st${step === 1 ? ' on' : ''}" data-wz="1"${step === 1 ? ' aria-current="step"' : ''}><span class="step">1</span><span class="ms-st-tx"><b>Isi data</b><small class="wz-s1">${esc(sub1)}</small></span></button>
+    <button type="button" class="ms-st${step === 2 ? ' on' : ''}" data-wz="2"${step === 2 ? ' aria-current="step"' : ''}><span class="step">2</span><span class="ms-st-tx"><b>Estimasi biaya</b><small class="wz-s2">${esc(sub2)}</small></span></button>
+  </nav>`;
+}
+export const wizBar = () => `<div class="card card-pad wz-bar"><div class="wz-miss small" aria-live="polite"></div><button type="button" class="btn primary" data-wz="2">Cek estimasi ${ic('chevron-right')}</button></div>`;
+// Perbarui daftar isian yang belum lengkap dan tombol Cek estimasi
+export function wizUpdate(root, missing) {
+  const m = root.querySelector('.wz-miss');
+  if (m) m.innerHTML = missing.length ? `${ic('info')}<span>Lengkapi dulu: ${missing.map((x) => `<b>${esc(x)}</b>`).join(', ')}.</span>` : `${ic('check')}<span>Semua isian lengkap.</span>`;
+  root.querySelectorAll('button[data-wz="2"]').forEach((b) => { b.disabled = !!missing.length; });
+  root.classList.toggle('wz-ok', !missing.length);
+}
+export function wizGo(root, step) {
+  root.dataset.wz = String(step);
+  root.querySelectorAll('.wz-steps .ms-st').forEach((b) => { const on = b.dataset.wz === String(step); b.classList.toggle('on', on); if (on) b.setAttribute('aria-current', 'step'); else b.removeAttribute('aria-current'); });
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+export const editBtn = () => `<button type="button" class="btn" data-wz="1">${ic('pencil-line')} Ubah isian</button>`;
 // Cara bayar komponen menurut PMK Perjalanan Dinas: L = lumpsum, R = biaya riil
 export const BYR = { L: 'Lumpsum', R: 'Biaya riil' };
 
@@ -30,7 +59,7 @@ const FB_TIER_N = ['Menteri/Wamen', 'Eselon I dan II/JF Utama', 'Eselon III/JF M
 // Isian bertahan selama aplikasi terbuka (tidak disimpan ke perangkat)
 export const KP = {
   lingkup: 'dn', dari: 'jakarta', ke: '', jenis: 'lk', hari: 1, malam: 1, malamManual: false, delapan: true,
-  inap: 'hotel', sah: false, sahId: '', sahArah: 'both', layanan: '',
+  inap: 'hotel', sah: false, sahId: '', sahArah: 'both', layanan: '', kelasA: {}, wz: 1,
   lnAsal: 'jakarta', lnKota: '', lnNeg: '', kurs: 0,
   org: { pn: 0, e1: 0, pnl: 0, e2: 0, e3: 0, e4: 1 },
   kelasLn: { pn: 'eko', e1: 'eko', pnl: 'eko', e2: 'eko', e3: 'eko', e4: 'eko' },
@@ -108,7 +137,7 @@ function computeDN(state) {
   const r = computeRoute(O, D);
   if (r.sameKab) return { ready: true, O, D, r, dalamKota: true };
   // Kelas pesawat: Lampiran IV (bawaan); luar negeri mengirim kelas sendiri untuk ruas ke Jakarta
-  const kel = state.kelas || KELAS_IV;
+  const kel = state.kelas || kelasOf(state.kelasA);
   const lines = [];
   const add = adder(lines);
   let hasTiket = false;
@@ -284,11 +313,11 @@ export function formHtml(ui) {
   }
   const kelasCell = (t) => L === 'ln'
     ? `<select class="sel kp-kelas" data-kelasln="${t.k}" aria-label="Kelas tiket ${esc(t.n)}">${KELAS_LN.map(([k, n]) => `<option value="${k}"${KP.kelasLn[t.k] === k ? ' selected' : ''}>${n}</option>`).join('')}</select>`
-    : `<span class="kp-kc ${KELAS_IV[t.k]}">${kelasNm(KELAS_IV[t.k])}</span>`;
+    : kelasCellIV(t, KP.kelasA);
   const note = L === 'ln'
-    ? 'Jumlah bisa diketik langsung (sampai 999 orang). Golongan uang harian luar negeri: Pejabat Negara/Wamen A, Eselon I dan Pejabat Negara Lainnya B, Eselon II C, lainnya (termasuk pelaksana) D. Kelas tiket luar negeri dipilih per tingkat; kelas Eksekutif/Bisnis memakai tiket dalam negeri kelas Bisnis untuk ke Jakarta.'
-    : L === 'dk' ? 'Jumlah bisa diketik langsung (sampai 999 orang).'
-      : `Jumlah bisa diketik langsung (sampai 999 orang). Kelas pesawat mengikuti ${pdRef('lamp4')}: Tingkat A (Pejabat Negara setingkat menteri dan Eselon I) Bisnis, lainnya Ekonomi. Hanya dipakai bila rutenya memakai tiket pesawat.`;
+    ? 'Golongan uang harian: Pejabat Negara/Wamen A, Eselon I dan Pejabat Negara Lainnya B, Eselon II C, lainnya D.'
+    : L === 'dk' ? ''
+      : `Kelas pesawat sesuai ${pdRef('lamp4')}.`;
   const segP = (name, opts, cur) => `<div class="kp-seg" role="radiogroup">${opts.map(([v, t]) => `<button type="button" role="radio" aria-checked="${v === cur}" class="${v === cur ? 'on' : ''}" data-${name}="${v}">${esc(t)}</button>`).join('')}</div>`;
   const extra = L !== 'dn' ? '' : `<div class="kp-step"><h2 class="kp-h"><span class="step">4</span>Ketentuan tambahan <small class="muted">opsional</small></h2>
       <div class="kp-opt">
@@ -317,7 +346,7 @@ export function formHtml(ui) {
     </div>
     <div class="kp-step"><h2 class="kp-h"><span class="step">3</span>Pelaksana</h2>
       ${peopleTable(TINGKAT, L === 'dk' ? null : kelasCell, (t) => stepper('org:' + t.k, KP.org[t.k], 0, 999, 'pelaksana ' + t.n), L === 'ln' ? (t) => ` <small class="kp-gol">Gol. ${GOL[t.k]}</small>` : null, L === 'ln' ? 'Kelas tiket' : 'Kelas pesawat')}
-      <div class="muted small kp-note">${note}</div>
+      ${note ? `<div class="muted small kp-note">${note}</div>` : ''}
     </div>
     ${extra}
   </div>`;
@@ -369,7 +398,7 @@ export function resultHtml(res, effNotice) {
   return `${effNotice()}
   <div class="card kp-res">
     <div class="kp-res-h"><div><div class="kp-title">Perkiraan biaya perjalanan dinas${L === 'dk' ? ' dalam kota' : L === 'ln' ? ' luar negeri' : ''}</div><div class="muted small">${esc(summaryTxt(res))}</div></div>
-      <div class="kp-actions"><button type="button" class="btn primary" id="kpPdf">${ic('download')} Unduh PDF</button></div></div>
+      <div class="kp-actions">${editBtn()}<button type="button" class="btn primary" id="kpPdf">${ic('download')} Unduh PDF</button></div></div>
     ${table}
     ${per}
     ${sahHtml(res)}
@@ -594,7 +623,7 @@ export async function buildPdf(res) {
   ] : [
     `Satuan biaya mengikuti SBM; taksi dan transport darat dihitung 2 kali, berangkat dan pulang (${pdTxt('transpor')}).`,
     'Tiket dan taksi bersifat dapat dilampaui (acuan); uang harian, penginapan, dan representasi bersifat batas tertinggi.',
-    `Kelas pesawat mengikuti ${pdTxt('lamp4')}. Cara bayar (lumpsum/biaya riil) mengikuti ${pdTxt('lumpsum')}.`,
+    `Kelas pesawat sesuai ${pdTxt('lamp4')}. Cara bayar (lumpsum/biaya riil) mengikuti ${pdTxt('lumpsum')}.`,
     ...(res.non ? [`Tidak menginap di hotel: penginapan 30% dari tarif hotel kota tujuan, dibayar lumpsum (${pdTxt('inap30')}).`] : []),
     ...(res.lines.some((l) => l.manual) ? [`Biaya layanan diisi pengguna sesuai biaya riil (${pdTxt('layanan')}); bukan angka SBM.`] : []),
     ...(res.sah ? [`Tempat Sah ${plain(res.sah.SA.label)}: estimasi transportasi ${fmt(res.sah.est)}; dibayar riil paling banyak sebesar estimasi dari Tempat Kedudukan ${fmt(res.sah.batas)} (${pdTxt('sah')}). Perkiraan total bila memakai Tempat Sah ${fmt(sahTxt(res).alt)}.`] : []),

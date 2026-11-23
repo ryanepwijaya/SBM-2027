@@ -3,7 +3,7 @@ import { S, Y, YEARS, switchYear, initYear, loadData, entry, entriesOf, esc, nor
 import { search, buildIndex, SEARCH_HINTS } from './search.js';
 import { ic } from './icons.js';
 import { loadWilayah, suggest, resolve, routeHtml, placeLabel, routeHints, W } from './rute.js';
-import { KP, compute, formHtml, resultHtml, buildPdf, resetKP, autoMalam } from './hitung.js';
+import { KP, compute, formHtml, resultHtml, buildPdf, resetKP, autoMalam, summaryTxt, wizHead, wizBar, wizUpdate, wizGo } from './hitung.js';
 import { viewMassal } from './massal.js';
 import { lnSuggest, negOfCity, cityOfNeg } from './ln.js';
 import { viewInvoice, viewPajak, viewHonor } from './pbj.js';
@@ -1386,14 +1386,27 @@ function viewProv(pid, params = {}) {
 function viewHitung() {
   if (!KP.kurs) KP.kurs = Number(store.get('kurs', 0)) || 0;
   const html = `<div class="page-head"><h1 class="title">Hitung Perjalanan</h1><p class="subtitle">Isi tujuan surat tugas, lama perjalanan, dan pelaksananya: dalam negeri luar kota, dalam kota, atau luar negeri. Perkiraan biaya muncul dari satuan biaya SBM TA ${Y.y}, lengkap dengan rujukan tabelnya. Persentase dibayar yang diatur di tiap tabel ikut dipakai.</p></div>
-  <div class="kp">${formHtml({ routeForm, placeField, placeLabel })}<div id="kpHost"></div></div>`;
+  <div class="kp wz" id="kpRoot" data-wz="${KP.wz}">${wizHead(KP.wz, 'Tujuan, lama, pelaksana', 'Rincian dan PDF')}${formHtml({ routeForm, placeField, placeLabel })}${wizBar()}<div id="kpHost"></div></div>`;
   const after = () => {
+    const root = $('#kpRoot');
+    const missingOf = (res) => {
+      const m = [], L = KP.lingkup;
+      if (L === 'ln') { if (!KP.lnKota && !KP.lnNeg) m.push('kota atau negara tujuan'); } else if (!KP.ke) m.push(L === 'dk' ? 'kabupaten/kota' : 'kota tujuan');
+      if (!Object.values(KP.org).some((v) => v > 0)) m.push('jumlah pelaksana');
+      if (L === 'dn' && KP.sah && !KP.sahId) m.push('kota Tempat Sah');
+      if (res.dalamKota) m.push('kota tujuan di luar kabupaten/kota asal');
+      return m;
+    };
     const draw = () => {
       const res = compute();
       $('.kp-form').classList.toggle('no-tiket', !(res.ready && res.hasTiket));
+      const miss = missingOf(res);
+      wizUpdate(root, miss);
+      if (res.dalamKota) { const m = $('.wz-miss', root); m.insertAdjacentHTML('beforeend', ' <button type="button" class="btn sm" data-to-dk>Hitung sebagai dalam kota</button>'); }
+      $('.wz-s1', root).textContent = miss.length ? 'Belum lengkap' : summaryTxt(res);
+      if (miss.length && KP.wz === 2) { KP.wz = 1; wizGo(root, 1); }
       $('#kpHost').innerHTML = resultHtml(res, effNotice);
-      const toDk = $('[data-to-dk]');
-      if (toDk) toDk.onclick = () => { KP.lingkup = 'dk'; route(); };
+      $$('[data-to-dk]').forEach((b) => b.onclick = () => { KP.lingkup = 'dk'; route(); });
       const pdf = $('#kpPdf');
       if (!pdf) return;
       const make = async (btn) => {
@@ -1408,6 +1421,12 @@ function viewHitung() {
         toast('PDF diunduh');
       };
     };
+    root.addEventListener('click', (e) => {
+      const w = e.target.closest('button[data-wz]');
+      if (!w || w.disabled) return;
+      KP.wz = Number(w.dataset.wz); wizGo(root, KP.wz);
+    });
+    $$('[data-kelasa]').forEach((sel) => sel.onchange = () => { KP.kelasA[sel.dataset.kelasa] = sel.value; draw(); });
     $$('[data-lingkup]').forEach((b) => b.onclick = () => { if (KP.lingkup === b.dataset.lingkup) return; KP.lingkup = b.dataset.lingkup; route(); });
     if ($('#rDari')) attachAC('rDari', (it) => { KP.dari = it.id; draw(); });
     if ($('#rKe')) attachAC('rKe', (it) => { KP.ke = it.id; draw(); });
@@ -1476,7 +1495,7 @@ function viewHitung() {
     });
     $('.kp-form').addEventListener('focusin', (e) => { const inp = e.target.closest('.stp-in'); if (inp) inp.select(); });
     $('.kp-form').addEventListener('keydown', (e) => { const inp = e.target.closest('.stp-in'); if (inp && e.key === 'Enter') inp.blur(); });
-    $('#kpReset').onclick = () => { resetKP(); route(); toast('Isian dikembalikan ke awal'); };
+    $('#kpReset').onclick = () => { resetKP(); KP.wz = 1; route(); toast('Isian dikembalikan ke awal'); };
     $('.kp-form').addEventListener('click', (e) => {
       const b = e.target.closest('.stp button');
       if (!b) return;

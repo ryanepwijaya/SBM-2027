@@ -208,7 +208,7 @@ function sheetOf(X, bid, ti) {
     if (!r.v) continue;
     aoa.push(r.v.map((x, i) => (vc.includes(i) && r.n?.[i] != null ? r.n[i] : x)));
   }
-  aoa.push([], [`Diunduh dari cek-sbm.vercel.app (oleh @ryanepwijaya) pada ${new Date().toLocaleString('id-ID', { dateStyle: 'long', timeStyle: 'short' })}. Bukan dokumen resmi; cek ulang ke ${Y.src}.`]);
+  aoa.push([], [`Diunduh dari cek-sbm.vercel.app pada ${new Date().toLocaleString('id-ID', { dateStyle: 'long', timeStyle: 'short' })}. Bukan dokumen resmi; cek ulang ke ${Y.src}.`]);
   const ws = X.utils.aoa_to_sheet(aoa);
   ws['!cols'] = t.cols.map((c, i) => ({ wch: vc.includes(i) ? 16 : i === 0 ? 10 : Math.min(60, Math.max(14, ...t.rows.filter((r) => r.v).slice(0, 60).map((r) => String(r.v[i] || '').length))) }));
   numFmt(X, ws, vc, 4);

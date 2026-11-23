@@ -4,7 +4,7 @@
 import { S, Y, esc, fmt, store, tip, effPct, pctTxt, effMini, tableKey, pdRef } from './store.js';
 import { W, resolve, suggest, placeLabel } from './rute.js';
 import { ic } from './icons.js';
-import { TINGKAT, compute, plain, lib as pdfLib, loadScript, autoMalam, pdfFooter, PDF_BOTTOM, KELAS_IV, kelasNm } from './hitung.js';
+import { TINGKAT, compute, plain, lib as pdfLib, loadScript, autoMalam, pdfFooter, PDF_BOTTOM, kelasOf, kelasNm, kelasCellIV } from './hitung.js';
 
 const KEY = 'massal';
 const SHORT = { pn: 'PN/Wamen', e1: 'Eselon I', pnl: 'PN Lainnya', e2: 'Eselon II', e3: 'Es. III/Gol. IV', e4: 'Es. IV/Gol. III–I' };
@@ -20,14 +20,14 @@ const newOrg = () => ({ ...zeroOrg(), e4: 1 });
 const sumOrg = (o) => TINGKAT.reduce((a, t) => a + (o[t.k] || 0), 0);
 const DEF = {
   v: 1, step: 1, ke: '', jenis: 'lk', mode: 'non', hari: 1, malam: 1, malamManual: false, paket: 1, paketManual: false,
-  kelas: Object.fromEntries(TINGKAT.map((t) => [t.k, 'eko'])), asal: [], pdfBy: 'kota', single: 'e4', sort: { k: 'prov', d: 1 },
+  kelas: Object.fromEntries(TINGKAT.map((t) => [t.k, 'eko'])), kelasA: {}, asal: [], pdfBy: 'kota', single: 'e4', sort: { k: 'prov', d: 1 },
 };
 function load() {
   const base = clone(DEF);
   const d = store.get(KEY, null);
   if (!d || d.v !== 1) return base;
   return {
-    ...base, ...d, kelas: { ...base.kelas, ...(d.kelas || {}) }, sort: { ...base.sort, ...(d.sort || {}) },
+    ...base, ...d, kelas: { ...base.kelas, ...(d.kelas || {}) }, kelasA: d.kelasA && typeof d.kelasA === 'object' ? { pn: d.kelasA.pn === 'eko' ? 'eko' : 'bis', e1: d.kelasA.e1 === 'eko' ? 'eko' : 'bis' } : {}, sort: { ...base.sort, ...(d.sort || {}) },
     asal: (d.asal || []).filter((a) => a && a.id).map((a) => ({ id: a.id, org: { ...zeroOrg(), ...(a.org || {}) }, dh: a.dh | 0 })),
   };
 }
@@ -79,7 +79,7 @@ export function computeAll() {
     if (!O) continue;
     const { h, m, p } = daysOf(a);
     const n = sumOrg(a.org);
-    const res = compute({ dari: a.id, ke: MS.ke, jenis: MS.jenis, mode: MS.mode, paket: p, hari: h, malam: m, org: a.org });
+    const res = compute({ dari: a.id, ke: MS.ke, jenis: MS.jenis, mode: MS.mode, paket: p, hari: h, malam: m, org: a.org, kelasA: MS.kelasA });
     const cats = {};
     let tr = 0, st = 0;
     for (const l of res.lines || []) {
@@ -141,9 +141,9 @@ function step1(ui) {
       ${MS.mode === 'fb' ? `<div class="ms-f"><span class="kp-lbl">Hari paket ${tip('Jumlah paket fullboard per orang (1 paket = 1 hari dan 1 malam). Bawaan sama dengan jumlah malam.')}</span>${stp('paket', MS.paket, 0, MS.hari, 'Jumlah hari paket')}</div>` : ''}
     </div>
     <div class="muted small">Lama ini berlaku untuk semua kota asal. Di langkah 3, tiap kota asal bisa ditambah atau dikurangi harinya (misalnya datang sehari lebih awal).</div>
-    <h3 class="ms-h3">Kelas tiket pesawat per tingkat ${tip('Mengikuti Lampiran IV PMK 113/PMK.05/2012. Hanya dipakai bila rute dari kota asal memakai tiket pesawat.')}</h3>
-    <div class="ms-kelas">${TINGKAT.map((t) => `<div class="ms-kl"><span title="${esc(t.n)}">${esc(t.s)}</span><span class="kp-kc ${KELAS_IV[t.k]}">${kelasNm(KELAS_IV[t.k])}</span></div>`).join('')}</div>
-    <div class="muted small">Tingkat A (Pejabat Negara setingkat menteri dan Eselon I) Bisnis, lainnya Ekonomi. ${pdRef('lamp4')}</div>
+    <h3 class="ms-h3">Kelas tiket pesawat per tingkat ${tip('Hanya dipakai bila rute dari kota asal memakai tiket pesawat.')}</h3>
+    <div class="ms-kelas">${TINGKAT.map((t) => `<div class="ms-kl"><span title="${esc(t.n)}">${esc(t.s)}</span>${kelasCellIV(t, MS.kelasA)}</div>`).join('')}</div>
+    <div class="muted small">Kelas pesawat sesuai ${pdRef('lamp4')}.</div>
     ${navBtns(0, 2, 'Pilih kota asal')}
   </div>`;
 }
@@ -213,15 +213,15 @@ function step3() {
   }).join('');
   return `<div class="card ms-card ms-c3">
     <div class="ms-c3-h"><h2 class="kp-h"><span class="step">3</span>Jumlah peserta per kota asal</h2>
-      <div class="muted small">Ketik langsung di tabel, atau isi baris <b>Isi semua</b> lalu tekan Terapkan. Kolom ± hari menggeser hari dan malam untuk kota itu saja.</div></div>
+      <div class="muted small">Ketik langsung di tabel, atau isi baris <b>Isi semua</b> lalu tekan Terapkan. Kolom Tambah/kurang hari menggeser hari dan malam untuk kota itu saja.</div></div>
     <div class="tbl-wrap ms-tw"><table class="t ms-t">
-      <thead><tr><th>Kota asal</th>${head}<th>± hari ${tip(`Lama bawaan ${MS.hari} hari ${MS.malam} malam. Misalnya +1 untuk peserta yang berangkat sehari lebih awal: hari dan malamnya sama-sama bertambah satu.`)}</th><th class="n">Jumlah</th><th><span class="sr">Hapus</span></th></tr>
+      <thead><tr><th>Kota asal</th>${head}<th>Tambah/kurang hari ${tip(`Lama bawaan ${MS.hari} hari ${MS.malam} malam. Misalnya +1 untuk peserta yang berangkat sehari lebih awal: hari dan malamnya sama-sama bertambah satu.`)}</th><th class="n">Jumlah</th><th><span class="sr">Hapus</span></th></tr>
         <tr class="ms-bulk"><th>Isi semua</th>${bulk}<td colspan="3"><button type="button" class="btn sm" id="msBulk">Terapkan ke ${MS.asal.length} kota</button></td></tr></thead>
       <tbody>${rows}</tbody>
       <tfoot><tr><th>Total</th>${TINGKAT.map((t) => `<td class="n" data-ft="${t.k}">${sums[t.k] || '–'}</td>`).join('')}<td></td><td class="n" data-ft="all">${grand.toLocaleString('id-ID')}</td><td></td></tr></tfoot>
     </table></div>
     <details class="fold ms-paste"><summary><span>${ic('copy')} Tempel dari Excel</span><small>salin kolom kota dan jumlahnya</small></summary><div class="fold-body">
-      <p class="small muted">Satu baris per kota. Kolom pertama nama kota/kabupaten, lalu jumlah per tingkat berurutan: ${TINGKAT.map((t) => esc(SHORT[t.k])).join(', ')}. Kolom ke-8 (opsional) ± hari. Bila hanya ada satu angka, angka itu masuk ke tingkat
+      <p class="small muted">Satu baris per kota. Kolom pertama nama kota/kabupaten, lalu jumlah per tingkat berurutan: ${TINGKAT.map((t) => esc(SHORT[t.k])).join(', ')}. Kolom ke-8 (opsional) tambah/kurang hari. Bila hanya ada satu angka, angka itu masuk ke tingkat
       <select class="sel sm" id="msSingle">${TINGKAT.map((t) => `<option value="${t.k}"${MS.single === t.k ? ' selected' : ''}>${esc(SHORT[t.k])}</option>`).join('')}</select>. Baris tanpa angka hanya menambah kota asal (berisi 1 pelaksana bawaan). Kota yang belum dipilih otomatis ditambahkan.</p>
       <textarea id="msPasteIn" class="ms-ta" rows="6" placeholder="Surabaya&#9;0&#9;0&#9;0&#9;1&#9;2&#9;10&#10;Kab. Bojonegoro&#9;5"></textarea>
       <div class="ms-paste-a"><button type="button" class="btn" id="msPasteGo">Proses tempelan</button></div>
@@ -402,6 +402,7 @@ export function viewMassal(ui) {
     $$('[data-clear]', body).forEach((b) => b.onclick = () => { const i = $('#' + b.dataset.clear); i.value = ''; i.focus(); i.dispatchEvent(new Event('input')); });
     $$('[data-mode]', body).forEach((b) => b.onclick = () => { MS.mode = b.dataset.mode; save(); render(); });
     $$('[data-jenis]', body).forEach((b) => b.onclick = () => { MS.jenis = b.dataset.jenis; save(); render(); });
+    $$('[data-kelasa]', body).forEach((s) => s.onchange = () => { MS.kelasA[s.dataset.kelasa] = s.value; save(); });
     const el = (id) => $(`[data-stp="${id}"]`, body);
     wireStp(body, (id) => MS[id], (stpEl, v, keep) => {
       const id = stpEl.dataset.stp;
@@ -576,7 +577,7 @@ export function viewMassal(ui) {
 
 /* ---------------- PDF ---------------- */
 const fileBase = (res) => `Perkiraan-Perjadin-Banyak-Asal-${plain(labelOf(MS.ke)).replace(/[^\w]+/g, '-')}-${MS.hari}hari-TA${Y.y}`.replace(/-+/g, '-');
-const kelasTxt = (res) => TINGKAT.filter((t) => res.byT[t.k]).map((t) => `${SHORT[t.k]}: ${kelasNm(KELAS_IV[t.k])}`).join('; ');
+const kelasTxt = (res) => TINGKAT.filter((t) => res.byT[t.k]).map((t) => `${SHORT[t.k]}: ${kelasNm(kelasOf(MS.kelasA)[t.k])}`).join('; ');
 const unitTxt = (l) => { if (l.n == null) return 'Tidak tercantum'; const p = effPct(l.t); return p < 100 ? `${fmt(l.unit)}\n(${pctTxt(p)} dari ${fmt(l.n)})` : fmt(l.n); };
 
 async function buildPdfMassal(res) {
@@ -722,7 +723,7 @@ async function buildXlsx(res) {
     ['Tingkat', 'Orang'], ...TINGKAT.filter((t) => res.byT[t.k]).map((t) => [t.n, res.byT[t.k]]), [],
     ['Catatan'], [footNote(res).replace(/<[^>]+>/g, '')],
     ...(res.dalam.length ? [[`Tidak dihitung (dalam kota, segera hadir): ${res.dalam.map((r) => plain(labelOf(r.a.id))).join(', ')}`]] : []),
-    [`Dibuat dari cek-sbm.vercel.app (oleh @ryanepwijaya) pada ${new Date().toLocaleString('id-ID', { dateStyle: 'long', timeStyle: 'short' })}. Bukan dokumen resmi.`],
+    [`Dibuat dari cek-sbm.vercel.app pada ${new Date().toLocaleString('id-ID', { dateStyle: 'long', timeStyle: 'short' })}. Bukan dokumen resmi.`],
   ];
   const s1 = X.utils.aoa_to_sheet(r1);
   s1['!cols'] = [{ wch: 30 }, { wch: 60 }];

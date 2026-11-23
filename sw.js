@@ -1,5 +1,5 @@
 // Service worker: aplikasi tetap bisa dibuka tanpa internet
-const VERSION = 'sbm27-v58-202611231030';
+const VERSION = 'sbm27-v59-202611231130';
 const SHELL = [
   './', 'index.html', 'css/app.css', 'manifest.webmanifest',
   'js/app.js', 'js/store.js', 'js/search.js', 'js/catalog.js', 'js/icons.js',
