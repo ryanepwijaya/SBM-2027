@@ -30,13 +30,13 @@ export const kelasCellIV = (t, pick = {}, attr = 'kelasa') => (TIER_A.includes(t
   : `<span class="kp-kc eko" title="Dikunci sesuai Lampiran IV">${ic('lock')}Ekonomi</span>`);
 
 // Alur dua halaman: 1 isi data, 2 estimasi biaya (estimasi baru tampil setelah semua isian lengkap)
-export function wizHead(step, sub1, sub2) {
+export function wizHead(step, sub1, sub2, t2 = 'Estimasi biaya') {
   return `<nav class="ms-steps wz-steps" aria-label="Langkah">
     <button type="button" class="ms-st${step === 1 ? ' on' : ''}" data-wz="1"${step === 1 ? ' aria-current="step"' : ''}><span class="step">1</span><span class="ms-st-tx"><b>Isi data</b><small class="wz-s1">${esc(sub1)}</small></span></button>
-    <button type="button" class="ms-st${step === 2 ? ' on' : ''}" data-wz="2"${step === 2 ? ' aria-current="step"' : ''}><span class="step">2</span><span class="ms-st-tx"><b>Estimasi biaya</b><small class="wz-s2">${esc(sub2)}</small></span></button>
+    <button type="button" class="ms-st${step === 2 ? ' on' : ''}" data-wz="2"${step === 2 ? ' aria-current="step"' : ''}><span class="step">2</span><span class="ms-st-tx"><b>${esc(t2)}</b><small class="wz-s2">${esc(sub2)}</small></span></button>
   </nav>`;
 }
-export const wizBar = () => `<div class="card card-pad wz-bar"><div class="wz-miss small" aria-live="polite"></div><button type="button" class="btn primary" data-wz="2">Cek estimasi ${ic('chevron-right')}</button></div>`;
+export const wizBar = (label = 'Cek estimasi') => `<div class="card card-pad wz-bar"><div class="wz-miss small" aria-live="polite"></div><button type="button" class="btn primary" data-wz="2">${esc(label)} ${ic('chevron-right')}</button></div>`;
 // Perbarui daftar isian yang belum lengkap dan tombol Cek estimasi
 export function wizUpdate(root, missing) {
   const m = root.querySelector('.wz-miss');
@@ -372,7 +372,7 @@ export function peopleTable(list, kelasCell, countCell, nameExtra = null, kelasH
   </div>`;
 }
 
-const sifatChip = (s) => `<span class="chip ${s === 'BT' ? 'bt' : 'dl'}">${s === 'BT' ? 'Batas Tertinggi' : 'Dapat Dilampaui'}</span>`;
+export const sifatChip = (s) => `<span class="chip ${s === 'BT' ? 'bt' : 'dl'}">${s === 'BT' ? 'Batas Tertinggi' : 'Dapat Dilampaui'}</span>`;
 export const byrChip = (l) => `<span class="chip byr ${l.byr}" title="${esc(`${BYR[l.byr]}, ${pdTxt(l.byrRef || 'lumpsum')}`)}">${BYR[l.byr]}</span>`;
 const sumsTxt = (sums) => ['IDR', 'USD'].filter((c) => sums[c]).map((c) => (c === 'USD' ? fmtUsd(sums[c]) : fmt(Math.round(sums[c])))).join(' + ') || fmt(0);
 const groupsOf = (lines) => [...new Set(lines.map((l) => l.g))];

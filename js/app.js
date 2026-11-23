@@ -10,6 +10,7 @@ import { viewInvoice, viewPajak, viewHonor } from './pbj.js';
 import { viewPerubahan, viewUnduh } from './perubahan.js';
 import { viewLembur, viewPemeliharaan, viewPaket } from './alat2.js';
 import { viewTujuan } from './tujuan.js';
+import { viewUji } from './uji.js';
 import { viewPindah } from './pindah.js';
 import { BABS, REF_LINKS, babByKey, babByKel, babOfButir } from './bab.js';
 import { initGlide } from './glide.js';
@@ -37,6 +38,7 @@ const TOOLS = [
       { k: 'massal', h: '#/massal', t: 'Perjadin (banyak asal)', i: 'users', d: 'Satu kegiatan di satu kota, peserta dari banyak kota asal; unduh PDF dan Excel' },
       { k: 'tujuan', h: '#/tujuan', t: 'Perjadin (banyak tujuan)', i: 'map-pin', d: 'Satu surat tugas, rute berantai sampai 3 kota tujuan; unduh PDF' },
       { k: 'pindah', h: '#/pindah', t: 'Dinas Pindah', i: 'package', d: 'Perkiraan biaya perjalanan dinas pindah dalam dan luar negeri: tiket, uang harian, angkutan barang' },
+      { k: 'uji', h: '#/uji', t: 'Uji Perjalanan', i: 'clipboard-check', d: 'Uji angka riil tagihan perjalanan dinas terhadap SBM: sesuai, di bawah, atau melebihi batas tertinggi; unduh lembar uji PDF' },
     ],
   },
   {
@@ -612,7 +614,7 @@ function route() {
         break;
       case 'rute': setNav('alat'); side = [null, 'tool:rute', 'rute']; cr.push(ALAT_CRUMB, RUTE_CRUMB, { t: 'SBM Perjalanan' }); ({ html, after } = viewRute(params)); break;
       case 'massal': setNav('alat'); side = [null, 'tool:massal', 'rute']; cr.push(ALAT_CRUMB, RUTE_CRUMB, { t: 'Perjadin (banyak asal)' }); ({ html, after } = viewMassal({ $, $$, toast, effNotice, placeField, attachAC })); break;
-      case 'tujuan': case 'pindah': { setNav('alat'); const rt = TOOLS.find((x) => x.k === 'rute'); const t = rt.sub.find((x) => x.k === key); side = [null, 'tool:' + key, 'rute']; cr.push(ALAT_CRUMB, RUTE_CRUMB, { t: t.t }); ({ html, after } = (key === 'tujuan' ? viewTujuan : viewPindah)({ $, $$, toast, effNotice, placeField, attachAC })); break; }
+      case 'tujuan': case 'pindah': case 'uji': { setNav('alat'); const rt = TOOLS.find((x) => x.k === 'rute'); const t = rt.sub.find((x) => x.k === key); side = [null, 'tool:' + key, 'rute']; cr.push(ALAT_CRUMB, RUTE_CRUMB, { t: t.t }); ({ html, after } = (key === 'tujuan' ? viewTujuan : key === 'uji' ? viewUji : viewPindah)({ $, $$, toast, effNotice, placeField, attachAC })); break; }
       case 'hitung': setNav('alat'); side = [null, 'tool:hitung', 'rute']; cr.push(ALAT_CRUMB, RUTE_CRUMB, { t: 'Hitung Perjalanan' }); ({ html, after } = viewHitung()); break;
       case 'bandingkan': {
         // Bandingkan Wilayah dilebur ke Biaya Per Wilayah
