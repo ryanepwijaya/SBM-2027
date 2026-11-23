@@ -1,7 +1,7 @@
 // Perjadin (banyak asal): perkiraan biaya satu kegiatan dengan peserta dari banyak kota asal.
 // Memakai mesin hitung Hitung Perjalanan per kota asal, lalu menjumlahkan. Hanya menampilkan angka SBM × volume.
 // Isian tersimpan di localStorage perangkat ini saja (tanpa akun, tanpa server).
-import { S, Y, esc, fmt, store, tip, effPct, pctTxt, effMini, tableKey, pdRef } from './store.js';
+import { S, Y, esc, fmt, store, tip, effPct, pctTxt, effMini, tableKey, pdRef, resetBtn } from './store.js';
 import { W, resolve, suggest, placeLabel } from './rute.js';
 import { ic } from './icons.js';
 import { TINGKAT, compute, plain, lib as pdfLib, loadScript, autoMalam, pdfFooter, PDF_BOTTOM, kelasOf, kelasNm, kelasCellIV } from './hitung.js';
@@ -335,8 +335,8 @@ function applyPaste(p) {
 
 /* ---------------- View ---------------- */
 export function viewMassal(ui) {
-  const html = `<div class="page-head"><h1 class="title">Perjadin (banyak asal)</h1><p class="subtitle">Perkiraan biaya satu kegiatan di kota tertentu dengan peserta dari banyak kota asal. Hasilnya bisa diunduh sebagai PDF (ringkasan di halaman pertama, lalu rincian) dan Excel. Isian tersimpan otomatis di perangkat ini saja, tanpa akun dan tidak dikirim ke mana pun.</p></div>
-  <div class="ms-bar"><span class="muted small">${ic('check')} Draf tersimpan otomatis di perangkat ini</span><button type="button" class="btn sm danger" id="msReset">${ic('history')} Reset semua</button></div>
+  const html = `<div class="page-head"><h1 class="title">Perjadin (banyak asal)</h1>${resetBtn('msReset')}<p class="subtitle">Perkiraan biaya satu kegiatan di kota tertentu dengan peserta dari banyak kota asal. Hasilnya bisa diunduh sebagai PDF (ringkasan di halaman pertama, lalu rincian) dan Excel. Isian tersimpan otomatis di perangkat ini saja, tanpa akun dan tidak dikirim ke mana pun.</p></div>
+  <div class="ms-bar"><span class="muted small">${ic('check')} Draf tersimpan otomatis di perangkat ini</span></div>
   <div id="msNav"></div><div id="msBody"></div>`;
   const { $, $$, toast, effNotice } = ui;
   const go = (s) => { MS.step = s; save(); render(); window.scrollTo({ top: 0 }); };

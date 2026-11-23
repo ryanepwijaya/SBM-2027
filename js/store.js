@@ -240,6 +240,14 @@ export const REF_PD = {
 export const pdTxt = (k) => { const [d, l] = REF_PD[k]; return `${l} ${PMKPD[d].s}`; };
 export const pdRef = (k) => { const [d, l, p] = REF_PD[k]; return `<a class="chip ref pmk" href="${PMKPD[d].doc}#page=${p}" target="_blank" rel="noopener" title="${esc(`${l} ${PMKPD[d].n}`)} (buka PDF)">${esc(`${l} ${PMKPD[d].s}`)}</a>`; };
 
+// Tombol Reset halaman alat: selalu di kepala halaman (di luar langkah), posisi sama untuk semua alat
+export const resetBtn = (id) => `<button type="button" class="btn sm danger page-reset" id="${id}" title="Kosongkan semua isian dan kembali ke awal"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l4 2"/></svg> Reset</button>`;
+// Reset dua kali tekan (dalam 3 detik) supaya tidak terhapus tanpa sengaja
+export function resetGuard(toast, msg = 'Tekan Reset sekali lagi untuk mengosongkan semua isian') {
+  let armed = 0;
+  return (doIt) => { if (Date.now() - armed > 3000) { armed = Date.now(); toast(msg); return; } armed = 0; doIt(); };
+}
+
 // Menu lipat untuk teks penjelasan
 export function fold(title, body, opt = {}) {
   return `<details class="fold"${opt.id ? ` id="${opt.id}"` : ''}${opt.open ? ' open' : ''}><summary><span>${title}</span>${opt.meta ? `<small>${opt.meta}</small>` : ''}</summary><div class="fold-body">${body}</div></details>`;

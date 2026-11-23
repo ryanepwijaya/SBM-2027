@@ -63,6 +63,10 @@ python3 build_data.py /tmp/tables26.json /tmp/text26.json map.json ../../data/sb
 
 `#/uji` (`js/uji.js`): satu pelaksana, perjalanan dinas luar kota dalam negeri. Komponen dan sifatnya diambil dari `compute()` Hitung Perjalanan (SBM 100%, tanpa persentase dibayar); tiga halaman: Isi data (perjalanan, lama, pelaksana) → Kertas kerja (penyandingan SBM dan riil per komponen: centang Sesuai SBM atau isi angka riil, 0 bila tidak ditagihkan; selisih dan status langsung diperbarui; komponen lain tidak diuji) → Dokumen (ringkasan, pilihan komponen tanpa bukti, dan tiga unduhan Word: Kuitansi, Rincian Biaya format Lampiran II, Daftar Pengeluaran Riil format Lampiran IX; tanpa kop dan identitas, dibuat oleh `js/docx-mini.js` tanpa pustaka luar). Setiap klik unduh wajib melewati peringatan `confirmDraft` (dokumen bukan final; tunduk pada PMK/KMK, kebijakan pejabat perbendaharaan, dan kebijakan internal satker; Cek SBM tidak bertanggung jawab), dengan centang pernyataan sebelum tombol Unduh draf aktif. Tiket diuji per arah (berangkat/pulang, masing-masing ½ tarif PP SBM). Komponen batas tertinggi yang melebihi SBM dicantumkan sebesar SBM. Status: sesuai, di bawah SBM, melebihi batas tertinggi (sifat BT), di atas acuan (dapat dilampaui), tidak tercantum di SBM. Ringkasan kelebihan di atas batas tertinggi dan PDF "Lembar Uji Perjalanan Dinas". 
 
+## Tombol Reset
+
+Semua alat memakai `resetBtn(id)` (`js/store.js`) di kepala halaman, di luar langkah, posisi kanan atas yang sama. Reset perlu ditekan dua kali dalam 3 detik (`resetGuard` atau pola serupa), mengosongkan semua isian, dan alat berlangkah kembali ke langkah 1. Tombol "Kosongkan" daftar kota asal di Perjadin (banyak asal) tetap di langkahnya karena hanya menghapus daftar itu.
+
 ## Alur dua halaman
 
 Hitung Perjalanan, Perjadin (banyak tujuan), dan Dinas Pindah memakai alur `wizHead`/`wizBar`/`wizUpdate`/`wizGo` (`js/hitung.js`): halaman 1 Isi data, halaman 2 Estimasi biaya. Tombol Cek estimasi aktif setelah semua isian wajib lengkap (daftar kekurangan tampil di bilah bawah). Elemen akar memakai `data-wz="1|2"`; CSS menyembunyikan form atau hasil. Dinas Pindah selalu dibuka di Dalam negeri.

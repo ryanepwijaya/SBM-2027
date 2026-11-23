@@ -2214,3 +2214,12 @@ body.uj-noscroll { overflow: hidden; }
 @keyframes ujFade { from { opacity: 0; } }
 @keyframes ujPop { from { opacity: 0; transform: translateY(8px) scale(.98); } }
 @media (prefers-reduced-motion: reduce) { .uj-modal, .uj-mbox { animation: none; } }
+/* Tombol Reset halaman alat: di kepala halaman, di luar langkah */
+.page-head:has(.page-reset) { position: relative; }
+.page-head:has(.page-reset) h1.title { padding-right: 110px; }
+.page-head .page-reset { position: absolute; right: 0; top: 4px; }
+.page-head .page-reset svg { width: 16px; height: 16px; }
+@media (max-width: 639px) {
+  .page-head:has(.page-reset) h1.title { padding-right: 96px; }
+  .page-head .page-reset { top: 2px; }
+}

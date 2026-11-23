@@ -2,7 +2,7 @@
 // Tiap ruas dihitung dengan mesin SBM Perjalanan (taksi, tiket, transport darat), tiap tujuan dengan uang harian,
 // penginapan, dan representasi provinsinya. Angka SBM × volume; ketentuan PMK Perjalanan Dinas hanya yang berupa rumus atas angka SBM
 // (kelas pesawat Lampiran IV, penginapan 30% Pasal 8 ayat (5)), dengan rujukan pasal.
-import { S, Y, esc, fmt, store, tip, valueCols, pdRef, pdTxt } from './store.js';
+import { S, Y, esc, fmt, store, tip, valueCols, pdRef, pdTxt, resetBtn, resetGuard } from './store.js';
 import { resolve, computeRoute, rowBy, placeLabel } from './rute.js';
 import { ic } from './icons.js';
 import { TINGKAT, plain, adder, finish, peopleOf, resTable, buildPdf, autoMalam, KELAS_IV, kelasOf, kelasCellIV, peopleTable, wizHead, wizBar, wizUpdate, wizGo, editBtn, wizCols } from './hitung.js';
@@ -103,7 +103,7 @@ function formHtml(T, ui) {
       <div class="tj-hm"><div class="tj-f"><span class="kp-lbl">Hari</span>${stp('h:' + i, d.h, 1, 365, `Hari di tujuan ${i + 1}`)}</div><div class="tj-f"><span class="kp-lbl">Malam ${i === 0 ? tip('Malam menginap di kota ini. Bawaan 1 malam untuk 1 hari, lalu hari dikurangi satu. Bisa 0 sampai sama dengan jumlah hari.') : ''}</span>${stp('m:' + i, d.m, 0, d.h, `Malam di tujuan ${i + 1}`)}</div></div>
     </div>`).join('');
   return `<div class="card card-pad kp-form">
-    <div class="kp-step"><h2 class="kp-h"><span class="step">1</span>Rute surat tugas<button type="button" class="btn sm danger kp-reset" id="tjReset">${ic('history')} Reset</button></h2>
+    <div class="kp-step"><h2 class="kp-h"><span class="step">1</span>Rute surat tugas</h2>
       <div class="route-form">${ui.placeField('tjAsal', 'Kota asal', placeLabel(T.asal), 'Kota/kabupaten asal')}</div>
       <div class="tj-list">${dests}</div>
       ${T.dest.length < MAX_TUJUAN ? `<button type="button" class="btn sm tj-add" id="tjAdd">${ic('plus')} Tambah tujuan <small>(maks. ${MAX_TUJUAN})</small></button>` : `<div class="muted small">Paling banyak ${MAX_TUJUAN} tujuan dalam satu surat tugas.</div>`}
@@ -141,7 +141,7 @@ function resultHtml(T, res, effNotice) {
 export function viewTujuan(ui) {
   const T = load();
   const save = () => store.set(KEY, T);
-  const html = `<div class="page-head"><h1 class="title">Perjadin (banyak tujuan)</h1><p class="subtitle">Satu surat tugas dengan rute berantai: dari kota asal ke tujuan 1, lanjut ke tujuan berikutnya, lalu kembali ke kota asal. Paling banyak ${MAX_TUJUAN} tujuan. Transportasi dihitung per ruas; uang harian, penginapan, dan representasi per kota tujuan.</p></div>
+  const html = `<div class="page-head"><h1 class="title">Perjadin (banyak tujuan)</h1>${resetBtn('tjReset')}<p class="subtitle">Satu surat tugas dengan rute berantai: dari kota asal ke tujuan 1, lanjut ke tujuan berikutnya, lalu kembali ke kota asal. Paling banyak ${MAX_TUJUAN} tujuan. Transportasi dihitung per ruas; uang harian, penginapan, dan representasi per kota tujuan.</p></div>
   <div class="kp tj wz" id="tjRoot" data-wz="${WZ}"></div>`;
   const after = () => {
     const { $, $$, toast, effNotice } = ui;
@@ -220,7 +220,6 @@ export function viewTujuan(ui) {
       const del = e.target.closest('[data-del]');
       if (del) { T.dest.splice(Number(del.dataset.del), 1); save(); render(); return; }
       if (e.target.closest('#tjAdd')) { if (T.dest.length < MAX_TUJUAN) { T.dest.push({ id: '', h: 1, m: 1, mm: false }); save(); render('tjD' + (T.dest.length - 1)); } return; }
-      if (e.target.closest('#tjReset')) { Object.assign(T, DEF()); WZ = 1; root.dataset.wz = '1'; save(); render(); toast('Isian dikembalikan ke awal'); return; }
       const sg = e.target.closest('[data-tiket],[data-jenis],[data-inap]');
       if (sg) {
         const k = ['tiket', 'jenis', 'inap'].find((x) => sg.dataset[x] != null);
@@ -236,6 +235,8 @@ export function viewTujuan(ui) {
       apply(inp.closest('.stp'), Number(inp.value), true);
     });
     root.addEventListener('focusout', (e) => { const inp = e.target.closest('.stp-in'); if (!inp) return; const el = inp.closest('.stp'); apply(el, inp.value === '' ? get(el.dataset.stp) : Number(inp.value)); });
+    const guard = resetGuard(toast);
+    $('#tjReset').onclick = () => guard(() => { Object.assign(T, DEF()); WZ = 1; root.dataset.wz = '1'; save(); render(); window.scrollTo({ top: 0, behavior: 'smooth' }); toast('Isian dikembalikan ke awal'); });
     root.addEventListener('focusin', (e) => { const inp = e.target.closest('.stp-in'); if (inp) inp.select(); });
     root.addEventListener('change', (e) => { const s = e.target.closest('[data-kelasa]'); if (s) { T.kelasA[s.dataset.kelasa] = s.value; save(); draw(); } });
     root.addEventListener('keydown', (e) => { const inp = e.target.closest('.stp-in'); if (inp && e.key === 'Enter') inp.blur(); });

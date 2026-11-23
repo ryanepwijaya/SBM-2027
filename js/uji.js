@@ -1,7 +1,7 @@
 // Uji Perjalanan: menguji angka riil tagihan perjalanan dinas luar kota (satu pelaksana) terhadap satuan biaya SBM.
 // Komponen dan sifatnya (batas tertinggi / dapat dilampaui, lumpsum / biaya riil) diambil dari mesin Hitung Perjalanan;
 // aplikasi tidak menetapkan aturan sendiri, hanya membandingkan dan menandai.
-import { S, Y, esc, fmt, store, tip, pdRef, pdTxt } from './store.js';
+import { S, Y, esc, fmt, store, tip, pdRef, resetBtn, resetGuard } from './store.js';
 import { resolve, placeLabel } from './rute.js';
 import { ic } from './icons.js';
 import { TINGKAT, compute, autoMalam, plain, TIER_A, kelasCellIV, sifatChip, byrChip, wizHeadN, wizGo, wizCols, downloadBlob } from './hitung.js';
@@ -89,7 +89,7 @@ const seg = (name, opts, cur) => `<div class="kp-seg" role="radiogroup">${opts.m
 function formHtml(T, ui, ev) {
   const t = TINGKAT.find((x) => x.k === T.tk);
   return `<div class="card card-pad kp-form">
-    <div class="kp-step"><h2 class="kp-h"><span class="step">1</span>Perjalanan<button type="button" class="btn sm danger kp-reset" id="ujReset">${ic('history')} Reset</button></h2>
+    <div class="kp-step"><h2 class="kp-h"><span class="step">1</span>Perjalanan</h2>
       <div class="route-form">${ui.placeField('ujDari', 'Dari', placeLabel(T.dari), 'Kota/kabupaten asal')}${ui.placeField('ujKe', 'Ke', T.ke ? placeLabel(T.ke) : '', 'Kota/kabupaten tujuan')}</div>
       <div class="kp-row"><span class="kp-lbl">Uang harian</span>${seg('jenis', [['lk', 'Luar kota'], ['diklat', 'Diklat']], T.jenis)}</div>
     </div>
@@ -304,7 +304,7 @@ function docDpr(T, ev) {
 export function viewUji(ui) {
   const T = load();
   const save = () => store.set(KEY, T);
-  const html = `<div class="page-head"><h1 class="title">Uji Perjalanan</h1><p class="subtitle">Uji angka riil tagihan perjalanan dinas luar kota satu pelaksana terhadap SBM: komponen mana yang sesuai, di bawah, atau melebihi batas tertinggi.</p></div>
+  const html = `<div class="page-head"><h1 class="title">Uji Perjalanan</h1>${resetBtn('ujReset')}<p class="subtitle">Uji angka riil tagihan perjalanan dinas luar kota satu pelaksana terhadap SBM: komponen mana yang sesuai, di bawah, atau melebihi batas tertinggi.</p></div>
   <div class="kp uj wz" id="ujRoot" data-wz="${WZ}"></div>`;
   const after = () => {
     const { $, $$, toast } = ui;
@@ -383,7 +383,6 @@ export function viewUji(ui) {
       if (e.target.closest('#ujAdd')) { T.extra.push({ l: '', a: '' }); save(); redrawWork(); setTimeout(() => $(`[data-xl="${T.extra.length - 1}"]`, root)?.focus(), 30); return; }
       const del = e.target.closest('[data-xdel]');
       if (del) { T.extra.splice(Number(del.dataset.xdel), 1); save(); redrawWork(); return; }
-      if (e.target.closest('#ujReset')) { Object.assign(T, DEF()); WZ = 1; root.dataset.wz = '1'; save(); render(); toast('Isian dikembalikan ke awal'); }
     });
     root.addEventListener('input', (e) => {
       const el = e.target;
@@ -395,6 +394,8 @@ export function viewUji(ui) {
       if (el.dataset.xl != null) { T.extra[Number(el.dataset.xl)].l = el.value.slice(0, 120); save(); refresh(); return; }
       if (el.classList.contains('stp-in')) { const v = parseInt(digits(el.value), 10); if (Number.isFinite(v)) { const st = el.closest('.stp'); if (st.dataset.stp === 'hari') { T.hari = Math.max(1, Math.min(365, v)); T.malam = T.mm ? Math.min(T.malam, T.hari) : Math.min(T.hari, autoMalam(T.hari)); } else { T.malam = Math.max(0, Math.min(T.hari, v)); T.mm = true; } save(); } }
     });
+    const guard = resetGuard(toast);
+    $('#ujReset').onclick = () => guard(() => { Object.assign(T, DEF()); WZ = 1; root.dataset.wz = '1'; save(); render(); window.scrollTo({ top: 0, behavior: 'smooth' }); toast('Isian dikembalikan ke awal'); });
     root.addEventListener('focusout', (e) => { if (e.target.classList.contains('stp-in')) render(); });
     root.addEventListener('focusin', (e) => { const inp = e.target.closest('.stp-in, [data-rk], [data-xa]'); if (inp) inp.select(); });
     const redrawWork = () => { ev = evaluate(T); $('#ujWork', root).innerHTML = workHtml(T, ev); refresh(); };

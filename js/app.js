@@ -1,5 +1,5 @@
 import { ENTRIES, GROUPS, SHORTCUTS, SIFAT, KEL_ORDER, DOC_NOTES, TOL, applyYear } from './catalog.js';
-import { S, Y, YEARS, switchYear, initYear, loadData, entry, entriesOf, esc, norm, ref, lampShort, fmt, valueCols, unitCol, shortCol, UNIT, rowsOfProv, rapatTiers, pdfLink, store, tip, fold, money, effPct, setEffPct, clearEff, effAll, pctTxt, setEffKey, PMKPD, REF_PD, pdRef } from './store.js';
+import { S, Y, YEARS, switchYear, initYear, loadData, entry, entriesOf, esc, norm, ref, lampShort, fmt, valueCols, unitCol, shortCol, UNIT, rowsOfProv, rapatTiers, pdfLink, store, tip, fold, money, effPct, setEffPct, clearEff, effAll, pctTxt, setEffKey, PMKPD, REF_PD, pdRef, resetBtn, resetGuard } from './store.js';
 import { search, buildIndex, SEARCH_HINTS } from './search.js';
 import { ic } from './icons.js';
 import { loadWilayah, suggest, resolve, routeHtml, placeLabel, routeHints, W } from './rute.js';
@@ -1387,7 +1387,7 @@ function viewProv(pid, params = {}) {
 /* ---------------- Hitung Perjalanan ---------------- */
 function viewHitung() {
   if (!KP.kurs) KP.kurs = Number(store.get('kurs', 0)) || 0;
-  const html = `<div class="page-head"><h1 class="title">Hitung Perjalanan</h1><p class="subtitle">Isi tujuan surat tugas, lama perjalanan, dan pelaksananya: dalam negeri luar kota, dalam kota, atau luar negeri. Perkiraan biaya muncul dari satuan biaya SBM TA ${Y.y}, lengkap dengan rujukan tabelnya. Persentase dibayar yang diatur di tiap tabel ikut dipakai.</p></div>
+  const html = `<div class="page-head"><h1 class="title">Hitung Perjalanan</h1>${resetBtn('kpReset')}<p class="subtitle">Isi tujuan surat tugas, lama perjalanan, dan pelaksananya: dalam negeri luar kota, dalam kota, atau luar negeri. Perkiraan biaya muncul dari satuan biaya SBM TA ${Y.y}, lengkap dengan rujukan tabelnya. Persentase dibayar yang diatur di tiap tabel ikut dipakai.</p></div>
   <div class="kp wz" id="kpRoot" data-wz="${KP.wz}">${wizHead(KP.wz, 'Tujuan, lama, pelaksana', 'Rincian dan PDF')}${formHtml({ routeForm, placeField, placeLabel })}${wizBar()}<div id="kpHost"></div></div>`;
   const after = () => {
     const root = $('#kpRoot');
@@ -1498,7 +1498,8 @@ function viewHitung() {
     });
     $('.kp-form').addEventListener('focusin', (e) => { const inp = e.target.closest('.stp-in'); if (inp) inp.select(); });
     $('.kp-form').addEventListener('keydown', (e) => { const inp = e.target.closest('.stp-in'); if (inp && e.key === 'Enter') inp.blur(); });
-    $('#kpReset').onclick = () => { resetKP(); KP.wz = 1; route(); toast('Isian dikembalikan ke awal'); };
+    const kpGuard = resetGuard(toast);
+    $('#kpReset').onclick = () => kpGuard(() => { resetKP(); KP.wz = 1; route(); window.scrollTo({ top: 0, behavior: 'smooth' }); toast('Isian dikembalikan ke awal'); });
     $('.kp-form').addEventListener('click', (e) => {
       const b = e.target.closest('.stp button');
       if (!b) return;

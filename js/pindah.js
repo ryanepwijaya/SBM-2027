@@ -4,7 +4,7 @@
 // Ketentuan PMK 113/PMK.05/2012 yang dipakai (rumus atas angka SBM): kelas pesawat Lampiran IV, pembantu rumah tangga
 // Pasal 17 ayat (4)-(5), semua komponen lumpsum Pasal 18 ayat (2), uang harian Pasal 20 ayat (3), pengepakan 50% jarak dekat
 // Pasal 23 ayat (2)-(3), volume barang Lampiran VI. Jarak (km) diisi pengguna.
-import { S, Y, esc, fmt, store, tip, valueCols, pdRef, pdTxt } from './store.js';
+import { S, Y, esc, fmt, store, tip, valueCols, pdRef, pdTxt, resetBtn, resetGuard } from './store.js';
 import { resolve, computeRoute, rowBy, placeLabel } from './rute.js';
 import { ic } from './icons.js';
 import { TINGKAT, plain, adder, finish, resTable, buildPdf, kursTxt, KELAS_IV, TIER_A, kelasNm, wizHead, wizBar, wizUpdate, wizGo, editBtn, wizCols } from './hitung.js';
@@ -135,7 +135,7 @@ function formHtml(T, ui, kurs) {
   if (T.lingkup === 'ln') {
     const rows = perwakilanRows();
     return `<div class="card card-pad kp-form">
-      <div class="kp-step"><h2 class="kp-h"><span class="step">1</span>Tujuan pindah<button type="button" class="btn sm danger kp-reset" id="pdReset">${ic('history')} Reset</button></h2>
+      <div class="kp-step"><h2 class="kp-h"><span class="step">1</span>Tujuan pindah</h2>
         ${seg('lingkup', [['dn', 'Dalam negeri'], ['ln', 'Luar negeri']], T.lingkup)}
         <div class="kp-row"><span class="kp-lbl">Arah</span>${seg('arah', [['out', 'Jakarta → perwakilan'], ['in', 'Perwakilan → Jakarta']], T.arah)}</div>
         <label class="kp-fld"><span>Perwakilan</span><select class="sel" id="pdPer"><option value="">Pilih perwakilan…</option>${rows.map((r) => `<option${r.v[1] === T.per ? ' selected' : ''}>${esc(r.v[1])}</option>`).join('')}</select></label>
@@ -149,7 +149,7 @@ function formHtml(T, ui, kurs) {
   const kmN = num(T.km);
   const kmWarn = T.dekat && kmN && ((T.dekat === 'y') !== (kmN < thr)) ? `<div class="muted small kp-warn">${ic('alert')} Jarak yang diisi ${dec(kmN)} km; periksa kembali jawaban ini.</div>` : '';
   return `<div class="card card-pad kp-form">
-    <div class="kp-step"><h2 class="kp-h"><span class="step">1</span>Tujuan pindah<button type="button" class="btn sm danger kp-reset" id="pdReset">${ic('history')} Reset</button></h2>
+    <div class="kp-step"><h2 class="kp-h"><span class="step">1</span>Tujuan pindah</h2>
       ${seg('lingkup', [['dn', 'Dalam negeri'], ['ln', 'Luar negeri']], T.lingkup)}
       <div class="route-form">${ui.placeField('pdAsal', 'Dari', placeLabel(T.asal), 'Kota/kabupaten asal')}${ui.placeField('pdKe', 'Ke', T.ke ? placeLabel(T.ke) : '', 'Kota/kabupaten tempat kerja baru')}</div>
       <div class="kp-row"><span class="kp-lbl">Tiket ${tip('Tabel tiket SBM memuat tarif pergi-pulang (PP), sedangkan pindah sekali jalan. Tiket sekali jalan dihitung ½ dari tarif PP SBM.')}</span>${seg('tiket', [['half', 'Sekali jalan'], ['full', 'Tarif PP penuh']], T.tiket)}</div>
@@ -207,7 +207,7 @@ export function viewPindah(ui) {
   const T = load();
   let kurs = Number(store.get('kurs', 0)) || 0;
   const save = () => store.set(KEY, T);
-  const html = `<div class="page-head"><h1 class="title">Dinas Pindah</h1><p class="subtitle">Perkiraan biaya perjalanan dinas pindah. Dalam negeri: tiket atau transport sekali jalan untuk pegawai dan keluarga, taksi, uang harian, serta pengepakan dan angkutan barang (${S.butir['L1-24'].lamp === 1 ? 'Lamp. I' : 'Lamp. II'} angka ${S.butir['L1-24'].no}). Luar negeri: tiket pindah sekali jalan Jakarta–perwakilan (${S.butir['L1-28'].lamp === 1 ? 'Lamp. I' : 'Lamp. II'} angka ${S.butir['L1-28'].no}).</p></div>
+  const html = `<div class="page-head"><h1 class="title">Dinas Pindah</h1>${resetBtn('pdReset')}<p class="subtitle">Perkiraan biaya perjalanan dinas pindah. Dalam negeri: tiket atau transport sekali jalan untuk pegawai dan keluarga, taksi, uang harian, serta pengepakan dan angkutan barang (${S.butir['L1-24'].lamp === 1 ? 'Lamp. I' : 'Lamp. II'} angka ${S.butir['L1-24'].no}). Luar negeri: tiket pindah sekali jalan Jakarta–perwakilan (${S.butir['L1-28'].lamp === 1 ? 'Lamp. I' : 'Lamp. II'} angka ${S.butir['L1-28'].no}).</p></div>
   <div class="kp pd wz" id="pdRoot" data-wz="${WZ}"></div>`;
   const after = () => {
     const { $, $$, toast, effNotice } = ui;
@@ -285,7 +285,6 @@ export function viewPindah(ui) {
       if (w) { if (!w.disabled) { WZ = Number(w.dataset.wz); wizGo(root, WZ); } return; }
       const b = e.target.closest('.stp button');
       if (b) { const el = b.closest('.stp'); apply(el, T[el.dataset.stp] + Number(b.dataset.d)); return; }
-      if (e.target.closest('#pdReset')) { const l = T.lingkup; Object.assign(T, DEF(), { lingkup: l }); WZ = 1; root.dataset.wz = '1'; save(); render(); toast('Isian dikembalikan ke awal'); return; }
       const sg = e.target.closest('[data-lingkup],[data-tiket],[data-moda],[data-arah],[data-kln],[data-gol],[data-stat],[data-jawa],[data-dekat],[data-kelasp]');
       if (!sg) return;
       const k = ['lingkup', 'tiket', 'moda', 'arah', 'kln', 'gol', 'stat', 'jawa', 'dekat', 'kelasp'].find((x) => sg.dataset[x] != null);
@@ -313,6 +312,8 @@ export function viewPindah(ui) {
       const inp = e.target.closest('.stp-in'); if (inp) { const el = inp.closest('.stp'); apply(el, inp.value === '' ? T[el.dataset.stp] : Number(inp.value)); }
       if (e.target.id === 'pdKurs') e.target.value = kursTxt(kurs);
     });
+    const guard = resetGuard(toast);
+    $('#pdReset').onclick = () => guard(() => { Object.assign(T, DEF()); WZ = 1; root.dataset.wz = '1'; save(); render(); window.scrollTo({ top: 0, behavior: 'smooth' }); toast('Isian dikembalikan ke awal'); });
     root.addEventListener('focusin', (e) => { const inp = e.target.closest('.stp-in, #pdKm'); if (inp) inp.select(); });
     root.addEventListener('focusout', (e) => { if (e.target.id === 'pdKm' && T.dekat) render(); });
     root.addEventListener('keydown', (e) => { const inp = e.target.closest('.stp-in'); if (inp && e.key === 'Enter') inp.blur(); });

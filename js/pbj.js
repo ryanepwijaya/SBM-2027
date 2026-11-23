@@ -1,7 +1,7 @@
 // Pengadaan Barang/Jasa: Hitung Invoice (daftar barang) dan Kalkulator Pajak.
 // Rumus pajak: semua hasil dibulatkan ke rupiah terdekat.
 // Isian tersimpan di localStorage perangkat ini.
-import { esc, fmt, store, tip } from './store.js';
+import { esc, fmt, store, tip, resetBtn } from './store.js';
 import { ic } from './icons.js';
 import { buildTablePdf, pdfButton } from './hitung.js';
 const today = () => new Date().toISOString().slice(0, 10);
@@ -49,11 +49,10 @@ export function invoiceTotal(I = loadInv()) { return I.rows.reduce((a, r) => a +
 
 export function viewInvoice(ui) {
   const I = loadInv();
-  const html = `<div class="page-head"><h1 class="title">Hitung Invoice Barang/Jasa</h1><p class="subtitle">Isi daftar barang/jasa: volume, harga satuan, dan frekuensi. Urutan kolom bisa digeser mengikuti format invoice yang diterima. Semua bisa diisi tanpa mouse: tekan Tab untuk pindah kolom, dan Tab di kolom terakhir baris terakhir membuat baris baru. Totalnya bisa langsung dihitung pajaknya. Isian tersimpan di perangkat ini.</p></div>
+  const html = `<div class="page-head"><h1 class="title">Hitung Invoice Barang/Jasa</h1>${resetBtn('ivReset')}<p class="subtitle">Isi daftar barang/jasa: volume, harga satuan, dan frekuensi. Urutan kolom bisa digeser mengikuti format invoice yang diterima. Semua bisa diisi tanpa mouse: tekan Tab untuk pindah kolom, dan Tab di kolom terakhir baris terakhir membuat baris baru. Totalnya bisa langsung dihitung pajaknya. Isian tersimpan di perangkat ini.</p></div>
   <div class="card iv">
     <div class="iv-bar">
       <label class="iv-lock"><input type="checkbox" id="ivLock"${I.lock ? ' checked' : ''}><span>Kunci semua frekuensi = 1 <small>(kolom Frek dilewati saat Tab)</small></span></label>
-      <button type="button" class="btn sm danger" id="ivReset">${ic('history')} Reset</button>
     </div>
     <div class="iv-ord" id="ivOrd"></div>
     <div class="iv-grid${I.lock ? ' locked' : ''}" id="ivGrid" role="table" aria-label="Daftar barang/jasa">
@@ -235,12 +234,11 @@ export function honorTotals(H = loadHon()) {
 
 export function viewHonor(ui) {
   const H = loadHon();
-  const html = `<div class="page-head"><h1 class="title">Hitung Honorarium</h1><p class="subtitle">Honorarium narasumber, moderator, panitia, dan kegiatan lain. Satu baris bisa satu orang atau beberapa orang dengan status yang sama. PPh 21 dihitung otomatis dari status: PNS/PPPK final sesuai golongan (0%, 5%, 15%), Non-PNS 2,5%. Bisa diisi tanpa mouse dengan Tab. Isian tersimpan di perangkat ini.</p></div>
+  const html = `<div class="page-head"><h1 class="title">Hitung Honorarium</h1>${resetBtn('hnReset')}<p class="subtitle">Honorarium narasumber, moderator, panitia, dan kegiatan lain. Satu baris bisa satu orang atau beberapa orang dengan status yang sama. PPh 21 dihitung otomatis dari status: PNS/PPPK final sesuai golongan (0%, 5%, 15%), Non-PNS 2,5%. Bisa diisi tanpa mouse dengan Tab. Isian tersimpan di perangkat ini.</p></div>
   <div class="card iv hn">
     <div class="iv-bar">
       <div class="pb-opts"><label class="iv-lock"><input type="checkbox" id="hnNet"${H.netto ? ' checked' : ''}><span>Tarif yang diisi adalah netto <small>(dihitung balik ke bruto)</small></span></label>
         <span class="hn-lock"><label class="iv-lock"><input type="checkbox" id="hnLock"${H.lock ? ' checked' : ''}><span>Kunci semua Vol =</span></label><input class="iv-in hn-lockv" id="hnLockV" inputmode="decimal" autocomplete="off" value="${esc(H.lockV)}" aria-label="Angka Vol yang dikunci"><small class="muted">kolom Vol dilewati saat Tab</small></span></div>
-      <button type="button" class="btn sm danger" id="hnReset">${ic('history')} Reset</button>
     </div>
     <div class="iv-grid hn-grid" id="hnGrid" role="table" aria-label="Daftar honorarium">
       <div class="iv-h hn-h" role="row"><span role="columnheader">No</span><span role="columnheader">Status</span><span role="columnheader">Orang</span><span role="columnheader">Vol</span><span role="columnheader" id="hnTh"></span><span role="columnheader" class="n">Bruto · PPh 21 · Netto</span><span role="columnheader"><span class="sr">Hapus</span></span></div>
@@ -413,7 +411,7 @@ export function viewPajak(ui, params) {
   if (!SRC[P.dari]) P.dari = null;
 
   const src = P.dari && SRC[P.dari] ? `<div class="tx-src">${ic('corner-down-left')} Diambil dari <a href="${SRC[P.dari].h}">${SRC[P.dari].t}</a>. Ubah angkanya di sini atau kembali ke sumbernya.</div>` : '';
-  const html = `<div class="page-head"><h1 class="title">Kalkulator Pajak</h1><p class="subtitle">Isi nilai (N) langsung, atau buka Hitung Invoice lalu tekan Hitung pajak. PPN, PPh 22, PPh 23, dan PPh 4(2) langsung dihitung dengan rumusnya. Bila nilai sudah termasuk PPN, nyalakan sakelarnya: N di rumus menjadi nilai sebelum PPN. Klik angka untuk menyalin. Semua hasil dibulatkan ke rupiah terdekat.</p></div>
+  const html = `<div class="page-head"><h1 class="title">Kalkulator Pajak</h1>${resetBtn('txClear')}<p class="subtitle">Isi nilai (N) langsung, atau buka Hitung Invoice lalu tekan Hitung pajak. PPN, PPh 22, PPh 23, dan PPh 4(2) langsung dihitung dengan rumusnya. Bila nilai sudah termasuk PPN, nyalakan sakelarnya: N di rumus menjadi nilai sebelum PPN. Klik angka untuk menyalin. Semua hasil dibulatkan ke rupiah terdekat.</p></div>
   <div class="card tx-in">
     <label class="tx-lbl" for="txN">Nilai (N)</label>
     <div class="tx-box"><b>Rp</b><input id="txN" inputmode="numeric" autocomplete="off" placeholder="0" value="${fmtRp(P.n)}"></div>
@@ -426,7 +424,7 @@ export function viewPajak(ui, params) {
       <span class="muted small">Ambil dari:</span>
       <a class="btn sm" href="#/alat/invoice">${ic('receipt')} Hitung Invoice ${ic('arrow-right')}</a>
       <span class="muted small tx-hint">isi daftar barang di sana, lalu tekan Hitung pajak</span>
-      <span class="tx-pick-a"><button type="button" class="btn sm primary" id="txPdf">${ic('download')} Unduh PDF</button><button type="button" class="btn sm danger" id="txClear">${ic('x')} Kosongkan</button></span>
+      <span class="tx-pick-a"><button type="button" class="btn sm primary" id="txPdf">${ic('download')} Unduh PDF</button></span>
     </div>
   </div>
   <div class="tx-grid" id="txOut"></div>
@@ -498,7 +496,11 @@ export function viewPajak(ui, params) {
         file: `Perhitungan-Pajak-${R.base}-${today()}.pdf`,
       });
     }, (m) => toast(m === 'PDF gagal dibuat' && !P.n ? 'Isi nilai (N) dulu' : m));
-    $('#txClear').onclick = () => { P.n = 0; P.dari = null; /* pilihan dropdown dipertahankan */ store.set('pajak', P); history.replaceState(null, '', '#/alat/pajak'); ui.route(); };
+    let txArmed = 0;
+    $('#txClear').onclick = () => {
+      if (P.n && Date.now() - txArmed > 3000) { txArmed = Date.now(); toast('Tekan Reset sekali lagi untuk mengosongkan semua isian'); return; }
+      store.set('pajak', { n: 0, dari: null }); history.replaceState(null, '', '#/alat/pajak'); ui.route(); window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
     // Bersihkan ?n= dari alamat agar muat ulang tidak menimpa angka yang sudah diubah
     if (params.n != null) history.replaceState(null, '', '#/alat/pajak');
     if (!P.n) setTimeout(() => inp.focus(), 60);

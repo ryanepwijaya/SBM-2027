@@ -352,7 +352,7 @@ export function formHtml(ui) {
       </div>
     </div>`;
   return `<div class="card card-pad kp-form">
-    <div class="kp-step"><h2 class="kp-h"><span class="step">1</span>Tujuan surat tugas<button type="button" class="btn sm danger kp-reset" id="kpReset">${ic('history')} Reset</button></h2>
+    <div class="kp-step"><h2 class="kp-h"><span class="step">1</span>Tujuan surat tugas</h2>
       ${seg('lingkup', [{ v: 'dn', t: 'Luar kota' }, { v: 'dk', t: 'Dalam kota' }, { v: 'ln', t: 'Luar negeri' }], L)}
       ${tujuan}
     </div>
