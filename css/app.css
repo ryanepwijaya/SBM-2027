@@ -2144,3 +2144,34 @@ table.t.qt tr.miss td { color: var(--muted); }
   .uj-x .uj-del { grid-row: 1; grid-column: 2; }
 }
 .uj-x .uj-xl { text-align: left; padding: 0 12px; font-weight: 500; }
+/* Uji Perjalanan: tiga halaman (Isi data → Kertas kerja → Hasil uji) */
+.wz-steps.n3 { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; }
+.kp.uj.wz > #ujWork { width: 100%; }
+.kp.uj.wz[data-wz="1"] > #ujWork, .kp.uj.wz[data-wz="1"] > .uj-bar2, .kp.uj.wz[data-wz="1"] > #ujHost { display: none; }
+.kp.uj.wz[data-wz="2"] > .kp-form, .kp.uj.wz[data-wz="2"] > .uj-bar1, .kp.uj.wz[data-wz="2"] > #ujHost { display: none; }
+.kp.uj.wz[data-wz="2"] > .uj-bar2 { display: flex; }
+.kp.uj.wz[data-wz="3"] > .kp-form, .kp.uj.wz[data-wz="3"] > #ujWork, .kp.uj.wz[data-wz="3"] > .uj-bar1, .kp.uj.wz[data-wz="3"] > .uj-bar2 { display: none; }
+.kp.uj.wz[data-wz="3"] > #ujHost { display: block; }
+.uj-bar.ok .wz-miss { color: #2D6A35; }
+[data-theme="dark"] .uj-bar.ok .wz-miss { color: #9FD9A6; }
+.uj-w th.c, .uj-w td.c { text-align: center; width: 92px; }
+.uj-w td.n[data-l="Riil"] { width: 200px; }
+.uj-w td.uj-d { width: 120px; font-variant-numeric: tabular-nums; }
+.uj-w td.uj-s { width: 190px; }
+.uj-w tr.is-ok { background: rgba(45, 106, 53, .045); }
+.uj-w tr.is-ok .uj-in { background: var(--surface-2); }
+.uj-w tr.is-ok .uj-in input { color: var(--muted); background: transparent; }
+.uj-cb { display: inline-flex; align-items: center; justify-content: center; width: 36px; height: 36px; cursor: pointer; }
+.uj-cb input { width: 18px; height: 18px; accent-color: var(--navy-700); cursor: pointer; }
+.uj-cb input:disabled { cursor: not-allowed; opacity: .4; }
+.uj-all { margin-left: auto; white-space: nowrap; }
+.uj-xwrap { padding: 4px 18px 18px; border-top: 1px solid var(--border-2); }
+.uj-w tfoot td { font-weight: 700; }
+@media (max-width: 899px) {
+  .uj-w td.c, .uj-w td.n[data-l="Riil"], .uj-w td.uj-d, .uj-w td.uj-s { width: auto; text-align: left; }
+  .uj-all { margin-left: 0; white-space: normal; }
+}
+.uj-w td[data-l="Riil"] { min-width: 200px; }
+.uj-w .uj-in { width: 100%; min-width: 180px; height: 40px; }
+.uj-w .uj-in input { text-align: right; }
+@media (max-width: 899px) { .uj-w .uj-in { min-width: 0; } }

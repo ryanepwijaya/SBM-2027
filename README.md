@@ -61,7 +61,7 @@ python3 build_data.py /tmp/tables26.json /tmp/text26.json map.json ../../data/sb
 
 ## Uji Perjalanan
 
-`#/uji` (`js/uji.js`): satu pelaksana, perjalanan dinas luar kota dalam negeri. Komponen dan sifatnya diambil dari `compute()` Hitung Perjalanan (SBM 100%, tanpa persentase dibayar); pengguna mengisi angka riil per komponen dari tagihan (wajib semua, 0 bila tidak ditagihkan) dan komponen lain (tidak diuji). Status: sesuai, di bawah SBM, melebihi batas tertinggi (sifat BT), di atas acuan (dapat dilampaui), tidak tercantum di SBM. Ringkasan kelebihan di atas batas tertinggi dan PDF "Lembar Uji Perjalanan Dinas". Web tidak membuat kuitansi atau dokumen pembayaran.
+`#/uji` (`js/uji.js`): satu pelaksana, perjalanan dinas luar kota dalam negeri. Komponen dan sifatnya diambil dari `compute()` Hitung Perjalanan (SBM 100%, tanpa persentase dibayar); tiga halaman: Isi data (perjalanan, lama, pelaksana) → Kertas kerja (penyandingan SBM dan riil per komponen: centang Sesuai SBM atau isi angka riil, 0 bila tidak ditagihkan; selisih dan status langsung diperbarui; komponen lain tidak diuji) → Hasil uji (ringkasan dan PDF). Status: sesuai, di bawah SBM, melebihi batas tertinggi (sifat BT), di atas acuan (dapat dilampaui), tidak tercantum di SBM. Ringkasan kelebihan di atas batas tertinggi dan PDF "Lembar Uji Perjalanan Dinas". Web tidak membuat kuitansi atau dokumen pembayaran.
 
 ## Alur dua halaman
 

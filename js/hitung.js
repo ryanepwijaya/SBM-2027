@@ -36,6 +36,10 @@ export function wizHead(step, sub1, sub2, t2 = 'Estimasi biaya') {
     <button type="button" class="ms-st${step === 2 ? ' on' : ''}" data-wz="2"${step === 2 ? ' aria-current="step"' : ''}><span class="step">2</span><span class="ms-st-tx"><b>${esc(t2)}</b><small class="wz-s2">${esc(sub2)}</small></span></button>
   </nav>`;
 }
+// Versi banyak langkah: steps = [[judul, keterangan], ...]
+export function wizHeadN(step, steps) {
+  return `<nav class="ms-steps wz-steps n${steps.length}" aria-label="Langkah">${steps.map(([t, sub], i) => `<button type="button" class="ms-st${step === i + 1 ? ' on' : ''}" data-wz="${i + 1}"${step === i + 1 ? ' aria-current="step"' : ''}><span class="step">${i + 1}</span><span class="ms-st-tx"><b>${esc(t)}</b><small class="wz-s${i + 1}">${esc(sub)}</small></span></button>`).join('')}</nav>`;
+}
 export const wizBar = (label = 'Cek estimasi') => `<div class="card card-pad wz-bar"><div class="wz-miss small" aria-live="polite"></div><button type="button" class="btn primary" data-wz="2">${esc(label)} ${ic('chevron-right')}</button></div>`;
 // Perbarui daftar isian yang belum lengkap dan tombol Cek estimasi
 export function wizUpdate(root, missing) {
