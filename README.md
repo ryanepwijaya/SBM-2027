@@ -11,7 +11,7 @@ Ada pilihan tahun: **TA 2027** (bawaan) dan **TA 2026** (PMK Nomor 32 Tahun 2025
 - `index.html`, `css/app.css`, `js/*.js`: aplikasi statis tanpa build step
 - `data/sbm.json`: TA 2027 — semua tabel, Penjelasan KMK, dan definisi PMK
 - `data/sbm-2026.json`: TA 2026 — tabel dan Penjelasan PMK 32/2025, dengan kode butir yang sama dengan TA 2027 (nomor asli tetap di `lamp`/`no` dan kolom No)
-- `docs/`: PDF asli PMK 54/2026, KMK 296/2026, dan PMK 32/2025 (dikompresi tanpa mengubah isi), serta PMK 113/PMK.05/2012 (lengkap dengan lampiran) dan PMK 119/2023 tentang perjalanan dinas dalam negeri (`#/lainnya/perjadin`)
+- `docs/`: PDF asli PMK 54/2026, KMK 296/2026, dan PMK 32/2025 (dikompresi tanpa mengubah isi), serta PMK 113/PMK.05/2012 (lengkap dengan lampiran) dan PMK 119/2023 tentang perjalanan dinas dalam negeri (seksi Perjalanan Dinas di `#/lainnya/tentang`; `#/lainnya/perjadin` diarahkan ke sana)
 - `sw.js`, `manifest.webmanifest`, `icons/`: PWA dan offline
 - `data/wilayah.json`: 38 provinsi + 514 kab/kota (idn-area-data v4.0.1, ODbL, sumber Kemendagri) dipetakan ke baris KMK untuk fitur Rute
 - `scripts/`: pipeline ekstraksi dari PDF
@@ -66,6 +66,15 @@ python3 build_data.py /tmp/tables26.json /tmp/text26.json map.json ../../data/sb
 ## Tombol Reset
 
 Semua alat memakai `resetBtn(id)` (`js/store.js`) di kepala halaman, di luar langkah, posisi kanan atas yang sama. Reset perlu ditekan dua kali dalam 3 detik (`resetGuard` atau pola serupa), mengosongkan semua isian, dan alat berlangkah kembali ke langkah 1. Tombol "Kosongkan" daftar kota asal di Perjadin (banyak asal) tetap di langkahnya karena hanya menghapus daftar itu.
+
+## Struktur menu
+
+Satu tab, satu peran. Satu halaman memakai satu nama yang sama di menu, sidebar, judul, breadcrumb, dan pencarian.
+
+- **Jelajah**: bacaan. Bab satuan biaya + Referensi (`REF_LINKS` di `js/bab.js`): Dasar Hukum & PDF (`#/lainnya/tentang`, seksi SBM tahun berjalan dan seksi PMK Perjalanan Dinas `#pd`), Catatan Umum KMK/PMK, Singkatan Satuan, Catatan atas Dokumen. Breadcrumb: Referensi → `#/jelajah`.
+- **Alat Bantu**: semua yang dihitung, diisi, atau diunduh, termasuk grup Data SBM (Perubahan SBM `#/perubahan`, Unduh Tabel Biaya `#/unduh`).
+- **Lainnya**: Favorit, Pengaturan (tahun anggaran, tampilan, pasang aplikasi), dan Tentang aplikasi (`#/lainnya/aplikasi`: penafian, sumber data dan lisensi, versi yang dibaca dari `VERSION` di `sw.js`). Link "Selengkapnya" di footer menuju Tentang aplikasi.
+- Sidebar PC: Beranda, Favorit, Alat bantu, Bab satuan biaya, Referensi (tautan langsung), Aplikasi (Pengaturan, Tentang aplikasi).
 
 ## Paragraf rata kiri-kanan
 

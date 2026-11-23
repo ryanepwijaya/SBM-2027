@@ -29,6 +29,10 @@ const SIDE_MAIN = [
   { k: 'beranda', h: '#/', t: 'Beranda', i: 'house' },
   { k: 'tersimpan', h: '#/tersimpan', t: 'Favorit', i: 'star' },
 ];
+const SIDE_APP = [
+  { k: 'pengaturan', h: '#/lainnya', t: 'Pengaturan', i: 'settings' },
+  { k: 'aplikasi', h: '#/lainnya/aplikasi', t: 'Tentang aplikasi', i: 'info' },
+];
 // Alat Bantu: alat hitung cepat untuk menguji pengadaan/pembayaran
 const TOOLS = [
   {
@@ -57,7 +61,17 @@ const TOOLS = [
   },
   { k: 'pajak', h: '#/alat/pajak', t: 'Kalkulator Pajak', i: 'percent', d: 'PPN, PPh 22, PPh 23, dan PPh 4(2) dari satu nilai; bisa diambil dari Hitung Invoice', w: 1 },
   { k: 'kegiatan', h: '#/alat/kegiatan', t: 'Paket Kegiatan', i: 'presentation', d: 'Biaya rapat/pertemuan: konsumsi rapat atau paket halfday, fullday, fullboard, ditambah honor dan sewa gedung', w: 3 },
+  {
+    k: 'data', h: '#/perubahan', t: 'Data SBM', i: 'database', d: 'Perubahan satuan biaya antartahun anggaran dan unduhan tabel biaya ke Excel', w: 4,
+    sub: [
+      { k: 'perubahan', h: '#/perubahan', t: 'Perubahan SBM', i: 'git-compare', d: 'Bandingkan dengan tahun anggaran sebelumnya: naik, turun, baru, atau dihapus, lengkap dengan selisihnya' },
+      { k: 'unduh', h: '#/unduh', t: 'Unduh Tabel Biaya', i: 'file-spreadsheet', d: 'Tabel satuan biaya sebagai Excel, siap dipakai untuk RAB atau lampiran' },
+    ],
+  },
 ];
+// Nama halaman referensi (Catatan Umum KMK/PMK mengikuti tahun anggaran)
+const refName = (r) => (r.kind ? `${r.n} ${Y.srcKind}` : r.n);
+const REF_CRUMB = { t: 'Referensi', h: '#/jelajah', i: 'library' };
 // Urutan Alat Bantu: Biaya Per Wilayah paling atas, Unduh Tabel Biaya paling bawah (w = bobot urutan)
 TOOLS.forEach((t, i) => { t._i = i; });
 TOOLS.sort((a, b) => (a.w ?? 0) - (b.w ?? 0) || a._i - b._i);
@@ -283,7 +297,6 @@ function sideHtml() {
     const badge = b.active ? `<span class="acc-n">${b.count}</span>` : '<span class="acc-n soon">Segera</span>';
     return acc(b.key, b.name, b.icon, badge, stagger(parts), b.active ? '' : ' soon');
   }).join('');
-  const refBody = stagger([`<div class="fly-h">${ic('library')}Referensi</div>`, ...REF_LINKS.map((r) => `<a class="acc-it" href="${r.h}" data-item="ref:${r.h}">${ic(r.icon)}<span>${esc(r.n)}</span></a>`)]);
   const toolLinks = TOOLS.map((t) => {
     if (t.sub && !t.flat) {
       const body = stagger([`<div class="fly-h">${ic(t.i)}${esc(t.t)}</div>`, ...t.sub.filter((x) => !x.hideSide).map((x) => `<a class="acc-it${x.soon ? ' soon-it' : ''}" href="${x.h}" data-item="tool:${x.k}" title="${esc(x.t)}${x.soon ? ' (segera hadir)' : ''}">${ic(x.i)}<span>${esc(x.t)}</span>${x.soon ? ic('clock', 'lk') : ''}</a>`)]);
@@ -298,7 +311,9 @@ function sideHtml() {
     <div class="side-label">Bab satuan biaya</div>
     <div class="side-babs">${babs}</div>
     <div class="side-label">Referensi</div>
-    <div class="side-babs">${acc('ref', 'Referensi', 'library', '', refBody)}</div>`;
+    <nav class="side-main side-ref">${REF_LINKS.map((r) => `<a class="side-link" href="${r.h}" data-item="ref:${r.h}" data-tip="${esc(refName(r))}">${ic(r.icon)}<span>${esc(refName(r))}</span></a>`).join('')}</nav>
+    <div class="side-label">Aplikasi</div>
+    <nav class="side-main side-app">${SIDE_APP.map((n) => `<a class="side-link" href="${n.h}" data-side="${n.k}" data-tip="${n.t}">${ic(n.i)}<span>${n.t}</span></a>`).join('')}</nav>`;
 }
 
 let openAcc = null;
@@ -470,7 +485,7 @@ function renderPalette(q) {
     const r = search(q);
     const nq = norm(q);
     const tools = TOOLS.flatMap((t) => (t.sub ? t.sub : [t])).filter((t, i, a) => a.findIndex((x) => x.h === t.h) === i && nq.length >= 3 && norm(`${t.t} ${t.d}`).includes(nq));
-    if (nq.length >= 3 && norm('pmk 113 119 2012 2023 perjalanan dinas dalam negeri tempat sah lampiran iv vi lumpsum biaya riil pindah').includes(nq)) tools.unshift({ h: '#/lainnya/perjadin', t: 'PMK Perjalanan Dinas', d: 'PMK 113/PMK.05/2012 dan PMK 119/2023 (PDF dan pasal yang dipakai)', i: 'scale' });
+    if (nq.length >= 3 && norm('pmk 113 119 2012 2023 perjalanan dinas dalam negeri tempat sah lampiran iv vi lumpsum biaya riil pindah').includes(nq)) tools.unshift({ h: '#/lainnya/perjadin', t: 'Dasar Hukum & PDF · Perjalanan Dinas', d: 'PMK 113/PMK.05/2012 dan PMK 119/2023 (PDF dan pasal yang dipakai)', i: 'scale' });
     if (tools.length) secs.push({ t: 'Alat bantu', items: tools.slice(0, 4).map((t) => item({ href: t.h, t: t.t, d: t.d, i: t.i, k: 'Alat' })) });
     if (r.best.length) secs.push({ t: 'Langsung ke', items: r.best.slice(0, 6).map((x) => item({ ...x, i: x.kind === 'Rute' ? 'route' : x.kind === 'Daerah' ? 'map' : x.kind === 'Bab' ? 'plane' : 'corner-down-left', k: x.kind })) });
     if (r.menus.length) secs.push({ t: 'Jenis satuan biaya', items: r.menus.slice(0, 6).map((x) => item({ ...x, i: babIconOf(x.ref.id), k: lampShort(x.ref) })) });
@@ -603,8 +618,8 @@ function route() {
         }
         else { cr[cr.length - 1] = { t: 'Alat Bantu', i: 'calculator' }; html = viewAlat(); }
         break;
-      case 'perubahan': setNav('lainnya'); side = [null, 'ref:#/perubahan', 'ref']; cr.push({ t: 'Referensi', h: '#/lainnya', i: 'library' }, { t: 'Perubahan SBM' }); ({ html, after } = viewPerubahan({ $, $$, toast })); break;
-      case 'unduh': setNav('lainnya'); side = [null, 'ref:#/unduh', 'ref']; cr.push({ t: 'Referensi', h: '#/lainnya', i: 'library' }, { t: 'Unduh Tabel Biaya' }); ({ html, after } = viewUnduh({ $, $$, toast })); break;
+      case 'perubahan': setNav('alat'); side = [null, 'tool:perubahan', 'data']; cr.push(ALAT_CRUMB, { t: 'Data SBM', h: '#/perubahan', i: 'database' }, { t: 'Perubahan SBM' }); ({ html, after } = viewPerubahan({ $, $$, toast })); break;
+      case 'unduh': setNav('alat'); side = [null, 'tool:unduh', 'data']; cr.push(ALAT_CRUMB, { t: 'Data SBM', h: '#/perubahan', i: 'database' }, { t: 'Unduh Tabel Biaya' }); ({ html, after } = viewUnduh({ $, $$, toast })); break;
       case 'daerah':
         setNav('alat');
         side = ['provinsi'];
@@ -625,12 +640,15 @@ function route() {
       }
       case 'tersimpan': setNav('tersimpan'); side = ['tersimpan']; cr.push({ t: 'Favorit', i: 'star' }); html = viewSaved(); break;
       case 'lainnya': {
-        setNav('lainnya');
-        const ref = REF_LINKS.find((r) => r.h === '#/' + parts.join('/'));
-        cr.push(parts[1] ? { t: 'Referensi', h: '#/lainnya', i: 'library' } : { t: 'Lainnya' });
-        if (parts[1] && ref) cr.push({ t: ref.n });
-        side = [null, ref ? 'ref:' + ref.h : null, 'ref'];
-        ({ html, after } = viewMore(parts[1]));
+        // Halaman lama PMK Perjalanan Dinas sudah digabung ke Dasar Hukum & PDF (seksi Perjalanan Dinas)
+        const toPd = parts[1] === 'perjadin';
+        if (toPd) { parts[1] = 'tentang'; history.replaceState(null, '', '#/lainnya/tentang'); }
+        const ref = REF_LINKS.find((r) => r.h === '#/lainnya/' + parts[1]);
+        if (ref) { setNav('jelajah'); cr.push(REF_CRUMB, { t: refName(ref) }); side = [null, 'ref:' + ref.h, null]; }
+        else if (parts[1] === 'aplikasi') { setNav('lainnya'); cr.push({ t: 'Lainnya', h: '#/lainnya', i: 'menu' }, { t: 'Tentang aplikasi' }); side = ['aplikasi']; }
+        else { setNav('lainnya'); cr.push({ t: 'Lainnya' }); side = ['pengaturan']; }
+        ({ html, after } = viewMore(ref || parts[1] === 'aplikasi' ? parts[1] : ''));
+        if (toPd) { const a0 = after; after = () => { a0 && a0(); requestAnimationFrame(() => document.getElementById('pd')?.scrollIntoView({ block: 'start' })); }; }
         break;
       }
       default: html = `<div class="empty">Halaman tidak ditemukan. <a href="#/">Kembali ke Beranda</a></div>`;
@@ -660,7 +678,7 @@ function footer() {
     : 'PMK Nomor 54 Tahun 2026 tentang Standar Biaya Masukan dan KMK Nomor 296 Tahun 2026 tentang Rincian Besaran Standar Biaya Masukan (TA 2027).';
   return `<footer class="foot">
     <div class="foot-row">
-      <p class="foot-disc">${ic('info')}<span>Aplikasi ini alat bantu baca, bukan dokumen resmi. Selalu cek ulang ke ketentuan aslinya, dan konsultasikan kebijakan internal satker dengan pejabat perbendaharaan di satker Anda. <a href="#/lainnya/tentang">Selengkapnya</a></span></p>
+      <p class="foot-disc">${ic('info')}<span>Aplikasi ini alat bantu baca, bukan dokumen resmi. Selalu cek ulang ke ketentuan aslinya, dan konsultasikan kebijakan internal satker dengan pejabat perbendaharaan di satker Anda. <a href="#/lainnya/aplikasi">Selengkapnya</a></span></p>
       <div class="foot-meta"><span>Sumber: ${Y.sources} ${tip(about)}</span><span>© 2026 Dibuat oleh ${authorLink()}</span></div>
     </div>
   </footer>`;
@@ -671,7 +689,7 @@ function disclaimerCard() {
     <ol class="disc-list">
       <li>Aplikasi ini adalah alat bantu baca yang disusun secara mandiri, <b>bukan dokumen atau publikasi resmi</b> Kementerian Keuangan.</li>
       <li>Angka dan teks diambil dari ${esc(Y.src)}${Y.y === 2027 ? ' dan PMK 54/2026' : ''} dan sudah dicek silang, tetapi kesalahan ekstraksi tetap mungkin terjadi. <b>Selalu cek ulang ke ketentuan aslinya</b> sebelum dipakai untuk penyusunan anggaran, pengujian tagihan, atau pertanggungjawaban. Tombol PDF di setiap halaman membuka halaman dokumen yang dirujuk.</li>
-      <li>Hasil Hitung Perjalanan dan simulasi persentase dibayar adalah <b>perkiraan</b>, bukan dasar pembayaran.</li>
+      <li>Hasil alat bantu (perkiraan biaya, kertas kerja uji, simulasi persentase dibayar, dan dokumen draf yang diunduh) adalah <b>perkiraan</b>, bukan dasar pembayaran.</li>
       <li>Satker dapat menetapkan kebijakan internal, misalnya efisiensi atau pembatasan tertentu. <b>Konsultasikan dengan pejabat perbendaharaan di satker Anda</b> (PPK, PPSPM, atau bendahara) untuk kebijakan yang berlaku di satker.</li>
     </ol>
     <p class="disc-by">© 2026 Dibuat oleh ${authorLink()}.</p>
@@ -752,7 +770,7 @@ function entryRow(e) {
 /* ---------------- Jelajah (HP) ---------------- */
 function viewJelajah() {
   const babs = BABS.map((b) => `<a class="li bab-li${b.active ? '' : ' soon'}" href="#/bab/${b.key}"><span class="li-ico big">${ic(b.icon)}</span><div class="grow"><div class="t">${esc(b.name)}</div><div class="d">${esc(b.desc)}</div></div>${b.active ? `<span class="chip ok">${b.count} jenis</span>` : '<span class="chip soon">Segera</span>'}${ic('chev', 'chev')}</a>`).join('');
-  const refs = REF_LINKS.map((r) => `<a class="li" href="${r.h}"><span class="li-ico">${ic(r.icon)}</span><div class="grow"><div class="t">${esc(r.n)}</div></div>${ic('chev', 'chev')}</a>`).join('');
+  const refs = REF_LINKS.map((r) => `<a class="li" href="${r.h}"><span class="li-ico">${ic(r.icon)}</span><div class="grow"><div class="t">${esc(refName(r))}</div></div>${ic('chev', 'chev')}</a>`).join('');
   return `
   <div class="page-head"><h1 class="title">Jelajah</h1><p class="subtitle">Satuan biaya dikelompokkan per bab, mengikuti kelompok dalam ${Y.src}.</p></div>
   <div class="group-title">Bab satuan biaya</div>
@@ -1557,11 +1575,12 @@ function tolPara(x) {
 }
 function viewMore(sub) {
   const M = S.data.meta;
-  const back = `<div class="crumb"><a href="#/lainnya">Lainnya</a></div>`;
-  if (sub === 'tentang' && Y.y === 2026) {
-    return { html: `<div class="page-head">${back}<h1 class="title">Tentang dasar hukum</h1><p class="subtitle">Tahun Anggaran 2026</p></div>
-    <div class="grid">${disclaimerCard()}
-      <div class="card card-pad"><table class="plain"><tbody>
+  const back = (h, t) => `<div class="crumb"><a href="${h}">${t}</a></div>`;
+  const backRef = back('#/jelajah', 'Jelajah');
+  if (sub === 'tentang') {
+    // Dasar Hukum & PDF: semua regulasi dalam satu halaman. Seksi 1 SBM tahun berjalan, seksi 2 PMK Perjalanan Dinas (semua TA).
+    const sbm = Y.y === 2026
+      ? `<div class="card card-pad"><table class="plain"><tbody>
         <tr><th colspan="2">${esc(M.pmk.nomor)}</th></tr>
         <tr><td>Tentang</td><td>${esc(M.pmk.tentang)}</td></tr>
         <tr><td>Ditetapkan</td><td>${esc(M.pmk.ditetapkan)}</td></tr>
@@ -1570,16 +1589,8 @@ function viewMore(sub) {
         <tr><td>Isi</td><td>Satu dokumen memuat norma, besaran rupiah, dan Penjelasan: Lampiran I (batas tertinggi, 39 butir) dan Lampiran II (dapat dilampaui, 19 butir). ${M.pmk.halaman} halaman. Untuk TA 2026 tidak ada KMK rincian besaran terpisah seperti TA 2027.</td></tr>
       </tbody></table><div class="actions"><a class="btn" href="${Y.doc}" target="_blank" rel="noopener">${ic('download')} PDF PMK 32/2025</a></div></div>
       <div class="card card-pad"><table class="plain"><tbody><tr><th colspan="2">Penomoran butir</th></tr><tr><td colspan="2">Urutan butir PMK 32/2025 berbeda dengan TA 2027 (misalnya penginapan: angka 30 di TA 2026, angka 27 di TA 2027). Aplikasi memakai menu yang sama untuk kedua tahun; nomor yang tampil di tabel, rujukan, dan tombol PDF adalah nomor asli PMK 32/2025.</td></tr></tbody></table></div>
-      <div class="card card-pad"><table class="plain"><tbody><tr><th colspan="2">Data wilayah (fitur Rute)</th></tr><tr><td>Sumber</td><td>idn-area-data v4.0.1 oleh Fityan Nugroho, dari data wilayah administrasi Kemendagri. Dilisensikan dengan Open Database License (ODbL).</td></tr><tr><td>Isi</td><td>38 provinsi dan 514 kabupaten/kota, dipetakan ke baris PMK (transport darat, Bodetabek) dan kota tiket.</td></tr></tbody></table></div>
-      <div class="card card-pad"><table class="plain"><tbody><tr><th colspan="2">Pembuat PDF</th></tr><tr><td>Sumber</td><td>jsPDF v2.5.2 dan jspdf-autotable v3.8.4, dilisensikan dengan MIT License. Disematkan di aplikasi untuk fitur Unduh PDF di Hitung Perjalanan.</td></tr></tbody></table></div>
-      <div class="card card-pad"><table class="plain"><tbody><tr><th colspan="2">Ikon</th></tr><tr><td>Sumber</td><td>Lucide (lucide.dev), lucide-static v1.75.0. Dilisensikan dengan ISC License, © Lucide Contributors. Disematkan di aplikasi agar berfungsi tanpa internet.</td></tr></tbody></table></div>
-      <div class="callout">${ic('info')}<div>Seluruh angka diambil langsung dari tabel PDF PMK 32/2025 dan dicek silang dengan ekstraksi teks kedua (${Y.rows} baris data; semua nominal rupiah di tabel cocok dengan teks). Aplikasi ini alat bantu baca; untuk keperluan formal, rujuk dokumen aslinya.</div></div>
-    </div>` };
-  }
-  if (sub === 'tentang') {
-    return { html: `<div class="page-head">${back}<h1 class="title">Tentang dasar hukum</h1></div>
-    <div class="grid">${disclaimerCard()}
-      <div class="card card-pad"><table class="plain"><tbody>
+      <div class="callout">${ic('info')}<div>Seluruh angka diambil langsung dari tabel PDF PMK 32/2025 dan dicek silang dengan ekstraksi teks kedua (${Y.rows} baris data; semua nominal rupiah di tabel cocok dengan teks). Aplikasi ini alat bantu baca; untuk keperluan formal, rujuk dokumen aslinya.</div></div>`
+      : `<div class="card card-pad"><table class="plain"><tbody>
         <tr><th colspan="2">${esc(M.pmk.nomor)}</th></tr>
         <tr><td>Tentang</td><td>${esc(M.pmk.tentang)}</td></tr>
         <tr><td>Ditetapkan</td><td>${esc(M.pmk.ditetapkan)}</td></tr>
@@ -1594,13 +1605,7 @@ function viewMore(sub) {
         <tr><td>Berlaku</td><td>${esc(M.kmk.berlaku)} (Diktum KEEMPAT); digunakan dalam penyusunan RKA-K/L TA 2027 (Diktum KETIGA)</td></tr>
         <tr><td>Isi</td><td>Lampiran I (batas tertinggi) beserta Penjelasan, Lampiran II (dapat dilampaui) beserta Penjelasan. ${M.kmk.halaman} halaman.</td></tr>
       </tbody></table><div class="actions"><a class="btn" href="docs/kmk-296-2026.pdf" target="_blank" rel="noopener">${ic('download')} PDF KMK 296/2026</a></div></div>
-      <div class="card card-pad"><table class="plain"><tbody><tr><th colspan="2">Data wilayah (fitur Rute)</th></tr><tr><td>Sumber</td><td>idn-area-data v4.0.1 oleh Fityan Nugroho, dari data wilayah administrasi Kemendagri. Dilisensikan dengan Open Database License (ODbL).</td></tr><tr><td>Isi</td><td>38 provinsi dan 514 kabupaten/kota, dipetakan ke baris KMK (transport darat, Bodetabek) dan kota tiket. Pemetaan nama yang berbeda dicatat di Catatan atas dokumen.</td></tr></tbody></table></div>
-      <div class="card card-pad"><table class="plain"><tbody><tr><th colspan="2">Pembuat PDF</th></tr><tr><td>Sumber</td><td>jsPDF v2.5.2 dan jspdf-autotable v3.8.4, dilisensikan dengan MIT License. Disematkan di aplikasi untuk fitur Unduh PDF di Hitung Perjalanan.</td></tr></tbody></table></div>
-      <div class="card card-pad"><table class="plain"><tbody><tr><th colspan="2">Ikon</th></tr><tr><td>Sumber</td><td>Lucide (lucide.dev), lucide-static v1.75.0. Dilisensikan dengan ISC License, © Lucide Contributors. Disematkan di aplikasi agar berfungsi tanpa internet.</td></tr></tbody></table></div>
-      <div class="callout">${ic('info')}<div>Seluruh angka diambil langsung dari tabel PDF KMK 296/2026 dan dicek silang dengan ekstraksi teks kedua (3.168 baris bernomor cocok). Aplikasi ini alat bantu baca; untuk keperluan formal, rujuk dokumen aslinya.</div></div>
-    </div>` };
-  }
-  if (sub === 'perjadin') {
+      <div class="callout">${ic('info')}<div>Seluruh angka diambil langsung dari tabel PDF KMK 296/2026 dan dicek silang dengan ekstraksi teks kedua (3.168 baris bernomor cocok). Aplikasi ini alat bantu baca; untuk keperluan formal, rujuk dokumen aslinya.</div></div>`;
     const used = [
       ['lumpsum', 'Cara bayar komponen perjalanan dinas jabatan: uang harian dan representasi lumpsum; transpor dan penginapan biaya riil. Ditampilkan sebagai label Lumpsum/Biaya riil di hasil hitung.'],
       ['transpor', 'Biaya transpor mencakup keberangkatan dan kepulangan, termasuk ke terminal/stasiun/bandara. Dasar taksi dan transport darat dihitung 2 kali di Hitung Perjalanan.'],
@@ -1615,7 +1620,10 @@ function viewMore(sub) {
       ['barang50', 'Dinas pindah: pengepakan dan angkutan barang darat 50% bila jarak kurang dari 100 km di Pulau Jawa/Madura atau kurang dari 50 km di luar Pulau Jawa/Madura.'],
       ['lamp6', 'Dinas pindah: volume barang per golongan dan status keluarga (25 m³ untuk golongan IV berkeluarga dengan anak, dan seterusnya).'],
     ];
-    return { html: `<div class="page-head">${back}<h1 class="title">PMK Perjalanan Dinas Dalam Negeri</h1><p class="subtitle">Ketentuan pelaksanaan perjalanan dinas dalam negeri. Berlaku untuk semua tahun anggaran, berdampingan dengan SBM tahun berjalan.</p></div>
+    return { html: `<div class="page-head">${backRef}<h1 class="title">Dasar Hukum &amp; PDF</h1><p class="subtitle">Regulasi yang dipakai aplikasi ini beserta salinan PDF-nya: Standar Biaya Masukan tahun anggaran yang dipilih dan PMK Perjalanan Dinas Dalam Negeri.</p></div>
+    <h2 class="group-title sec-h" id="sbm">${ic('file-text')} Standar Biaya Masukan · TA ${Y.y}</h2>
+    <div class="grid">${sbm}</div>
+    <h2 class="group-title sec-h" id="pd">${ic('plane')} Perjalanan Dinas Dalam Negeri · semua tahun anggaran</h2>
     <div class="grid">
       <div class="card card-pad"><table class="plain"><tbody>
         <tr><th colspan="2">${esc(PMKPD.p113.n)}</th></tr>
@@ -1629,16 +1637,37 @@ function viewMore(sub) {
         <tr><td>Ditetapkan</td><td>10 November 2023; diundangkan 15 November 2023 (Berita Negara 2023 Nomor 907)</td></tr>
         <tr><td>Isi</td><td>Definisi baru (antara lain Tempat Sah dan Sistem Elektronik Perjalanan Dinas), biaya layanan pada biaya transpor, keberangkatan/kepulangan dari Tempat Sah, UP KKP, dan perjalanan dinas melalui sistem elektronik (Pasal 36A–36E). 12 halaman.</td></tr>
       </tbody></table><div class="actions"><a class="btn" href="${PMKPD.p119.doc}" target="_blank" rel="noopener">${ic('download')} PDF PMK 119/2023</a></div></div>
-      <div class="card card-pad"><div class="reg"><h3>Ketentuan yang dipakai di Alat Bantu</h3><p class="muted small">Hanya ketentuan yang berupa rumus atas angka SBM. Ketentuan prosedur (surat tugas, SPD, pertanggungjawaban, geotagging) tidak diterapkan; rujuk dokumennya langsung.</p></div>
-        <div class="pd-list">${used.map(([k, d]) => `<div class="pd-it">${pdRef(k)}<span>${esc(d)}</span></div>`).join('')}</div>
-      </div>
-      <div class="callout">${ic('info')}<div>Salinan PDF diambil dari JDIH Kementerian Keuangan. Aplikasi ini alat bantu baca; untuk keputusan pembayaran dan pertanggungjawaban, rujuk dokumen aslinya.</div></div>
+      ${fold('Ketentuan yang dipakai di Alat Bantu', `<div class="reg"><p class="muted small">Hanya ketentuan yang berupa rumus atas angka SBM. Ketentuan prosedur (surat tugas, SPD, pertanggungjawaban, geotagging) tidak diterapkan; rujuk dokumennya langsung.</p></div><div class="pd-list">${used.map(([k, d]) => `<div class="pd-it">${pdRef(k)}<span>${esc(d)}</span></div>`).join('')}</div>`, { meta: `${used.length} ketentuan` })}
+      <div class="callout">${ic('info')}<div>Salinan PDF PMK Perjalanan Dinas diambil dari JDIH Kementerian Keuangan. Ketentuan ini berlaku berdampingan dengan SBM tahun berjalan. Aplikasi ini alat bantu baca; untuk keputusan pembayaran dan pertanggungjawaban, rujuk dokumen aslinya.</div></div>
     </div>` };
+  }
+  if (sub === 'aplikasi') {
+    // Tentang aplikasi: penafian, sumber data dan lisensi, versi
+    const html = `<div class="page-head">${back('#/lainnya', 'Lainnya')}<h1 class="title">Tentang aplikasi</h1><p class="subtitle">Penafian, sumber data dan lisensi, serta versi aplikasi.</p></div>
+    <div class="grid">${disclaimerCard()}
+      <h2 class="group-title sec-h">${ic('library')} Sumber data dan lisensi</h2>
+      <div class="card card-pad"><table class="plain"><tbody><tr><th colspan="2">Data wilayah (fitur Rute)</th></tr><tr><td>Sumber</td><td>idn-area-data v4.0.1 oleh Fityan Nugroho, dari data wilayah administrasi Kemendagri. Dilisensikan dengan Open Database License (ODbL).</td></tr><tr><td>Isi</td><td>38 provinsi dan 514 kabupaten/kota, dipetakan ke baris ${Y.srcKind} (transport darat, Bodetabek) dan kota tiket. Pemetaan nama yang berbeda dicatat di Catatan atas Dokumen.</td></tr></tbody></table></div>
+      <div class="card card-pad"><table class="plain"><tbody><tr><th colspan="2">Pembuat PDF dan Word</th></tr><tr><td>PDF</td><td>jsPDF v2.5.2 dan jspdf-autotable v3.8.4, dilisensikan dengan MIT License. Disematkan di aplikasi untuk fitur Unduh PDF di alat bantu.</td></tr><tr><td>Word</td><td>Penulis .docx bawaan aplikasi (tanpa pustaka pihak ketiga), untuk draf dokumen di Uji Perjalanan.</td></tr></tbody></table></div>
+      <div class="card card-pad"><table class="plain"><tbody><tr><th colspan="2">Ikon</th></tr><tr><td>Sumber</td><td>Lucide (lucide.dev), lucide-static v1.75.0. Dilisensikan dengan ISC License, © Lucide Contributors. Disematkan di aplikasi agar berfungsi tanpa internet.</td></tr></tbody></table></div>
+      <h2 class="group-title sec-h">${ic('smartphone')} Versi</h2>
+      <div class="card card-pad"><table class="plain"><tbody>
+        <tr><td>Versi aplikasi</td><td id="appVer">–</td></tr>
+        <tr><td>Data aktif</td><td>TA ${Y.y} · ${esc(Y.sources)}</td></tr>
+        <tr><td>Pembaruan</td><td>Otomatis saat online; tetap bisa dipakai tanpa internet setelah pernah dibuka.</td></tr>
+      </tbody></table></div>
+    </div>`;
+    const after = () => {
+      // Versi dibaca dari sw.js (satu sumber, ikut naik setiap deploy)
+      const show = (v) => { const m = v && v.match(/-v(\d+)-(\d{4})(\d{2})(\d{2})/); if (m && $('#appVer')) $('#appVer').textContent = `v${m[1]} · ${m[4]}/${m[3]}/${m[2]}`; };
+      fetch('sw.js').then((r) => r.text()).then((t) => show((t.match(/VERSION = '([^']+)'/) || [])[1]))
+        .catch(() => ('caches' in window ? caches.keys().then((ks) => show(ks.find((x) => x.startsWith('sbm27-')))) : null));
+    };
+    return { html, after };
   }
   if (sub === 'catatan') {
     const CU = S.data.catatan_umum;
     const tol = S.data.toleransi;
-    return { html: `<div class="page-head">${back}<h1 class="title">Catatan Umum ${Y.srcKind}</h1><p class="subtitle">Catatan di akhir Lampiran I dan Lampiran II ${Y.src}.</p></div>
+    return { html: `<div class="page-head">${backRef}<h1 class="title">Catatan Umum ${Y.srcKind}</h1><p class="subtitle">Catatan di akhir Lampiran I dan Lampiran II ${Y.src}.</p></div>
     <div class="grid">
       <div class="card card-pad reg"><h3>Catatan Umum Lampiran I</h3>${renderReg(CU.L1)}${CU.tol_L1 ? tolPara(CU.tol_L1) : `<p class="blk l1"><span class="m">5.</span>untuk satuan biaya pengadaan kendaraan operasional bus, sewa kendaraan, pengadaan kendaraan operasional kantor dan/atau lapangan roda 2 dan roda 4, pengadaan pakaian dinas, dan konsumsi rapat pada beberapa kabupaten diberikan toleransi pengusulan satuan biaya melebihi ketentuan (lihat tabel di bawah).</p>`}</div>
       <div class="card card-pad reg"><h3>Catatan Umum Lampiran II</h3>${renderReg(CU.L2)}${CU.tol_L2 ? tolPara(CU.tol_L2) : `<p class="blk l1"><span class="m">3.</span>Untuk satuan biaya pemeliharaan dan operasional kendaraan dinas, pemeliharaan sarana kantor, penggantian inventaris lama dan/atau pembelian inventaris untuk pegawai baru, pengadaan bahan makanan, sewa mesin fotokopi, dan pemeliharaan gedung/bangunan dalam negeri, pada beberapa kabupaten diberikan toleransi pengusulan satuan biaya melebihi ketentuan (lihat tabel di bawah).</p>`}</div>
@@ -1649,38 +1678,33 @@ function viewMore(sub) {
     </div>` };
   }
   if (sub === 'singkatan') {
-    return { html: `<div class="page-head">${back}<h1 class="title">Daftar singkatan satuan</h1></div><div class="card card-pad"><table class="plain"><tbody>${S.data.singkatan.map((s) => `<tr><td><b>${esc(s[0])}</b></td><td>${esc(s[1])}</td></tr>`).join('')}</tbody></table><div class="src">Pengertian Istilah, ${Y.src}.</div></div>` };
+    return { html: `<div class="page-head">${backRef}<h1 class="title">Singkatan Satuan</h1></div><div class="card card-pad"><table class="plain"><tbody>${S.data.singkatan.map((s) => `<tr><td><b>${esc(s[0])}</b></td><td>${esc(s[1])}</td></tr>`).join('')}</tbody></table><div class="src">Pengertian Istilah, ${Y.src}.</div></div>` };
   }
   if (sub === 'dokumen') {
-    return { html: `<div class="page-head">${back}<h1 class="title">Catatan atas dokumen</h1><p class="subtitle">Hal-hal di dokumen ${Y.src} (TA ${Y.y}) yang perlu diketahui saat membaca aplikasi ini.</p></div><div class="card list">${DOC_NOTES.map((d) => `<div class="li"><div class="grow"><div class="t">${esc(d.t)}</div><div class="d">${esc(d.x)}</div></div></div>`).join('')}</div>` };
+    return { html: `<div class="page-head">${backRef}<h1 class="title">Catatan atas Dokumen</h1><p class="subtitle">Hal-hal di dokumen ${Y.src} (TA ${Y.y}) yang perlu diketahui saat membaca aplikasi ini.</p></div><div class="card list">${DOC_NOTES.map((d) => `<div class="li"><div class="grow"><div class="t">${esc(d.t)}</div><div class="d">${esc(d.x)}</div></div></div>`).join('')}</div>` };
   }
   const pref = store.get('theme', 'system');
   const isStandalone = window.matchMedia('(display-mode: standalone)').matches;
+  const nFav = saved().length;
   const html = `
   <div class="page-head"><h1 class="title">Lainnya</h1></div>
-  <div class="group-title">Tahun anggaran</div>
-  <div class="card card-pad">${yearSwitch('more')}<div class="muted small" style="margin-top:10px">TA 2027: PMK 54/2026 dan KMK 296/2026. TA 2026: PMK 32/2025. Pilihan disimpan di perangkat ini.</div></div>
-  <div class="group-title">Tampilan</div>
-  <div class="card card-pad"><div class="theme-pick">
-    <button data-th="light" class="${pref === 'light' ? 'on' : ''}">${ic('sun')} Terang</button>
-    <button data-th="dark" class="${pref === 'dark' ? 'on' : ''}">${ic('moon')} Gelap</button>
-    <button data-th="system" class="${pref === 'system' ? 'on' : ''}">${ic('monitor')} Otomatis</button>
-  </div></div>
-  <div class="group-title">Menu</div>
   <div class="card list">
-    <a class="li" href="#/tersimpan">${ic('star', 'chev')}<div class="grow"><div class="t">Favorit</div></div>${ic('chev', 'chev')}</a>
-    <a class="li" href="#/lainnya/catatan">${ic('list', 'chev')}<div class="grow"><div class="t">Catatan Umum ${Y.srcKind}</div></div>${ic('chev', 'chev')}</a>
-    <a class="li" href="#/lainnya/singkatan">${ic('book', 'chev')}<div class="grow"><div class="t">Daftar singkatan</div></div>${ic('chev', 'chev')}</a>
-    <a class="li" href="#/lainnya/dokumen">${ic('alert', 'chev')}<div class="grow"><div class="t">Catatan atas dokumen</div></div>${ic('chev', 'chev')}</a>
-    <a class="li" href="#/lainnya/tentang">${ic('info', 'chev')}<div class="grow"><div class="t">Tentang ${Y.y === 2026 ? 'PMK 32/2025' : 'PMK 54/2026 & KMK 296/2026'}</div></div>${ic('chev', 'chev')}</a>
-    <a class="li" href="#/lainnya/perjadin">${ic('scale', 'chev')}<div class="grow"><div class="t">PMK Perjalanan Dinas (113/2012 dan 119/2023)</div></div>${ic('chev', 'chev')}</a>
+    <a class="li" href="#/tersimpan"><span class="li-ico">${ic('star')}</span><div class="grow"><div class="t">Favorit</div><div class="d">${nFav ? `${nFav} jenis satuan biaya` : 'Belum ada favorit'}</div></div>${ic('chev', 'chev')}</a>
   </div>
-  <div class="group-title">Aplikasi</div>
-  <div class="card card-pad">
-    ${isStandalone ? '<div class="muted">Aplikasi sudah terpasang di perangkat ini.</div>' : `<div class="row" style="justify-content:space-between"><div class="row"><b>Pasang di perangkat</b>${tip('Buka lebih cepat dan tetap bisa dipakai tanpa internet.')}</div><button class="btn primary" id="installBtn">${ic('phone')} Pasang</button></div><div class="muted small" id="installHelp" style="margin-top:10px;display:none">Di Chrome HP: ketuk menu ⋮ lalu pilih <b>Tambahkan ke layar utama</b> / <b>Instal aplikasi</b>. Di PC: klik ikon pasang di kolom alamat.</div>`}
+  <h2 class="group-title">Pengaturan</h2>
+  <div class="card set-list">
+    <div class="set-row"><div class="set-h"><b>Tahun anggaran</b><small>TA 2027: PMK 54/2026 dan KMK 296/2026. TA 2026: PMK 32/2025. Pilihan disimpan di perangkat ini.</small></div>${yearSwitch('more')}</div>
+    <div class="set-row"><div class="set-h"><b>Tampilan</b></div><div class="theme-pick">
+      <button data-th="light" class="${pref === 'light' ? 'on' : ''}">${ic('sun')} Terang</button>
+      <button data-th="dark" class="${pref === 'dark' ? 'on' : ''}">${ic('moon')} Gelap</button>
+      <button data-th="system" class="${pref === 'system' ? 'on' : ''}">${ic('monitor')} Otomatis</button>
+    </div></div>
+    <div class="set-row">${isStandalone ? '<div class="set-h"><b>Pasang aplikasi</b><small>Aplikasi sudah terpasang di perangkat ini.</small></div>' : `<div class="set-inl"><div class="set-h"><b>Pasang aplikasi</b><small>Buka lebih cepat dan tetap bisa dipakai tanpa internet.</small></div><button class="btn primary" id="installBtn">${ic('smartphone')} Pasang</button></div><div class="muted small" id="installHelp" style="margin-top:10px;display:none">Di Chrome HP: ketuk menu ⋮ lalu pilih <b>Tambahkan ke layar utama</b> / <b>Instal aplikasi</b>. Di PC: klik ikon pasang di kolom alamat.</div>`}</div>
   </div>
-  <div class="group-title">Cakupan</div>
-  <div class="card list">${BABS.map((b) => `<a class="li${b.active ? '' : ' soon'}" href="#/bab/${b.key}"><span class="li-ico">${ic(b.icon)}</span><div class="grow"><div class="t">${esc(b.name)}</div><div class="d">${b.count} ${b.active ? 'jenis satuan biaya' : 'butir'}</div></div>${b.active ? '<span class="chip ok">Tersedia</span>' : '<span class="chip soon">Segera</span>'}</a>`).join('')}</div>`;
+  <h2 class="group-title">Tentang</h2>
+  <div class="card list">
+    <a class="li" href="#/lainnya/aplikasi"><span class="li-ico">${ic('info')}</span><div class="grow"><div class="t">Tentang aplikasi</div><div class="d">Penafian, sumber data dan lisensi, versi</div></div>${ic('chev', 'chev')}</a>
+  </div>`;
   const after = () => {
     $$('[data-th]').forEach((b) => b.onclick = () => { store.set('theme', b.dataset.th); applyTheme(); $$('[data-th]').forEach((x) => x.classList.toggle('on', x === b)); });
     const ib = $('#installBtn');

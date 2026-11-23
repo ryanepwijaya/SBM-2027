@@ -2239,3 +2239,22 @@ body.uj-noscroll { overflow: hidden; }
 .ms-kl > .kp-kelas { width: 100%; }
 .ms-kl > .kp-kc { justify-self: start; }
 .ms-kelas + * { margin-top: 10px; }
+/* ===== Lainnya: Pengaturan dalam satu kartu ===== */
+.set-list { padding: 0; }
+.set-row { padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+.set-row + .set-row { border-top: 1px solid var(--border-2); }
+.set-h { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.set-h b { font-size: 14.5px; }
+.set-h small { font-size: 12.5px; color: var(--muted); line-height: 1.45; }
+.set-inl { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.set-inl .btn { flex: none; }
+@media (min-width: 900px) {
+  .set-row:not(:has(.set-inl)) { display: grid; grid-template-columns: minmax(200px, 1fr) minmax(0, 1.4fr); align-items: center; gap: 24px; }
+}
+/* Judul seksi di halaman Dasar Hukum & PDF dan Tentang aplikasi */
+.group-title.sec-h { font-size: 15px; margin: 26px 2px 10px; scroll-margin-top: 80px; }
+.grid > .group-title.sec-h { margin: 14px 2px 0; }
+.group-title.sec-h svg { width: 18px; height: 18px; color: var(--navy-700); }
+[data-theme="dark"] .group-title.sec-h svg { color: var(--gold-2); }
+.page-head + .group-title.sec-h { margin-top: 6px; }
+.side-app { margin-top: 2px; }

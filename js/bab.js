@@ -64,15 +64,13 @@ export const BABS = [
   },
 ];
 
+// Referensi (bacaan): satu nama per halaman, dipakai sama di Jelajah, sidebar, judul halaman, dan breadcrumb.
+// kind: true → nama diberi akhiran jenis dokumen tahun berjalan (KMK untuk TA 2027, PMK untuk TA 2026).
 export const REF_LINKS = [
-  { h: '#/perubahan', n: 'Perubahan SBM', icon: 'git-compare' },
-  { h: '#/unduh', n: 'Unduh Tabel Biaya', icon: 'file-spreadsheet' },
-  { h: '#/lainnya/catatan', n: 'Catatan Umum', icon: 'book-open' },
+  { h: '#/lainnya/tentang', n: 'Dasar Hukum & PDF', icon: 'scale' },
+  { h: '#/lainnya/catatan', n: 'Catatan Umum', kind: true, icon: 'book-open' },
   { h: '#/lainnya/singkatan', n: 'Singkatan Satuan', icon: 'a-large-small' },
   { h: '#/lainnya/dokumen', n: 'Catatan atas Dokumen', icon: 'triangle-alert' },
-  { h: '#/lainnya/tentang', n: 'Dasar Hukum & PDF', icon: 'info' },
-  { h: '#/lainnya/perjadin', n: 'PMK Perjalanan Dinas', icon: 'scale' },
-  { h: '#/lainnya', n: 'Tampilan & Aplikasi', icon: 'settings' },
 ];
 
 // Normalisasi: setiap item punya k (kunci unik), n, icon, href, butir, table, active
