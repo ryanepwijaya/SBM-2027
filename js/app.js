@@ -1387,7 +1387,7 @@ function viewProv(pid, params = {}) {
 /* ---------------- Hitung Perjalanan ---------------- */
 function viewHitung() {
   if (!KP.kurs) KP.kurs = Number(store.get('kurs', 0)) || 0;
-  const html = `<div class="page-head"><h1 class="title">Hitung Perjalanan</h1>${resetBtn('kpReset')}<p class="subtitle">Isi tujuan surat tugas, lama perjalanan, dan pelaksananya: dalam negeri luar kota, dalam kota, atau luar negeri. Perkiraan biaya muncul dari satuan biaya SBM TA ${Y.y}, lengkap dengan rujukan tabelnya. Persentase dibayar yang diatur di tiap tabel ikut dipakai.</p></div>
+  const html = `<div class="page-head"><h1 class="title">Hitung Perjalanan</h1><p class="subtitle">Isi tujuan surat tugas, lama perjalanan, dan pelaksananya: dalam negeri luar kota, dalam kota, atau luar negeri. Perkiraan biaya muncul dari satuan biaya SBM TA ${Y.y}, lengkap dengan rujukan tabelnya. Persentase dibayar yang diatur di tiap tabel ikut dipakai.</p>${resetBtn('kpReset')}</div>
   <div class="kp wz" id="kpRoot" data-wz="${KP.wz}">${wizHead(KP.wz, 'Tujuan, lama, pelaksana', 'Rincian dan PDF')}${formHtml({ routeForm, placeField, placeLabel })}${wizBar()}<div id="kpHost"></div></div>`;
   const after = () => {
     const root = $('#kpRoot');

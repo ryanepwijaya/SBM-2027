@@ -207,7 +207,7 @@ export function viewPindah(ui) {
   const T = load();
   let kurs = Number(store.get('kurs', 0)) || 0;
   const save = () => store.set(KEY, T);
-  const html = `<div class="page-head"><h1 class="title">Dinas Pindah</h1>${resetBtn('pdReset')}<p class="subtitle">Perkiraan biaya perjalanan dinas pindah. Dalam negeri: tiket atau transport sekali jalan untuk pegawai dan keluarga, taksi, uang harian, serta pengepakan dan angkutan barang (${S.butir['L1-24'].lamp === 1 ? 'Lamp. I' : 'Lamp. II'} angka ${S.butir['L1-24'].no}). Luar negeri: tiket pindah sekali jalan Jakarta–perwakilan (${S.butir['L1-28'].lamp === 1 ? 'Lamp. I' : 'Lamp. II'} angka ${S.butir['L1-28'].no}).</p></div>
+  const html = `<div class="page-head"><h1 class="title">Dinas Pindah</h1><p class="subtitle">Perkiraan biaya perjalanan dinas pindah. Dalam negeri: tiket atau transport sekali jalan untuk pegawai dan keluarga, taksi, uang harian, serta pengepakan dan angkutan barang (${S.butir['L1-24'].lamp === 1 ? 'Lamp. I' : 'Lamp. II'} angka ${S.butir['L1-24'].no}). Luar negeri: tiket pindah sekali jalan Jakarta–perwakilan (${S.butir['L1-28'].lamp === 1 ? 'Lamp. I' : 'Lamp. II'} angka ${S.butir['L1-28'].no}).</p>${resetBtn('pdReset')}</div>
   <div class="kp pd wz" id="pdRoot" data-wz="${WZ}"></div>`;
   const after = () => {
     const { $, $$, toast, effNotice } = ui;

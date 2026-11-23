@@ -141,7 +141,7 @@ function resultHtml(T, res, effNotice) {
 export function viewTujuan(ui) {
   const T = load();
   const save = () => store.set(KEY, T);
-  const html = `<div class="page-head"><h1 class="title">Perjadin (banyak tujuan)</h1>${resetBtn('tjReset')}<p class="subtitle">Satu surat tugas dengan rute berantai: dari kota asal ke tujuan 1, lanjut ke tujuan berikutnya, lalu kembali ke kota asal. Paling banyak ${MAX_TUJUAN} tujuan. Transportasi dihitung per ruas; uang harian, penginapan, dan representasi per kota tujuan.</p></div>
+  const html = `<div class="page-head"><h1 class="title">Perjadin (banyak tujuan)</h1><p class="subtitle">Satu surat tugas dengan rute berantai: dari kota asal ke tujuan 1, lanjut ke tujuan berikutnya, lalu kembali ke kota asal. Paling banyak ${MAX_TUJUAN} tujuan. Transportasi dihitung per ruas; uang harian, penginapan, dan representasi per kota tujuan.</p>${resetBtn('tjReset')}</div>
   <div class="kp tj wz" id="tjRoot" data-wz="${WZ}"></div>`;
   const after = () => {
     const { $, $$, toast, effNotice } = ui;

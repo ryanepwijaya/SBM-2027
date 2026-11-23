@@ -49,7 +49,7 @@ export function invoiceTotal(I = loadInv()) { return I.rows.reduce((a, r) => a +
 
 export function viewInvoice(ui) {
   const I = loadInv();
-  const html = `<div class="page-head"><h1 class="title">Hitung Invoice Barang/Jasa</h1>${resetBtn('ivReset')}<p class="subtitle">Isi daftar barang/jasa: volume, harga satuan, dan frekuensi. Urutan kolom bisa digeser mengikuti format invoice yang diterima. Semua bisa diisi tanpa mouse: tekan Tab untuk pindah kolom, dan Tab di kolom terakhir baris terakhir membuat baris baru. Totalnya bisa langsung dihitung pajaknya. Isian tersimpan di perangkat ini.</p></div>
+  const html = `<div class="page-head"><h1 class="title">Hitung Invoice Barang/Jasa</h1><p class="subtitle">Isi daftar barang/jasa: volume, harga satuan, dan frekuensi. Urutan kolom bisa digeser mengikuti format invoice yang diterima. Semua bisa diisi tanpa mouse: tekan Tab untuk pindah kolom, dan Tab di kolom terakhir baris terakhir membuat baris baru. Totalnya bisa langsung dihitung pajaknya. Isian tersimpan di perangkat ini.</p>${resetBtn('ivReset')}</div>
   <div class="card iv">
     <div class="iv-bar">
       <label class="iv-lock"><input type="checkbox" id="ivLock"${I.lock ? ' checked' : ''}><span>Kunci semua frekuensi = 1 <small>(kolom Frek dilewati saat Tab)</small></span></label>
@@ -234,7 +234,7 @@ export function honorTotals(H = loadHon()) {
 
 export function viewHonor(ui) {
   const H = loadHon();
-  const html = `<div class="page-head"><h1 class="title">Hitung Honorarium</h1>${resetBtn('hnReset')}<p class="subtitle">Honorarium narasumber, moderator, panitia, dan kegiatan lain. Satu baris bisa satu orang atau beberapa orang dengan status yang sama. PPh 21 dihitung otomatis dari status: PNS/PPPK final sesuai golongan (0%, 5%, 15%), Non-PNS 2,5%. Bisa diisi tanpa mouse dengan Tab. Isian tersimpan di perangkat ini.</p></div>
+  const html = `<div class="page-head"><h1 class="title">Hitung Honorarium</h1><p class="subtitle">Honorarium narasumber, moderator, panitia, dan kegiatan lain. Satu baris bisa satu orang atau beberapa orang dengan status yang sama. PPh 21 dihitung otomatis dari status: PNS/PPPK final sesuai golongan (0%, 5%, 15%), Non-PNS 2,5%. Bisa diisi tanpa mouse dengan Tab. Isian tersimpan di perangkat ini.</p>${resetBtn('hnReset')}</div>
   <div class="card iv hn">
     <div class="iv-bar">
       <div class="pb-opts"><label class="iv-lock"><input type="checkbox" id="hnNet"${H.netto ? ' checked' : ''}><span>Tarif yang diisi adalah netto <small>(dihitung balik ke bruto)</small></span></label>
@@ -411,7 +411,7 @@ export function viewPajak(ui, params) {
   if (!SRC[P.dari]) P.dari = null;
 
   const src = P.dari && SRC[P.dari] ? `<div class="tx-src">${ic('corner-down-left')} Diambil dari <a href="${SRC[P.dari].h}">${SRC[P.dari].t}</a>. Ubah angkanya di sini atau kembali ke sumbernya.</div>` : '';
-  const html = `<div class="page-head"><h1 class="title">Kalkulator Pajak</h1>${resetBtn('txClear')}<p class="subtitle">Isi nilai (N) langsung, atau buka Hitung Invoice lalu tekan Hitung pajak. PPN, PPh 22, PPh 23, dan PPh 4(2) langsung dihitung dengan rumusnya. Bila nilai sudah termasuk PPN, nyalakan sakelarnya: N di rumus menjadi nilai sebelum PPN. Klik angka untuk menyalin. Semua hasil dibulatkan ke rupiah terdekat.</p></div>
+  const html = `<div class="page-head"><h1 class="title">Kalkulator Pajak</h1><p class="subtitle">Isi nilai (N) langsung, atau buka Hitung Invoice lalu tekan Hitung pajak. PPN, PPh 22, PPh 23, dan PPh 4(2) langsung dihitung dengan rumusnya. Bila nilai sudah termasuk PPN, nyalakan sakelarnya: N di rumus menjadi nilai sebelum PPN. Klik angka untuk menyalin. Semua hasil dibulatkan ke rupiah terdekat.</p>${resetBtn('txClear')}</div>
   <div class="card tx-in">
     <label class="tx-lbl" for="txN">Nilai (N)</label>
     <div class="tx-box"><b>Rp</b><input id="txN" inputmode="numeric" autocomplete="off" placeholder="0" value="${fmtRp(P.n)}"></div>

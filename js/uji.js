@@ -304,7 +304,7 @@ function docDpr(T, ev) {
 export function viewUji(ui) {
   const T = load();
   const save = () => store.set(KEY, T);
-  const html = `<div class="page-head"><h1 class="title">Uji Perjalanan</h1>${resetBtn('ujReset')}<p class="subtitle">Uji angka riil tagihan perjalanan dinas luar kota satu pelaksana terhadap SBM: komponen mana yang sesuai, di bawah, atau melebihi batas tertinggi.</p></div>
+  const html = `<div class="page-head"><h1 class="title">Uji Perjalanan</h1><p class="subtitle">Uji angka riil tagihan perjalanan dinas luar kota satu pelaksana terhadap SBM: komponen mana yang sesuai, di bawah, atau melebihi batas tertinggi.</p>${resetBtn('ujReset')}</div>
   <div class="kp uj wz" id="ujRoot" data-wz="${WZ}"></div>`;
   const after = () => {
     const { $, $$, toast } = ui;

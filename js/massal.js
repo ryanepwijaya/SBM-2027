@@ -335,7 +335,7 @@ function applyPaste(p) {
 
 /* ---------------- View ---------------- */
 export function viewMassal(ui) {
-  const html = `<div class="page-head"><h1 class="title">Perjadin (banyak asal)</h1>${resetBtn('msReset')}<p class="subtitle">Perkiraan biaya satu kegiatan di kota tertentu dengan peserta dari banyak kota asal. Hasilnya bisa diunduh sebagai PDF (ringkasan di halaman pertama, lalu rincian) dan Excel. Isian tersimpan otomatis di perangkat ini saja, tanpa akun dan tidak dikirim ke mana pun.</p></div>
+  const html = `<div class="page-head"><h1 class="title">Perjadin (banyak asal)</h1><p class="subtitle">Perkiraan biaya satu kegiatan di kota tertentu dengan peserta dari banyak kota asal. Hasilnya bisa diunduh sebagai PDF (ringkasan di halaman pertama, lalu rincian) dan Excel. Isian tersimpan otomatis di perangkat ini saja, tanpa akun dan tidak dikirim ke mana pun.</p>${resetBtn('msReset')}</div>
   <div class="ms-bar"><span class="muted small">${ic('check')} Draf tersimpan otomatis di perangkat ini</span></div>
   <div id="msNav"></div><div id="msBody"></div>`;
   const { $, $$, toast, effNotice } = ui;
