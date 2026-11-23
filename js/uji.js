@@ -180,6 +180,40 @@ function summaryHtml(T, ev) {
   </div>`;
 }
 
+// Peringatan wajib sebelum setiap unduhan dokumen: hanya lanjut bila pengguna mencentang pernyataan dan menekan Unduh draf
+function confirmDraft(docName) {
+  return new Promise((done) => {
+    const prev = document.activeElement;
+    const wrap = document.createElement('div');
+    wrap.className = 'uj-modal';
+    wrap.innerHTML = `<div class="uj-mbox" role="alertdialog" aria-modal="true" aria-labelledby="ujMT" aria-describedby="ujMD">
+      <div class="uj-mh">${ic('alert')}<div><div class="uj-mk">Peringatan</div><h2 id="ujMT">Dokumen ini BUKAN dokumen final</h2></div></div>
+      <div id="ujMD" class="uj-mb">
+        <p><b>${esc(docName)}</b> yang akan diunduh adalah <b>draf hasil alat bantu hitung</b>, belum sah sebagai bukti pembayaran maupun pertanggungjawaban.</p>
+        <ul>
+          <li>Dokumen final <b>tetap tunduk pada PMK dan KMK yang berlaku</b>, <b>kebijakan pejabat perbendaharaan satuan kerja</b>, dan <b>kebijakan internal satuan kerja</b>.</li>
+          <li>Periksa kembali angka, format, kelengkapan, dan isian identitas sebelum dokumen ditandatangani dan digunakan.</li>
+          <li><b>Cek SBM tidak bertanggung jawab</b> atas kesalahan klaim, kesalahan pembayaran, pengambilan keputusan, maupun akibat lain dari penggunaan dokumen ini.</li>
+        </ul>
+        <label class="iv-lock uj-mc"><input type="checkbox" id="ujMOk"><span>Saya mengerti bahwa dokumen ini draf dan akan memeriksanya sebelum digunakan.</span></label>
+      </div>
+      <div class="uj-mf"><button type="button" class="btn" data-m="0">Batal</button><button type="button" class="btn primary" data-m="1" disabled>${ic('download')} Unduh draf</button></div>
+    </div>`;
+    document.body.appendChild(wrap);
+    document.body.classList.add('uj-noscroll');
+    const ok = wrap.querySelector('[data-m="1"]'), cb = wrap.querySelector('#ujMOk');
+    const close = (v) => { wrap.remove(); document.body.classList.remove('uj-noscroll'); document.removeEventListener('keydown', key, true); prev?.focus?.(); done(v); };
+    const key = (e) => {
+      if (e.key === 'Escape') { e.preventDefault(); close(false); }
+      if (e.key === 'Tab') { const f = [...wrap.querySelectorAll('input, button:not([disabled])')]; const i = f.indexOf(document.activeElement); if (e.shiftKey && i <= 0) { e.preventDefault(); f[f.length - 1].focus(); } else if (!e.shiftKey && i === f.length - 1) { e.preventDefault(); f[0].focus(); } }
+    };
+    document.addEventListener('keydown', key, true);
+    cb.addEventListener('change', () => { ok.disabled = !cb.checked; });
+    wrap.addEventListener('click', (e) => { const b = e.target.closest('[data-m]'); if (b && !b.disabled) close(b.dataset.m === '1'); else if (e.target === wrap) close(false); });
+    setTimeout(() => cb.focus(), 30);
+  });
+}
+
 // ---------- Dokumen Word ----------
 const DOT = '……………………';
 const rpN = (n) => `Rp${Number(n || 0).toLocaleString('id-ID')}`;
@@ -318,8 +352,8 @@ export function viewUji(ui) {
     };
     const drawResult = () => {
       $('#ujHost').innerHTML = miss1().length || miss2().length ? '' : summaryHtml(T, ev);
-      const dl = (id, make) => { const b = $(id); if (b) b.onclick = () => { try { downloadBlob(make(T, ev)); toast('Dokumen Word diunduh'); } catch (err) { console.error(err); toast('Dokumen gagal dibuat'); } }; };
-      dl('#ujDocK', docKuitansi); dl('#ujDocR', docRincian); dl('#ujDocD', docDpr);
+      const dl = (id, make, name) => { const b = $(id); if (b) b.onclick = async () => { if (!(await confirmDraft(name))) return; try { downloadBlob(make(T, ev)); toast('Draf dokumen Word diunduh'); } catch (err) { console.error(err); toast('Dokumen gagal dibuat'); } }; };
+      dl('#ujDocK', docKuitansi, 'Kuitansi'); dl('#ujDocR', docRincian, 'Rincian Biaya Perjalanan Dinas'); dl('#ujDocD', docDpr, 'Daftar Pengeluaran Riil');
     };
     const render = (focusSel) => {
       ev = evaluate(T);
