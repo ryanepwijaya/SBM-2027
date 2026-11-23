@@ -65,6 +65,8 @@ Hitung Perjalanan, Perjadin (banyak tujuan), dan Dinas Pindah memakai alur `wizH
 
 ## PDF
 
+PDF Hitung Perjalanan, Perjadin (banyak tujuan), dan Dinas Pindah selalu memuat halaman **Rincian per Orang** (`perOrang`/`pdfPerOrang`): komponen per orang untuk tiap tingkat (biaya per orang dalam satu tingkat SBM selalu sama), lalu rekonsiliasi ke total halaman 1 (komponen bersama seperti barang pindahan dan biaya layanan, serta selisih pembulatan bila ada).
+
 Semua PDF memakai `pdfHead` dan `pdfFooter` (`js/hitung.js`): kaki halaman berisi disclaimer dengan bagian tebal (bukan dokumen resmi; keputusan pembayaran dan pertanggungjawaban wajib dicek ke PMK/KMK aslinya) dan tautan cek-sbm.vercel.app, tanpa nama akun.
 
 ## Menambah atau mengubah entri

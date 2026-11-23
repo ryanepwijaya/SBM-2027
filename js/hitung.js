@@ -568,6 +568,79 @@ export function pdfButton(btn, make, toast) {
   };
 }
 
+// Rincian per orang: komponen yang diterima satu orang di tiap tingkat, untuk pengujian.
+// Biaya per orang di satu tingkat SBM selalu sama, jadi rincian per tingkat = rincian per orang.
+export function perOrang(res) {
+  const roundC = (v, cur) => (cur === 'USD' ? Math.round(v * 100) / 100 : Math.round(v));
+  const groups = res.people.map((p) => {
+    const rows = [];
+    const sums = {};
+    for (const l of res.lines) {
+      if (l.unit == null || l.manual || l.missing) continue;
+      const q = l.perAll ? l.perAll : l.per === p.k ? (l.perQty || 1) : 0;
+      if (!q) continue;
+      const amt = roundC(l.unit * q, l.cur);
+      sums[l.cur] = (sums[l.cur] || 0) + amt;
+      let vol = String(l.vol || '').replace(/ × [\d.,]+ orang$/, '');
+      if (/^[\d.,]+ orang$/.test(vol)) vol = /^tiket/.test(l.cat) ? '1 tiket' : '1';
+      rows.push({ l, q, amt, vol });
+    }
+    return { p, rows, sums };
+  });
+  const shared = res.lines.filter((l) => l.amount != null && !l.missing && (l.manual || (!l.perAll && !l.per)));
+  return { groups, shared };
+}
+function pdfPerOrang(doc, res) {
+  if (!res.people?.length) return;
+  const { groups, shared } = perOrang(res);
+  if (!groups.some((g) => g.rows.length)) return;
+  const W = doc.internal.pageSize.getWidth();
+  const fc = (n, cur) => (n == null ? '-' : cur === 'USD' ? fmtUsd(n) : fmt(n));
+  const mul = (sums, c) => Object.fromEntries(Object.entries(sums).map(([k, v]) => [k, v * c]));
+  const grid = {
+    theme: 'grid', styles: { fontSize: 8.6, cellPadding: 1.8, lineColor: [215, 219, 232], lineWidth: 0.2, textColor: [30, 34, 52], valign: 'top' },
+    headStyles: { fillColor: NAVY, textColor: 255, fontStyle: 'bold' }, footStyles: { fillColor: [255, 246, 214], textColor: NAVY, fontStyle: 'bold' },
+    columnStyles: { 1: { cellWidth: 34, halign: 'right' }, 2: { cellWidth: 42 }, 3: { cellWidth: 34, halign: 'right' } },
+    didParseCell: (d) => { if ((d.section === 'head' || d.section === 'foot') && (d.column.index === 1 || d.column.index === 3)) d.cell.styles.halign = 'right'; },
+    margin: { left: 14, right: 14, bottom: PDF_BOTTOM },
+  };
+  doc.addPage();
+  pdfHead(doc, 'Rincian per Orang', 'Komponen yang diterima satu orang di tiap tingkat, untuk pengujian');
+  let y = 26;
+  doc.setFont('helvetica', 'normal'); doc.setFontSize(8.6); doc.setTextColor(80, 86, 110);
+  const intro = doc.splitTextToSize(pt('Satuan biaya SBM ditetapkan per tingkat, sehingga setiap orang dalam tingkat yang sama menerima rincian yang sama. Contoh: pejabat eselon IV dan pelaksana golongan II sama-sama tingkat Eselon IV/Golongan III/II/I.'), W - 28);
+  doc.text(intro, 14, y); y += intro.length * 3.8 + 3;
+  for (const g of groups) {
+    if (!g.rows.length) continue;
+    if (y > 240) { doc.addPage(); y = 16; }
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(10.5); doc.setTextColor(...NAVY);
+    doc.text(pt(`${g.p.n}: ${g.p.c} orang`), 14, y + 3); doc.setFont('helvetica', 'normal'); y += 5.5;
+    doc.autoTable({
+      ...grid, startY: y,
+      head: [['Komponen', 'Satuan biaya', 'Volume per orang', 'Jumlah per orang']],
+      body: g.rows.map(({ l, amt, vol }) => [pt(l.label), fc(l.unit, l.cur), pt(vol), fc(amt, l.cur)]),
+      foot: [[{ content: 'Jumlah per orang', colSpan: 3 }, sumsTxt(g.sums)], ...(g.p.c > 1 ? [[{ content: `x ${g.p.c} orang`, colSpan: 3 }, sumsTxt(mul(g.sums, g.p.c))]] : [])],
+    });
+    y = doc.lastAutoTable.finalY + 7;
+  }
+  // Rekonsiliasi dengan total halaman 1
+  if (y > 230) { doc.addPage(); y = 16; }
+  doc.setFont('helvetica', 'bold'); doc.setFontSize(10.5); doc.setTextColor(...NAVY); doc.text('Rekonsiliasi', 14, y + 3); doc.setFont('helvetica', 'normal'); y += 5.5;
+  const tot = {};
+  const add = (sums) => { for (const [k, v] of Object.entries(sums)) tot[k] = (tot[k] || 0) + v; };
+  const body = groups.filter((g) => g.rows.length).map((g) => { const m = mul(g.sums, g.p.c); add(m); return [pt(`${g.p.n} (${g.p.c} orang)`), sumsTxt(m)]; });
+  for (const l of shared) { add({ [l.cur]: l.amount }); body.push([pt(`${l.label}${l.manual ? ' (isian pengguna)' : ''}, tidak dibagi per orang`), fc(l.amount, l.cur)]); }
+  const diff = {};
+  for (const c of Object.keys(res.tot || {})) { const d = Math.round(((res.tot[c] || 0) - (tot[c] || 0)) * 100) / 100; if (Math.abs(d) >= 0.01) diff[c] = d; }
+  if (Object.keys(diff).length) { body.push(['Selisih pembulatan (jumlah per baris di halaman 1 dibulatkan dari total)', sumsTxt(diff)]); add(diff); }
+  doc.autoTable({
+    ...grid, startY: y, head: [['Bagian', 'Jumlah']], body,
+    foot: [['Total (sama dengan halaman 1)', sumsTxt(tot)]],
+    columnStyles: { 1: { cellWidth: 50, halign: 'right' } },
+    didParseCell: (d) => { if (d.column.index === 1) d.cell.styles.halign = 'right'; },
+  });
+}
+
 export async function buildPdf(res) {
   const jsPDF = await lib();
   const doc = new jsPDF({ unit: 'mm', format: 'a4' });
@@ -645,6 +718,7 @@ export async function buildPdf(res) {
   let y = doc.lastAutoTable.finalY + 6;
   doc.setFontSize(8); doc.setTextColor(90, 96, 120);
   for (const n of notes) { const t = doc.splitTextToSize('- ' + pt(n), W - 28); if (y + t.length * 3.6 > 297 - PDF_BOTTOM) { doc.addPage(); y = 16; } doc.text(t, 14, y); y += t.length * 3.6 + 0.8; }
+  pdfPerOrang(doc, res);
   pdfFooter(doc);
   if (C) return { blob: doc.output('blob'), name: C.file };
   const dest = res.lingkup === 'ln' ? `LN-${res.city || res.neg}` : `${res.lingkup === 'dk' ? 'Dalam-Kota-' : ''}${plain(res.D.label)}`;
