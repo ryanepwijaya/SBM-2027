@@ -229,6 +229,8 @@ export const REF_PD = {
   pindahLs: ['p113', 'Pasal 18 ayat (2)', 14],
   uhPindah: ['p113', 'Pasal 20 ayat (3)', 15],
   barang50: ['p113', 'Pasal 23 ayat (2) dan (3)', 16],
+  lamp2: ['p113', 'Lampiran II', 26],
+  lamp9: ['p113', 'Lampiran IX', 41],
   lamp3: ['p113', 'Lampiran III', 27],
   lamp4: ['p113', 'Lampiran IV', 33],
   lamp6: ['p113', 'Lampiran VI', 36],

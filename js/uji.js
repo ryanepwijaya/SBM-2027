@@ -4,11 +4,12 @@
 import { S, Y, esc, fmt, store, tip, pdRef, pdTxt } from './store.js';
 import { resolve, placeLabel } from './rute.js';
 import { ic } from './icons.js';
-import { TINGKAT, compute, autoMalam, plain, TIER_A, kelasCellIV, sifatChip, byrChip, BYR, wizHeadN, wizGo, wizCols, buildTablePdf, pdfButton } from './hitung.js';
+import { TINGKAT, compute, autoMalam, plain, TIER_A, kelasCellIV, sifatChip, byrChip, wizHeadN, wizGo, wizCols, downloadBlob } from './hitung.js';
+import { P, T as Tbl, docx, terbilang } from './docx-mini.js';
 
 const KEY = 'uji';
 let WZ = 1;
-const DEF = () => ({ dari: 'jakarta', ke: '', jenis: 'lk', hari: 2, malam: 1, mm: false, tk: 'e4', kelasA: {}, inap: 'hotel', riil: {}, ok: {}, extra: [] });
+const DEF = () => ({ dari: 'jakarta', ke: '', jenis: 'lk', hari: 2, malam: 1, mm: false, tk: 'e4', kelasA: {}, inap: 'hotel', riil: {}, ok: {}, nob: {}, extra: [] });
 const digits = (s) => String(s ?? '').replace(/\D/g, '');
 const rp = (s) => { const d = digits(s); return d ? Number(d) : null; };
 const rpTxt = (n) => (n == null ? '' : Number(n).toLocaleString('id-ID'));
@@ -23,6 +24,7 @@ function load() {
     if (d.kelasA && typeof d.kelasA === 'object') for (const k of TIER_A) if (d.kelasA[k] === 'eko') T.kelasA[k] = 'eko';
     if (d.riil && typeof d.riil === 'object') for (const [k, v] of Object.entries(d.riil)) if (typeof v === 'string') T.riil[String(k).slice(0, 200)] = digits(v).slice(0, 13);
     if (d.ok && typeof d.ok === 'object') for (const [k, v] of Object.entries(d.ok)) if (v === true) T.ok[String(k).slice(0, 200)] = true;
+    if (d.nob && typeof d.nob === 'object') for (const [k, v] of Object.entries(d.nob)) if (v === true) T.nob[String(k).slice(0, 200)] = true;
     if (Array.isArray(d.extra)) T.extra = d.extra.slice(0, 10).map((x) => ({ l: String(x?.l ?? '').slice(0, 120), a: digits(x?.a).slice(0, 13) }));
   }
   if (!TINGKAT.some((t) => t.k === T.tk)) T.tk = 'e4';
@@ -36,11 +38,21 @@ function load() {
 function components(T) {
   const res = compute({ lingkup: 'dn', dari: T.dari, ke: T.ke, jenis: T.jenis, hari: T.hari, malam: T.malam, inap: T.inap, org: Object.fromEntries(TINGKAT.map((t) => [t.k, t.k === T.tk ? 1 : 0])), kelasA: T.kelasA });
   if (!res.ready || res.dalamKota || !res.lines) return { res, rows: [] };
-  const rows = res.lines.filter((l) => !l.manual).map((l) => ({
-    k: `${l.cat}|${l.label}`, l, label: l.label, g: l.g,
-    vol: String(l.vol || '').replace(/ × [\d.,]+ orang$/, '').replace(/^1 orang$/, '1 tiket'),
-    sbm: l.n == null ? null : Math.round(l.n * l.qty), unit: l.n,
-  }));
+  const rows = [];
+  const O = plain(res.O.label), D = plain(res.D.label);
+  for (const l of res.lines) {
+    if (l.manual) continue;
+    if (l.cat === 'tiket') {
+      // Tiket SBM tarif pergi-pulang: diuji per arah, masing-masing ½ tarif PP
+      if (l.n == null) { res.noTiket = true; continue; }
+      const kls = /Bisnis/.test(l.label) ? 'Bisnis' : 'Ekonomi';
+      const half = Math.round(l.n / 2);
+      rows.push({ k: 'tiket|go', l, label: `Tiket pesawat berangkat · ${O} – ${D} · ${kls}`, g: l.g, vol: '1 tiket (½ tarif PP SBM)', sbm: half, unit: half });
+      rows.push({ k: 'tiket|back', l, label: `Tiket pesawat pulang · ${D} – ${O} · ${kls}`, g: l.g, vol: '1 tiket (½ tarif PP SBM)', sbm: l.n - half, unit: l.n - half });
+      continue;
+    }
+    rows.push({ k: `${l.cat}|${l.label}`, l, label: l.label, g: l.g, vol: String(l.vol || '').replace(/ × [\d.,]+ orang$/, ''), sbm: l.n == null ? null : Math.round(l.n * l.qty), unit: l.n });
+  }
   return { res, rows };
 }
 
@@ -66,6 +78,7 @@ function evaluate(T) {
   const totRiil = items.reduce((a, x) => a + (x.riil || 0), 0) + extra.reduce((a, x) => a + (x.riil || 0), 0);
   const totSbm = items.reduce((a, x) => a + (x.sbm || 0), 0);
   const lebih = items.filter((x) => x.j.s === 'over').reduce((a, x) => a + x.j.d, 0);
+  items.forEach((x) => { x.paid = x.riil == null ? 0 : x.j.s === 'over' ? x.sbm : x.riil; });
   const dl = items.filter((x) => x.j.s === 'dl').reduce((a, x) => a + x.j.d, 0);
   return { res, items, extra, totRiil, totSbm, lebih, dl };
 }
@@ -115,6 +128,7 @@ function workHtml(T, ev) {
       <tbody>${rows}</tbody>
       <tfoot><tr class="sub"><td>Total</td><td class="n" id="ujTs">${fmt(ev.totSbm)}</td><td></td><td class="n" id="ujTr">${fmt(ev.totRiil)}</td><td class="n" id="ujTl" colspan="2"></td></tr></tfoot>
     </table></div>
+    ${ev.res.noTiket ? `<div class="muted small uj-nt">${ic('info')} Tarif tiket pesawat untuk rute ini tidak tercantum di SBM. Bila ada tiket di tagihan, tambahkan sebagai komponen lain.</div>` : ''}
     <div class="uj-xwrap">
       <div class="uj-x-h">Komponen lain di tagihan ${tip('Komponen yang tidak ada di satuan biaya SBM untuk rute ini, misalnya kereta api atau biaya lain. Dicatat di hasil, tetapi tidak diuji.')}</div>
       <div class="uj-list">${T.extra.map((x, i) => `<div class="uj-r uj-x">
@@ -129,38 +143,128 @@ function workHtml(T, ev) {
 const bar = (n, label) => `<div class="card card-pad wz-bar uj-bar uj-bar${n}"><div class="wz-miss small" aria-live="polite"></div><button type="button" class="btn primary" data-wz="${n + 1}">${esc(label)} ${ic('chevron-right')}</button></div>`;
 
 const BADGE = { ok: 'ok', under: 'ok', nol: 'mute', over: 'bad', dl: 'warn', na: 'mute', kosong: 'mute' };
-function resultHtml(T, ev) {
-  if (!ev.items.length) return '';
+// Komponen yang masuk dokumen: dibayar > 0; komponen lain ikut sebagai transportasi/biaya lain sesuai isian
+function docRows(T, ev) {
+  const its = ev.items.filter((x) => x.paid > 0).map((x) => ({ key: x.k, x, label: x.label.replace(/ · /g, ', '), paid: x.paid, cat: x.l.cat, byr: x.l.byr, over: x.j.s === 'over' ? x.riil : null }));
+  const ext = ev.extra.map((x, i) => ({ key: `x:${i}`, label: x.label, paid: x.riil || 0, cat: 'lain', byr: 'R' })).filter((x) => x.paid > 0);
+  return { its, ext, total: its.reduce((a, x) => a + x.paid, 0) + ext.reduce((a, x) => a + x.paid, 0) };
+}
+function summaryHtml(T, ev) {
   const t = TINGKAT.find((x) => x.k === T.tk);
-  const groups = [...new Set(ev.items.map((x) => x.g))];
-  const rows = groups.map((g) => `<tr class="grp"><td colspan="5">${esc(g)}</td></tr>` + ev.items.filter((x) => x.g === g).map((x) => `<tr>
-      <td><div class="kp-k">${esc(x.label)}</div><div class="kp-sub">${esc(x.vol)}</div><div class="kp-meta">${x.l.sifat ? sifatChip(x.l.sifat) : ''}${x.l.byr ? byrChip(x.l) : ''}${x.l.ref ? `<a class="chip ref" href="${x.l.ref.href}">${esc(x.l.ref.label)}</a>` : ''}${x.l.pd ? pdRef(x.l.pd) : ''}</div></td>
-      <td class="n" data-l="SBM">${x.sbm == null ? '<span class="na">Tidak tercantum</span>' : fmt(x.sbm)}</td>
-      <td class="n" data-l="Riil">${fmt(x.riil)}</td>
-      <td class="n" data-l="Selisih">${x.j.d == null || x.j.d === 0 ? '–' : `${x.j.d > 0 ? '+' : '−'}${fmt(Math.abs(x.j.d))}`}</td>
-      <td data-l="Status"><span class="uj-b ${BADGE[x.j.s]}">${esc(x.j.t)}</span></td>
-    </tr>`).join('')).join('')
-    + (ev.extra.length ? `<tr class="grp"><td colspan="5">Komponen lain (tidak diuji)</td></tr>` + ev.extra.map((x) => `<tr><td><div class="kp-k">${esc(x.label)}</div></td><td class="n" data-l="SBM"><span class="na">–</span></td><td class="n" data-l="Riil">${fmt(x.riil || 0)}</td><td class="n" data-l="Selisih">–</td><td data-l="Status"><span class="uj-b mute">Tidak diuji</span></td></tr>`).join('') : '');
-  const over = ev.items.filter((x) => x.j.s === 'over');
-  return `<div class="card kp-res">
-    <div class="kp-res-h"><div><div class="kp-title">Hasil uji perjalanan dinas</div><div class="muted small">${esc(`${plain(ev.res.O.label)} – ${plain(ev.res.D.label)} · ${T.hari} hari ${T.malam} malam · ${t.n}`)}</div></div>
-      <div class="kp-actions"><button type="button" class="btn" data-wz="2">${ic('pencil-line')} Ubah kertas kerja</button><button type="button" class="btn primary" id="ujPdf">${ic('download')} Unduh PDF</button></div></div>
-    <div class="uj-sum">
-      <div class="uj-k ${over.length ? 'bad' : 'ok'}">${ic(over.length ? 'alert' : 'check')}<div><b>${over.length ? `${over.length} komponen melebihi batas tertinggi` : 'Tidak ada komponen yang melebihi batas tertinggi'}</b><span>${over.length ? `Kelebihan ${fmt(ev.lebih)}: ${over.map((x) => esc(x.label)).join(', ')}` : 'Semua komponen bersifat batas tertinggi berada dalam SBM.'}</span></div></div>
-      ${ev.dl > 0 ? `<div class="uj-k warn">${ic('info')}<div><b>Di atas acuan ${fmt(ev.dl)}</b><span>Komponen bersifat dapat dilampaui; perlu penjelasan/dokumen pendukung sesuai ketentuan.</span></div></div>` : ''}
+  const d = docRows(T, ev);
+  const cnt = (s) => ev.items.filter((x) => x.j.s === s).length;
+  const riilItems = [...d.its.filter((x) => x.byr === 'R'), ...d.ext];
+  const anyNob = riilItems.some((x) => T.nob[x.key]);
+  const pills = [['ok', 'sesuai SBM', cnt('ok')], ['ok', 'di bawah SBM', cnt('under')], ['bad', 'melebihi batas tertinggi', cnt('over')], ['warn', 'di atas acuan', cnt('dl')], ['mute', 'tidak ditagihkan', cnt('nol')], ['mute', 'tidak tercantum di SBM', cnt('na')]].filter((x) => x[2]);
+  return `<div class="card kp-res uj-fin">
+    <div class="kp-res-h"><div><div class="kp-title">Ringkasan dan dokumen</div><div class="muted small">${esc(`${plain(ev.res.O.label)} – ${plain(ev.res.D.label)} · ${T.hari} hari ${T.malam} malam · ${t.n}`)}</div></div>
+      <div class="kp-actions"><button type="button" class="btn" data-wz="2">${ic('pencil-line')} Ubah kertas kerja</button></div></div>
+    <div class="uj-stats">
+      <div><span>Total SBM</span><b>${fmt(ev.totSbm)}</b></div>
+      <div><span>Total riil di tagihan</span><b>${fmt(ev.totRiil)}</b></div>
+      <div class="${ev.lebih ? 'bad' : ''}"><span>Melebihi batas tertinggi</span><b>${ev.lebih ? '−' + fmt(ev.lebih) : fmt(0)}</b></div>
+      <div class="tot"><span>Jumlah dibayar</span><b>${fmt(d.total)}</b></div>
     </div>
-    <div class="tbl-wrap kp-tbl"><table class="t kp-t uj-t">
-      <thead><tr><th>Komponen</th><th class="n">SBM</th><th class="n">Riil</th><th class="n">Selisih</th><th>Status</th></tr></thead>
-      <tbody>${rows}</tbody>
-      <tfoot>
-        <tr class="sub"><td>Total satuan biaya SBM (komponen yang tercantum)</td><td class="n">${fmt(ev.totSbm)}</td><td colspan="3"></td></tr>
-        <tr class="sub"><td>Total riil di tagihan</td><td colspan="2" class="n">${fmt(ev.totRiil)}</td><td colspan="2"></td></tr>
-        <tr class="sub"><td>Kelebihan di atas batas tertinggi</td><td colspan="2" class="n">${ev.lebih ? '−' + fmt(ev.lebih) : fmt(0)}</td><td colspan="2"></td></tr>
-        <tr><td>Total riil setelah dikurangi kelebihan</td><td colspan="2" class="n">${fmt(ev.totRiil - ev.lebih)}</td><td colspan="2"></td></tr>
-      </tfoot>
-    </table></div>
-    <div class="kp-foot muted small">SBM TA ${Y.y} (${esc(Y.src)}) dihitung penuh (100%) untuk volume yang tertera. Sifat komponen mengikuti SBM: batas tertinggi tidak boleh dilampaui; dapat dilampaui berarti angka SBM sebagai acuan. Cara bayar mengikuti ${pdRef('lumpsum')}. Hasil uji ini alat bantu, bukan keputusan pengujian; keputusan tetap pada PPK sesuai ketentuan.</div>
+    <div class="uj-pills">${pills.map(([c, n, k]) => `<span class="uj-b ${c}">${k} komponen ${esc(n)}</span>`).join('')}</div>
+    ${ev.lebih ? `<div class="callout small uj-note">${ic('info')}<div>Komponen bersifat batas tertinggi yang melebihi SBM dicantumkan di dokumen sebesar SBM; kelebihannya ${fmt(ev.lebih)} tidak ikut dibayar.</div></div>` : ''}
+    <div class="uj-nob">
+      <div class="uj-x-h">Komponen tanpa bukti pengeluaran ${tip('Biaya transpor dan/atau penginapan yang tidak dapat diperoleh bukti pengeluarannya dipertanggungjawabkan dengan Daftar Pengeluaran Riil (Pasal 34 ayat (3) dan Lampiran IX PMK 113/PMK.05/2012). Uang harian dan komponen lumpsum tidak termasuk.')}</div>
+      ${riilItems.length ? `<div class="uj-nobl">${riilItems.map((x) => `<label class="iv-lock"><input type="checkbox" data-nob="${esc(x.key)}"${T.nob[x.key] ? ' checked' : ''}><span>${esc(x.label)} <small class="muted">${fmt(x.paid)}</small></span></label>`).join('')}</div>` : '<div class="muted small">Tidak ada komponen biaya riil yang dibayar.</div>'}
+    </div>
+    <div class="uj-dl">
+      <button type="button" class="btn primary" id="ujDocK">${ic('download')} Kuitansi</button>
+      <button type="button" class="btn primary" id="ujDocR">${ic('download')} Rincian Biaya</button>
+      <button type="button" class="btn primary" id="ujDocD"${anyNob ? '' : ' disabled'}>${ic('download')} Daftar Pengeluaran Riil</button>
+    </div>
+    <div class="kp-foot muted small">Dokumen berupa draf Word (.docx) tanpa kop dan identitas. Lengkapi nomor, tanggal, nama, NIP, dan tanda tangan, lalu periksa kembali sebelum dipakai. Format Rincian Biaya mengikuti ${pdRef('lamp2')}; Daftar Pengeluaran Riil mengikuti ${pdRef('lamp9')}.${anyNob ? '' : ' Daftar Pengeluaran Riil aktif setelah ada komponen yang dicentang tanpa bukti.'}</div>
   </div>`;
+}
+
+// ---------- Dokumen Word ----------
+const DOT = '……………………';
+const rpN = (n) => `Rp${Number(n || 0).toLocaleString('id-ID')}`;
+const sign = (title, role) => [P(title, { after: 0 }), P(role, { after: 0 }), P('', { after: 0 }), P('', { after: 0 }), P('', { after: 0 }), P(`(${DOT})`, { after: 0 }), P(`NIP ${DOT}`, { after: 0 })];
+const kv = (rows, widths = [4.2, 0.5, 12.3]) => Tbl(rows.map(([k, v, o = {}]) => [{ c: k }, { c: ':' }, { c: v, b: o.b, ...o }]), { widths, border: false, pad: 0.05 });
+const fname = (s, ev) => `${s}-${plain(ev.res.D.label).replace(/[^\w]+/g, '-')}-TA${Y.y}.docx`.replace(/-+/g, '-');
+
+function docKuitansi(T, ev) {
+  const d = docRows(T, ev);
+  const body = [
+    Tbl([[{ c: '' }, { c: 'TA' }, { c: ':' }, { c: String(Y.y) }], [{ c: '' }, { c: 'Nomor Bukti' }, { c: ':' }, { c: DOT }], [{ c: '' }, { c: 'Mata Anggaran' }, { c: ':' }, { c: DOT }]], { widths: [8.5, 3.2, 0.5, 4.8], border: false, pad: 0.05 }),
+    P('', { after: 6 }),
+    P([{ t: 'KUITANSI / BUKTI PEMBAYARAN', b: true, u: true }], { align: 'center', size: 13, after: 14 }),
+    kv([
+      ['Sudah terima dari', `Kuasa Pengguna Anggaran/Pejabat Pembuat Komitmen\nSatker ${DOT}`],
+      ['Jumlah Uang', rpN(d.total), { b: true }],
+      ['Terbilang', [{ t: terbilang(d.total), i: true }]],
+      ['Untuk Pembayaran', 'Perjalanan Dinas Dalam Negeri menurut:'],
+    ]),
+    Tbl([[{ c: '' }, { c: 'SPD Nomor' }, { c: `${DOT} a.n. ${DOT}` }], [{ c: '' }, { c: 'Tanggal' }, { c: DOT }], [{ c: '' }, { c: 'Dari' }, { c: plain(ev.res.O.label) }], [{ c: '' }, { c: 'Ke' }, { c: plain(ev.res.D.label) }]], { widths: [4.7, 3, 9.3], border: false, pad: 0.05 }),
+    P('', { after: 10 }),
+    Tbl([[{ c: '' }, { c: [P(`${DOT}, ${DOT}`, { after: 0 }), ...sign('', 'Yang bepergian/Penerima kuasa,').slice(1)] }]], { widths: [9, 8], border: false }),
+    P('', { after: 10 }),
+    Tbl([[{ c: [P('Setuju dibebankan pada mata anggaran berkenaan,', { after: 0 }), P('a.n. Kuasa Pengguna Anggaran', { after: 0 }), ...sign('', 'Pejabat Pembuat Komitmen,').slice(1)] }, { c: [P(`Lunas dibayar tanggal ${DOT}`, { after: 0 }), P('', { after: 0 }), ...sign('', 'Bendahara Pengeluaran,').slice(1)] }]], { widths: [8.5, 8.5], border: 'outer', pad: 0.25 }),
+  ].join('');
+  return { blob: docx(body, { title: 'Kuitansi Perjalanan Dinas' }), name: fname('Kuitansi-Perjadin', ev) };
+}
+
+function rincianRows(T, ev) {
+  const d = docRows(T, ev);
+  const prov = S.prov[ev.res.D.prov].nama;
+  const ket = (x) => [x.over != null ? `Riil ${rpN(x.over)}; dibayar sebatas SBM` : '', x.byr === 'L' ? 'Lumpsum' : x.byr === 'R' ? 'Biaya riil' : '', T.nob[x.key] ? 'Daftar Pengeluaran Riil' : ''].filter(Boolean).join('; ');
+  const per = (x, n, sat) => (n > 0 && x.paid % n === 0 ? `${prov}, ${n} ${sat} x ${rpN(x.paid / n)}` : `${prov}, ${n} ${sat}`);
+  const groups = [
+    ['Uang Transport', [...d.its.filter((x) => !['uh', 'inap', 'rep'].includes(x.cat)).map((x) => ({ t: x.label, a: x.paid, k: ket(x) })), ...d.ext.map((x) => ({ t: x.label, a: x.paid, k: [x.byr === 'R' ? 'Biaya riil' : '', T.nob[x.key] ? 'Daftar Pengeluaran Riil' : ''].filter(Boolean).join('; ') }))]],
+    ['Uang Harian', d.its.filter((x) => x.cat === 'uh').map((x) => ({ t: per(x, T.hari, 'hari'), a: x.paid, k: ket(x) }))],
+    ['Uang Penginapan', d.its.filter((x) => x.cat === 'inap').map((x) => ({ t: `${T.inap === 'non' ? 'Tidak menginap di hotel (30%), ' : ''}${per(x, T.malam, 'malam')}`, a: x.paid, k: ket(x) }))],
+    ['Uang Representasi', d.its.filter((x) => x.cat === 'rep').map((x) => ({ t: per(x, T.hari, 'hari'), a: x.paid, k: ket(x) }))],
+  ].filter(([, r]) => r.length);
+  return { groups, total: d.total };
+}
+function docRincian(T, ev) {
+  const { groups, total } = rincianRows(T, ev);
+  const rows = [[{ c: 'No', b: true, align: 'center', shade: 'E8EBF5' }, { c: 'PERINCIAN BIAYA', b: true, align: 'center', shade: 'E8EBF5' }, { c: 'JUMLAH', b: true, align: 'center', shade: 'E8EBF5' }, { c: 'KETERANGAN', b: true, align: 'center', shade: 'E8EBF5' }]];
+  groups.forEach(([g, r], i) => {
+    rows.push([{ c: `${i + 1}.`, align: 'center' }, { c: `${g} (${rpN(r.reduce((a, x) => a + x.a, 0))})`, b: true }, { c: '' }, { c: '' }]);
+    r.forEach((x) => rows.push([{ c: '' }, { c: `- ${x.t}` }, { c: rpN(x.a), align: 'right' }, { c: x.k, size: 9 }]));
+  });
+  rows.push([{ c: '' }, { c: 'JUMLAH', b: true }, { c: rpN(total), b: true, align: 'right' }, { c: '' }]);
+  rows.push([{ c: '' }, { c: [{ t: `Terbilang: ${terbilang(total)}`, i: true }], span: 3 }]);
+  const body = [
+    P([{ t: 'RINCIAN BIAYA PERJALANAN DINAS', b: true }], { align: 'center', size: 13, after: 12 }),
+    kv([['Lampiran SPD Nomor', DOT], ['Tanggal', DOT]], [4.2, 0.5, 12.3]),
+    P('', { after: 6 }),
+    Tbl(rows, { widths: [1.1, 8.4, 3.4, 4.1] }),
+    P('', { after: 8 }),
+    Tbl([[{ c: '' }, { c: P(`${DOT}, ${DOT}`, { after: 0 }) }], [{ c: [P('Telah dibayar sejumlah', { after: 0 }), P(rpN(total), { b: true, after: 0 }), ...sign('', 'Bendahara Pengeluaran,').slice(1)] }, { c: [P('Telah menerima jumlah uang sebesar', { after: 0 }), P(rpN(total), { b: true, after: 0 }), ...sign('', 'Yang Menerima,').slice(1)] }]], { widths: [8.5, 8.5], border: false }),
+    P('', { after: 8 }),
+    P([{ t: 'PERHITUNGAN SPD RAMPUNG', b: true }], { align: 'center', after: 6 }),
+    kv([['Ditetapkan sejumlah', rpN(total)], ['Yang telah dibayar semula', `Rp${DOT}`], ['Sisa kurang/lebih', `Rp${DOT}`]], [5.5, 0.5, 11]),
+    P('', { after: 6 }),
+    Tbl([[{ c: '' }, { c: sign('', 'Pejabat Pembuat Komitmen,').slice(1) }]], { widths: [9, 8], border: false }),
+  ].join('');
+  return { blob: docx(body, { title: 'Rincian Biaya Perjalanan Dinas' }), name: fname('Rincian-Biaya-Perjadin', ev) };
+}
+
+function docDpr(T, ev) {
+  const d = docRows(T, ev);
+  const list = [...d.its.filter((x) => x.byr === 'R'), ...d.ext].filter((x) => T.nob[x.key]);
+  const tot = list.reduce((a, x) => a + x.paid, 0);
+  const rows = [[{ c: 'No', b: true, align: 'center', shade: 'E8EBF5' }, { c: 'Uraian', b: true, align: 'center', shade: 'E8EBF5' }, { c: 'Jumlah', b: true, align: 'center', shade: 'E8EBF5' }],
+    ...list.map((x, i) => [{ c: `${i + 1}.`, align: 'center' }, { c: x.label }, { c: rpN(x.paid), align: 'right' }]),
+    [{ c: 'Jumlah', b: true, span: 2, align: 'right' }, { c: rpN(tot), b: true, align: 'right' }]];
+  const body = [
+    P([{ t: 'DAFTAR PENGELUARAN RIIL', b: true }], { align: 'center', size: 13, after: 12 }),
+    P('Yang bertandatangan di bawah ini:', { after: 4 }),
+    kv([['Nama', DOT], ['NIP', DOT], ['Jabatan', DOT]], [3.5, 0.5, 13]),
+    P(`berdasarkan Surat Perjalanan Dinas (SPD) Nomor ${DOT} tanggal ${DOT}, dengan ini kami menyatakan dengan sesungguhnya bahwa:`, { before: 6 }),
+    P('1.  Biaya transpor pegawai dan/atau biaya penginapan di bawah ini yang tidak dapat diperoleh bukti-bukti pengeluarannya, meliputi:', { indent: 0.6, hanging: 0.6, align: 'both' }),
+    Tbl(rows, { widths: [1.1, 11.4, 4.5] }),
+    P('2.  Jumlah uang tersebut pada angka 1 di atas benar-benar dikeluarkan untuk pelaksanaan Perjalanan Dinas dimaksud dan apabila di kemudian hari terdapat kelebihan atas pembayaran, kami bersedia untuk menyetorkan kelebihan tersebut ke Kas Negara.', { indent: 0.6, hanging: 0.6, align: 'both', before: 8 }),
+    P('Demikian pernyataan ini kami buat dengan sebenarnya, untuk dipergunakan sebagaimana mestinya.', { align: 'both', before: 6, after: 10 }),
+    Tbl([[{ c: [P('Mengetahui/Menyetujui:', { after: 0 }), ...sign('', 'Pejabat Pembuat Komitmen,').slice(1)] }, { c: [P(`${DOT}, ${DOT}`, { after: 0 }), ...sign('', 'Pelaksana SPD,').slice(1)] }]], { widths: [8.5, 8.5], border: false }),
+  ].join('');
+  return { blob: docx(body, { title: 'Daftar Pengeluaran Riil' }), name: fname('Daftar-Pengeluaran-Riil', ev) };
 }
 
 export function viewUji(ui) {
@@ -213,33 +317,14 @@ export function viewUji(ui) {
       drawResult();
     };
     const drawResult = () => {
-      $('#ujHost').innerHTML = miss1().length || miss2().length ? '' : resultHtml(T, ev);
-      pdfButton($('#ujPdf'), () => {        const t = TINGKAT.find((x) => x.k === T.tk);
-        const body = ev.items.map((x) => [`${plain(x.label)}\n${plain(x.vol)}`, [x.l.ref?.label, x.l.sifat === 'BT' ? 'Batas tertinggi' : x.l.sifat ? 'Dapat dilampaui' : '', x.l.byr ? BYR[x.l.byr] : ''].filter(Boolean).join('\n'), x.sbm == null ? 'Tidak tercantum' : fmt(x.sbm), fmt(x.riil), x.j.d ? `${x.j.d > 0 ? '+' : '-'}${fmt(Math.abs(x.j.d))}` : '-', x.j.t]);
-        for (const x of ev.extra) body.push([plain(x.label), 'Tidak ada di SBM', '-', fmt(x.riil || 0), '-', 'Tidak diuji']);
-        return buildTablePdf({
-          title: 'Lembar Uji Perjalanan Dinas', sub: `Angka riil tagihan dibandingkan dengan SBM TA ${Y.y} (${Y.src})`,
-          info: [['Perjalanan', `${plain(ev.res.O.label)} - ${plain(ev.res.D.label)} (${S.prov[ev.res.D.prov].nama})`], ['Lama', `${T.hari} hari, ${T.malam} malam${T.inap === 'non' ? ', tidak menginap di hotel' : ''}`], ['Pelaksana', `1 orang, ${t.n}`], ['Uang harian', T.jenis === 'diklat' ? 'Diklat' : 'Luar kota']],
-          sections: [{
-            head: ['Komponen', 'Rujukan dan sifat', 'SBM', 'Riil', 'Selisih', 'Status'], body,
-            foot: [[{ content: 'Total riil di tagihan', colSpan: 3 }, fmt(ev.totRiil), { content: '', colSpan: 2 }], [{ content: 'Kelebihan di atas batas tertinggi', colSpan: 3 }, ev.lebih ? '-' + fmt(ev.lebih) : fmt(0), { content: '', colSpan: 2 }], [{ content: 'Total riil setelah dikurangi kelebihan', colSpan: 3 }, fmt(ev.totRiil - ev.lebih), { content: '', colSpan: 2 }]],
-            right: [2, 3, 4], cols: { 1: { cellWidth: 30 }, 2: { cellWidth: 25 }, 3: { cellWidth: 25 }, 4: { cellWidth: 22 }, 5: { cellWidth: 30 } },
-          }],
-          notes: [
-            'SBM dihitung penuh (100%) untuk volume yang tertera; volume mengikuti lama perjalanan dan rute (taksi dan transport darat 2 kali, berangkat dan pulang).',
-            'Sifat komponen mengikuti SBM: batas tertinggi tidak boleh dilampaui; dapat dilampaui berarti angka SBM sebagai acuan.',
-            `Cara bayar (lumpsum/biaya riil) mengikuti ${pdTxt('lumpsum')}; komponen tanpa bukti pengeluaran dipertanggungjawabkan dengan Daftar Pengeluaran Riil (Pasal 34 ayat (3) PMK 113/2012).`,
-            'Komponen lain dicatat sesuai isian dan tidak diuji karena tidak ada satuan biayanya di SBM untuk rute ini.',
-            'Lembar ini alat bantu, bukan keputusan pengujian; keputusan tetap pada PPK sesuai ketentuan.',
-          ],
-          file: `Uji-Perjalanan-${plain(ev.res.D.label).replace(/[^\w]+/g, '-')}-TA${Y.y}.pdf`,
-        });
-      }, toast);
+      $('#ujHost').innerHTML = miss1().length || miss2().length ? '' : summaryHtml(T, ev);
+      const dl = (id, make) => { const b = $(id); if (b) b.onclick = () => { try { downloadBlob(make(T, ev)); toast('Dokumen Word diunduh'); } catch (err) { console.error(err); toast('Dokumen gagal dibuat'); } }; };
+      dl('#ujDocK', docKuitansi); dl('#ujDocR', docRincian); dl('#ujDocD', docDpr);
     };
     const render = (focusSel) => {
       ev = evaluate(T);
-      root.innerHTML = wizHeadN(WZ, [['Isi data', 'Perjalanan dan pelaksana'], ['Kertas kerja', 'Sandingkan SBM dan riil'], ['Hasil uji', 'Ringkasan dan PDF']])
-        + formHtml(T, ui, ev) + bar(1, 'Lanjut ke kertas kerja') + `<div id="ujWork">${workHtml(T, ev)}</div>` + bar(2, 'Lihat hasil uji') + '<div id="ujHost"></div>';
+      root.innerHTML = wizHeadN(WZ, [['Isi data', 'Perjalanan dan pelaksana'], ['Kertas kerja', 'Sandingkan SBM dan riil'], ['Dokumen', 'Ringkasan dan unduh']])
+        + formHtml(T, ui, ev) + bar(1, 'Lanjut ke kertas kerja') + `<div id="ujWork">${workHtml(T, ev)}</div>` + bar(2, 'Lanjut ke dokumen') + '<div id="ujHost"></div>';
       wizCols($('.kp-form', root));
       ui.attachAC('ujDari', (it) => { T.dari = it.id; save(); render(); });
       ui.attachAC('ujKe', (it) => { T.ke = it.id; save(); render(); });
@@ -280,6 +365,8 @@ export function viewUji(ui) {
     root.addEventListener('focusin', (e) => { const inp = e.target.closest('.stp-in, [data-rk], [data-xa]'); if (inp) inp.select(); });
     const redrawWork = () => { ev = evaluate(T); $('#ujWork', root).innerHTML = workHtml(T, ev); refresh(); };
     root.addEventListener('change', (e) => {
+      const nb = e.target.closest('[data-nob]');
+      if (nb) { if (nb.checked) T.nob[nb.dataset.nob] = true; else delete T.nob[nb.dataset.nob]; save(); drawResult(); return; }
       const ok = e.target.closest('[data-ok]');
       if (ok) { if (ok.checked) T.ok[ok.dataset.ok] = true; else delete T.ok[ok.dataset.ok]; save(); redrawWork(); return; }
       if (e.target.id === 'ujAll') { const on = e.target.checked; for (const x of ev.items) if (x.sbm != null) { if (on) T.ok[x.k] = true; else delete T.ok[x.k]; } save(); redrawWork(); return; }

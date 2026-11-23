@@ -2175,3 +2175,23 @@ table.t.qt tr.miss td { color: var(--muted); }
 .uj-w .uj-in { width: 100%; min-width: 180px; height: 40px; }
 .uj-w .uj-in input { text-align: right; }
 @media (max-width: 899px) { .uj-w .uj-in { min-width: 0; } }
+/* Uji Perjalanan: halaman dokumen */
+.uj-stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; padding: 0 18px 12px; }
+.uj-stats > div { display: flex; flex-direction: column; gap: 4px; padding: 12px 14px; border-radius: 12px; border: 1px solid var(--border-2); background: var(--surface-2); }
+.uj-stats span { font-size: 12.5px; color: var(--muted); }
+.uj-stats b { font-size: 17px; font-variant-numeric: tabular-nums; }
+.uj-stats .bad b { color: var(--red, #DA2D1D); }
+.uj-stats .tot { background: #FFF8DB; border-color: #F1DE93; }
+.uj-stats .tot b { color: var(--navy-700); }
+[data-theme="dark"] .uj-stats .tot { background: rgba(244,190,22,.12); border-color: rgba(244,190,22,.35); }
+[data-theme="dark"] .uj-stats .tot b { color: var(--gold-2); }
+.uj-pills { display: flex; flex-wrap: wrap; gap: 6px; padding: 0 18px 12px; }
+.uj-note { margin: 0 18px 12px; }
+.uj-nob { padding: 4px 18px 12px; border-top: 1px solid var(--border-2); }
+.uj-nobl { display: flex; flex-direction: column; gap: 4px; margin-top: 4px; }
+.uj-nobl small { margin-left: 4px; }
+.uj-dl { display: flex; flex-wrap: wrap; gap: 10px; padding: 14px 18px; border-top: 1px solid var(--border-2); }
+.uj-dl .btn { flex: 1 1 200px; justify-content: center; }
+.uj-nt { display: flex; gap: 6px; align-items: center; padding: 10px 18px 0; }
+.uj-nt svg { width: 15px; height: 15px; flex: none; }
+@media (max-width: 899px) { .uj-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
