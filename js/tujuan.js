@@ -1,16 +1,17 @@
 // Perjadin (banyak tujuan): satu surat tugas, rute berantai asal → T1 → T2 → T3 → asal (paling banyak 3 tujuan).
 // Tiap ruas dihitung dengan mesin SBM Perjalanan (taksi, tiket, transport darat), tiap tujuan dengan uang harian,
-// penginapan, dan representasi provinsinya. Hanya angka SBM × volume; aturan PMK Perjalanan Dinas tidak diterapkan.
-import { S, Y, esc, fmt, store, tip, valueCols } from './store.js';
+// penginapan, dan representasi provinsinya. Angka SBM × volume; ketentuan PMK Perjalanan Dinas hanya yang berupa rumus atas angka SBM
+// (kelas pesawat Lampiran IV, penginapan 30% Pasal 8 ayat (5)), dengan rujukan pasal.
+import { S, Y, esc, fmt, store, tip, valueCols, pdRef, pdTxt } from './store.js';
 import { resolve, computeRoute, rowBy, placeLabel } from './rute.js';
 import { ic } from './icons.js';
-import { TINGKAT, plain, adder, finish, peopleOf, resTable, buildPdf, autoMalam } from './hitung.js';
+import { TINGKAT, plain, adder, finish, peopleOf, resTable, buildPdf, autoMalam, KELAS_IV, kelasNm, peopleTable } from './hitung.js';
 
 export const MAX_TUJUAN = 3;
 const KEY = 'tujuan';
 const DEF = () => ({
-  asal: 'jakarta', dest: [{ id: '', h: 1, m: 1, mm: false }], tiket: 'half', jenis: 'lk',
-  org: { pn: 0, e1: 0, pnl: 0, e2: 0, e3: 0, e4: 1 }, kelas: { pn: 'eko', e1: 'eko', pnl: 'eko', e2: 'eko', e3: 'eko', e4: 'eko' },
+  asal: 'jakarta', dest: [{ id: '', h: 1, m: 1, mm: false }], tiket: 'half', jenis: 'lk', inap: 'hotel',
+  org: { pn: 0, e1: 0, pnl: 0, e2: 0, e3: 0, e4: 1 },
 });
 function load() {
   const d = store.get(KEY, null);
@@ -20,27 +21,28 @@ function load() {
     if (Array.isArray(d.dest) && d.dest.length) T.dest = d.dest.slice(0, MAX_TUJUAN).map((x) => ({ id: String(x.id || ''), h: Math.max(1, Number(x.h) || 1), m: Math.max(0, Number(x.m) || 0), mm: !!x.mm }));
     if (d.tiket === 'full') T.tiket = 'full';
     if (d.jenis === 'diklat') T.jenis = 'diklat';
-    for (const t of TINGKAT) { if (d.org && Number.isFinite(d.org[t.k])) T.org[t.k] = Math.max(0, Math.min(999, d.org[t.k])); if (d.kelas?.[t.k] === 'bis') T.kelas[t.k] = 'bis'; }
+    if (d.inap === 'non') T.inap = 'non';
+    for (const t of TINGKAT) { if (d.org && Number.isFinite(d.org[t.k])) T.org[t.k] = Math.max(0, Math.min(999, d.org[t.k])); }
   }
   return T;
 }
 
 // Ruas transportasi A → B. f = bagian tarif tiket PP yang dipakai (½ atau 1).
-function addLeg(add, alt, notes, A, B, people, total, kelas, f, g) {
+function addLeg(add, alt, notes, A, B, people, total, f, g, kelas = KELAS_IV) {
   const r = computeRoute(A, B);
   if (r.sameKab) { notes.push(`${A.label} dan ${B.label} berada di kabupaten/kota yang sama; ruas ini tidak dihitung transportasinya.`); return false; }
   let hasTiket = false;
   for (const sec of r.sec.filter((s) => ['Keberangkatan', 'Perjalanan', 'Kedatangan'].includes(s.h))) {
     for (const it of sec.items) {
       const row = it.code ? rowBy(it.bid, it.code, it.ti) : null;
-      const base = { g, sec: sec.h, cat: it.bid === 'L2-6' ? 'tiket' : it.bid === 'L2-5' ? 'taksi' : 'darat', bid: it.bid, ti: it.ti, code: it.code, label: plain(it.title) };
+      const base = { g, sec: sec.h, cat: it.bid === 'L2-6' ? 'tiket' : it.bid === 'L2-5' ? 'taksi' : 'darat', bid: it.bid, ti: it.ti, code: it.code, label: plain(it.title), byr: 'R' };
       if (!row) { add({ ...base, n: null, qty: 0, vol: 'Tidak tercantum di tabel; mengacu harga riil/pasar', missing: true }); continue; }
       if (it.bid === 'L2-6') {
         if (hasTiket) { alt.push(plain(it.title)); continue; }
         hasTiket = true;
         for (const p of people) {
           const bis = kelas[p.k] === 'bis';
-          add({ ...base, label: `${plain(it.title)} · ${bis ? 'Bisnis' : 'Ekonomi'}`, sub: p.n, n: row.n[bis ? 3 : 4], qty: p.c * f, vol: `${f === 1 ? 'tarif PP penuh' : '½ tarif PP'} × ${p.c} orang`, per: p.k, perQty: f });
+          add({ ...base, label: `${plain(it.title)} · ${bis ? 'Bisnis' : 'Ekonomi'}${f === 1 ? '' : ' · sekali jalan'}`, sub: p.n, n: row.n[bis ? 3 : 4], qty: p.c * f, vol: `${f === 1 ? 'tarif PP penuh' : 'sekali jalan (½ tarif PP)'} × ${p.c} orang`, per: p.k, perQty: f });
         }
       } else if (it.bid === 'L2-5') {
         add({ ...base, n: row.n[3], qty: total, vol: `1 kali × ${total} orang`, perAll: 1 });
@@ -69,20 +71,21 @@ export function computeChain(T) {
   const tRep = S.butir['L1-25'].tables[1], repRows = tRep.rows.filter((x) => x.v);
   for (let i = 0; i < stops.length - 1; i++) {
     const A = stops[i], B = stops[i + 1];
-    hasTiket = addLeg(add, alt, notes, A, B, people, total, T.kelas, f, `Ruas ${i + 1}: ${plain(A.label)} → ${plain(B.label)}`) || hasTiket;
+    hasTiket = addLeg(add, alt, notes, A, B, people, total, f, `Ruas ${i + 1}: ${plain(A.label)} → ${plain(B.label)}`) || hasTiket;
     if (i === stops.length - 2) break;
     // Selama di tujuan ke-(i+1)
     const d = T.dest[i], P = S.prov[B.prov].nama, g = `Selama di ${plain(B.label)} (${P})`;
     const rUH = tUH.rows.find((x) => x.p === B.prov);
-    add({ g, cat: 'uh', bid: 'L1-25', ti: 0, code: rUH?.c, label: `Uang harian · ${P}${T.jenis === 'diklat' ? ' (diklat)' : ''}`, n: rUH ? rUH.n[T.jenis === 'diklat' ? vUH[2] : vUH[0]] : null, qty: d.h * total, vol: `${d.h} hari × ${total} orang`, perAll: d.h, missing: !rUH });
+    add({ g, cat: 'uh', bid: 'L1-25', ti: 0, code: rUH?.c, label: `Uang harian · ${P}${T.jenis === 'diklat' ? ' (diklat)' : ''}`, n: rUH ? rUH.n[T.jenis === 'diklat' ? vUH[2] : vUH[0]] : null, qty: d.h * total, vol: `${d.h} hari × ${total} orang`, perAll: d.h, missing: !rUH, byr: 'L' });
     const rH = tH.rows.find((x) => x.p === B.prov);
-    if (d.m > 0) for (const p of people) add({ g, cat: 'inap', bid: 'L1-27', ti: 0, code: rH?.c, label: `Penginapan · ${P}`, sub: p.n, n: rH ? rH.n[vH[p.h]] : null, qty: d.m * p.c, vol: `${d.m} malam × ${p.c} orang`, per: p.k, perQty: d.m, missing: !rH });
+    const non = T.inap === 'non', fi = non ? 0.3 : 1;
+    if (d.m > 0) for (const p of people) add({ g, cat: 'inap', bid: 'L1-27', ti: 0, code: rH?.c, label: non ? `Penginapan, tidak menginap di hotel · ${P}` : `Penginapan · ${P}`, sub: p.n, n: rH ? rH.n[vH[p.h]] : null, qty: d.m * p.c * fi, vol: `${non ? '30% × ' : ''}${d.m} malam × ${p.c} orang`, per: p.k, perQty: d.m * fi, missing: !rH, byr: non ? 'L' : 'R', pd: non ? 'inap30' : null });
     for (const p of people.filter((x) => x.rep != null)) {
       const rr = repRows[p.rep];
-      if (rr) add({ g, cat: 'rep', bid: 'L1-25', ti: 1, code: rr.c, label: 'Uang representasi', sub: p.n, n: rr.n[valueCols(tRep)[0]], qty: d.h * p.c, vol: `${d.h} hari × ${p.c} orang`, per: p.k, perQty: d.h });
+      if (rr) add({ g, cat: 'rep', bid: 'L1-25', ti: 1, code: rr.c, label: 'Uang representasi', sub: p.n, n: rr.n[valueCols(tRep)[0]], qty: d.h * p.c, vol: `${d.h} hari × ${p.c} orang`, per: p.k, perQty: d.h, byr: 'L' });
     }
   }
-  const res = finish({ lingkup: 'chain', O, D, alt, hasTiket, notes, f }, lines, people);
+  const res = finish({ lingkup: 'chain', O, D, alt, hasTiket, notes, f, non: T.inap === 'non' }, lines, people);
   return res;
 }
 
@@ -102,14 +105,15 @@ function formHtml(T, ui) {
       <div class="tj-list">${dests}</div>
       ${T.dest.length < MAX_TUJUAN ? `<button type="button" class="btn sm tj-add" id="tjAdd">${ic('plus')} Tambah tujuan <small>(maks. ${MAX_TUJUAN})</small></button>` : `<div class="muted small">Paling banyak ${MAX_TUJUAN} tujuan dalam satu surat tugas.</div>`}
       <div class="tj-route muted small">${ic('route')}<span id="tjRoute">${esc(routeTxt(T))}</span></div>
-      <div class="kp-row"><span class="kp-lbl">Tiket per ruas ${tip('Tabel tiket SBM memuat tarif pergi-pulang (PP). Untuk rute berantai, tiap ruas sekali jalan dihitung setengah tarif PP sebagai pendekatan. Pilih tarif PP penuh bila ingin batas yang lebih longgar.')}</span>${seg('tiket', [['half', '½ tarif PP'], ['full', 'Tarif PP penuh']], T.tiket)}</div>
+      <div class="kp-row"><span class="kp-lbl">Tiket per ruas ${tip('Tabel tiket SBM memuat tarif pergi-pulang (PP). Tiket sekali jalan dihitung ½ dari tarif PP SBM. Pilih tarif PP penuh bila ingin memakai angka PP apa adanya.')}</span>${seg('tiket', [['half', 'Sekali jalan'], ['full', 'Tarif PP penuh']], T.tiket)}</div>
+      <div class="muted small kp-mini">${T.tiket === 'half' ? 'Sekali jalan = ½ dari tarif PP di tabel tiket SBM.' : 'Memakai tarif PP di tabel tiket SBM apa adanya.'} Taksi dan transport darat 1 kali per ruas.</div>
       <div class="kp-row"><span class="kp-lbl">Uang harian</span>${seg('jenis', [['lk', 'Luar kota'], ['diklat', 'Diklat']], T.jenis)}</div>
+      <div class="kp-row"><span class="kp-lbl">Penginapan ${tip('Bila pelaksana tidak menginap di hotel atau tempat menginap lainnya, diberikan biaya penginapan 30% dari tarif hotel di kota tujuan, dibayar lumpsum (Pasal 8 ayat (5) PMK 113/PMK.05/2012).')}</span>${seg('inap', [['hotel', 'Di hotel'], ['non', 'Tidak di hotel (30%)']], T.inap)}</div>
+      <div class="kp-pd">${pdRef('inap30')}</div>
     </div>
     <div class="kp-step"><h2 class="kp-h"><span class="step">2</span>Pelaksana</h2>
-      <div class="kp-people">${TINGKAT.map((t) => `<div class="kp-p"><span class="kp-pn" title="${esc(t.n)}">${esc(t.s)}</span>
-        <select class="sel kp-kelas" data-kelas="${t.k}" aria-label="Kelas tiket ${esc(t.n)}"><option value="eko"${T.kelas[t.k] === 'eko' ? ' selected' : ''}>Ekonomi</option><option value="bis"${T.kelas[t.k] === 'bis' ? ' selected' : ''}>Bisnis</option></select>
-        ${stp('org:' + t.k, T.org[t.k], 0, 999, 'Pelaksana ' + t.n)}</div>`).join('')}</div>
-      <div class="muted small kp-note">Kelas tiket dipilih per tingkat dan hanya dipakai bila ruasnya memakai tiket pesawat.</div>
+      ${peopleTable(TINGKAT, (t) => `<span class="kp-kc ${KELAS_IV[t.k]}">${kelasNm(KELAS_IV[t.k])}</span>`, (t) => stp('org:' + t.k, T.org[t.k], 0, 999, 'Pelaksana ' + t.n))}
+      <div class="muted small kp-note">Kelas pesawat mengikuti ${pdRef('lamp4')}: Tingkat A (Pejabat Negara setingkat menteri dan Eselon I) Bisnis, lainnya Ekonomi. Hanya dipakai bila ruasnya memakai tiket pesawat.</div>
     </div>
   </div>`;
 }
@@ -127,7 +131,7 @@ function resultHtml(T, res, effNotice) {
     <div class="kp-res-h"><div><div class="kp-title">Perkiraan biaya perjalanan dinas banyak tujuan</div><div class="muted small">${esc(routeTxt(T))} · ${hari} hari ${malam} malam · ${res.total} orang</div></div>
       <div class="kp-actions"><button type="button" class="btn primary" id="tjPdf">${ic('download')} Unduh PDF</button></div></div>
     ${table}${per}
-    <div class="kp-foot muted small">Satuan biaya mengikuti SBM TA ${Y.y} (${esc(Y.src)})${res.effOn ? ', dengan persentase dibayar yang sedang aktif' : ''}. Tiap ruas dihitung sekali jalan: taksi di kota keberangkatan dan kedatangan masing-masing 1 kali, transport darat 1 kali, tiket ${res.f === 1 ? 'tarif PP penuh' : 'setengah tarif PP'} karena tabel tiket SBM memuat tarif pergi-pulang. Uang harian, penginapan, dan representasi mengikuti provinsi tiap tujuan. ${notes.join(' ')}</div>
+    <div class="kp-foot muted small">Satuan biaya mengikuti SBM TA ${Y.y} (${esc(Y.src)})${res.effOn ? ', dengan persentase dibayar yang sedang aktif' : ''}. Tiap ruas dihitung sekali jalan: taksi di kota keberangkatan dan kedatangan masing-masing 1 kali, transport darat 1 kali, tiket ${res.f === 1 ? 'tarif PP penuh' : 'sekali jalan (½ dari tarif PP SBM)'}. Uang harian, penginapan, dan representasi mengikuti provinsi tiap tujuan.${res.non ? ' Penginapan dihitung 30% dari tarif hotel karena tidak menginap di hotel.' : ''} ${notes.join(' ')}</div>
   </div>`;
 }
 
@@ -153,8 +157,10 @@ export function viewTujuan(ui) {
             title: 'Perkiraan Biaya Perjalanan Dinas Banyak Tujuan',
             info: [['Rute', plain(routeTxt(T))], ...T.dest.map((d, i) => [`Tujuan ${i + 1}`, `${plain(res.D[i].label)} (${S.prov[res.D[i].prov].nama}), ${d.h} hari ${d.m} malam`]), ['Lama', `${hari} hari, ${malam} malam`], ['Pelaksana', res.people.map((p) => `${p.n} (${p.c})`).join('; ')]],
             notes: [
-              `Tiap ruas dihitung sekali jalan: taksi di kota keberangkatan dan kedatangan masing-masing 1 kali, transport darat 1 kali, tiket ${res.f === 1 ? 'tarif PP penuh' : 'setengah tarif PP'} (tabel tiket SBM memuat tarif pergi-pulang).`,
+              `Tiap ruas dihitung sekali jalan: taksi di kota keberangkatan dan kedatangan masing-masing 1 kali, transport darat 1 kali, tiket ${res.f === 1 ? 'tarif PP penuh' : 'sekali jalan (1/2 dari tarif PP SBM, karena tabel tiket memuat tarif pergi-pulang)'}.`,
               'Uang harian, penginapan, dan representasi mengikuti provinsi tiap tujuan.',
+              `Kelas pesawat mengikuti ${pdTxt('lamp4')}. Cara bayar (lumpsum/biaya riil) mengikuti ${pdTxt('lumpsum')}.`,
+              ...(res.non ? [`Tidak menginap di hotel: penginapan 30% dari tarif hotel kota tujuan, dibayar lumpsum (${pdTxt('inap30')}).`] : []),
               'Tiket dan taksi bersifat dapat dilampaui (acuan); uang harian, penginapan, dan representasi bersifat batas tertinggi.',
               ...res.notes,
             ],
@@ -199,12 +205,13 @@ export function viewTujuan(ui) {
       if (del) { T.dest.splice(Number(del.dataset.del), 1); save(); render(); return; }
       if (e.target.closest('#tjAdd')) { if (T.dest.length < MAX_TUJUAN) { T.dest.push({ id: '', h: 1, m: 1, mm: false }); save(); render('tjD' + (T.dest.length - 1)); } return; }
       if (e.target.closest('#tjReset')) { Object.assign(T, DEF()); save(); render(); toast('Isian dikembalikan ke awal'); return; }
-      const sg = e.target.closest('[data-tiket],[data-jenis]');
+      const sg = e.target.closest('[data-tiket],[data-jenis],[data-inap]');
       if (sg) {
-        const k = sg.dataset.tiket ? 'tiket' : 'jenis';
+        const k = ['tiket', 'jenis', 'inap'].find((x) => sg.dataset[x] != null);
         T[k] = sg.dataset[k];
         $$(`[data-${k}]`, root).forEach((x) => { x.classList.toggle('on', x === sg); x.setAttribute('aria-checked', String(x === sg)); });
         save(); draw();
+        if (k === 'tiket') { const m = $('.kp-mini', root); if (m) m.textContent = `${T.tiket === 'half' ? 'Sekali jalan = ½ dari tarif PP di tabel tiket SBM.' : 'Memakai tarif PP di tabel tiket SBM apa adanya.'} Taksi dan transport darat 1 kali per ruas.`; }
       }
     });
     root.addEventListener('input', (e) => {
@@ -215,7 +222,6 @@ export function viewTujuan(ui) {
     root.addEventListener('focusout', (e) => { const inp = e.target.closest('.stp-in'); if (!inp) return; const el = inp.closest('.stp'); apply(el, inp.value === '' ? get(el.dataset.stp) : Number(inp.value)); });
     root.addEventListener('focusin', (e) => { const inp = e.target.closest('.stp-in'); if (inp) inp.select(); });
     root.addEventListener('keydown', (e) => { const inp = e.target.closest('.stp-in'); if (inp && e.key === 'Enter') inp.blur(); });
-    root.addEventListener('change', (e) => { const s = e.target.closest('[data-kelas]'); if (s) { T.kelas[s.dataset.kelas] = s.value; save(); draw(); } });
     render();
   };
   return { html, after };

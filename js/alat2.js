@@ -3,6 +3,7 @@
 // Isian tersimpan di localStorage perangkat ini.
 import { S, Y, esc, fmt, store, tip, valueCols, shortCol, unitCol, UNIT, effVal, money, effMini, tableKey } from './store.js';
 import { ic } from './icons.js';
+import { buildTablePdf, pdfButton } from './hitung.js';
 
 const digits = (s) => String(s ?? '').replace(/\D/g, '');
 const decNorm = (s) => { const t = String(s ?? '').trim(); return !t.includes(',') && /^\d+\.\d{0,2}$/.test(t) ? t.replace('.', ',') : t; };
@@ -313,7 +314,7 @@ export function viewPaket(ui) {
   const html = `<div class="page-head"><h1 class="title">Paket Kegiatan</h1><p class="subtitle">Perkiraan biaya rapat/pertemuan: konsumsi rapat di kantor atau paket halfday/fullday/fullboard di luar kantor, ditambah honorarium narasumber, moderator, pembawa acara, panitia, dan sewa gedung pertemuan bila perlu. Transport peserta dari luar kota bisa dihitung di <a href="#/massal">Perjadin (banyak asal)</a>.</p></div>
   <div class="card qt-top"><label class="kp-fld"><span>Provinsi kegiatan</span>${provSel('pkProv', P.prov)}</label>
     <div class="kp-fld"><span>Tempat</span>${seg('mode', [['kantor', 'Di kantor'], ['luar', 'Di luar kantor']], P.mode)}</div>
-    <div class="qt-grand"><span>Total perkiraan</span><b id="pkTot">Rp0</b></div>${copyBtn('pkCopy', 'Salin total')}<button type="button" class="btn sm danger" id="pkReset">${ic('history')} Reset</button></div>
+    <div class="qt-grand"><span>Total perkiraan</span><b id="pkTot">Rp0</b></div>${copyBtn('pkCopy', 'Salin total')}<button type="button" class="btn sm primary" id="pkPdf">${ic('download')} Unduh PDF</button><button type="button" class="btn sm danger" id="pkReset">${ic('history')} Reset</button></div>
   <div id="pkMain"></div>
   <div id="pkHost"></div>`;
   const after = () => {
@@ -353,6 +354,28 @@ export function viewPaket(ui) {
     host.addEventListener('input', () => setTimeout(recalcAll, 0));
     $('#pkReset').addEventListener('click', () => setTimeout(() => { drawMain(); recalcAll(); }, 0));
     $('#pkCopy').onclick = () => { recalcAll(); ui.copy(digits($('#pkTot').textContent), 'Total disalin'); };
+    pdfButton($('#pkPdf'), () => {
+      const main = mainCalc().filter((l) => l.a || l.miss);
+      const sections = [];
+      const rp = (n) => (n != null ? fmt(n) : 'Tidak tercantum');
+      if (main.length) sections.push({ title: P.mode === 'kantor' ? 'Konsumsi rapat di kantor' : `Paket rapat di luar kantor (${P.paket})`, head: ['Komponen', 'Satuan biaya', 'Volume', 'Jumlah'], body: main.map((l) => [l.l, rp(l.u), l.v, fmt(l.a)]), foot: [[{ content: 'Subtotal', colSpan: 3 }, fmt(main.reduce((a, l) => a + l.a, 0))]], right: [1, 3], cols: { 1: { cellWidth: 32 }, 2: { cellWidth: 46 }, 3: { cellWidth: 32 } } });
+      for (const sec of secs()) {
+        const { s: sub, per } = secTotal(sec, P.q, P.months);
+        const vols = sec.vols || [{ k: 'q', t: 'Volume' }];
+        const its = sec.items.filter((it) => per[it.key]);
+        if (!its.length) continue;
+        sections.push({ title: sec.t, head: ['Uraian', 'Rujukan', 'Satuan biaya', 'Volume', 'Jumlah'], body: its.map((it) => { const q = P.q[it.key] || {}; return [[it.grp, it.label].filter(Boolean).join(' - ') + (it.unit ? `\n${it.unit}` : ''), lampRef(it.bid), fmt(effVal(it.t, it.n)), vols.map((v, i) => `${num(q[v.k]) || (i ? 1 : 0)} ${v.t.toLowerCase()}`).join(' x '), fmt(per[it.key])]; }), foot: [[{ content: 'Subtotal', colSpan: 4 }, fmt(sub)]], right: [2, 4], cols: { 1: { cellWidth: 28 }, 2: { cellWidth: 30 }, 3: { cellWidth: 36 }, 4: { cellWidth: 30 } } });
+      }
+      const grand = mainCalc().reduce((a, l) => a + l.a, 0) + secs().reduce((a, sc) => a + secTotal(sc, P.q, P.months).s, 0);
+      if (!grand) throw new Error('kosong');
+      return buildTablePdf({
+        title: 'Perkiraan Biaya Paket Kegiatan',
+        info: [['Provinsi', S.prov[P.prov].nama], ['Tempat', P.mode === 'kantor' ? `Di kantor (${P.jenis === 'koord' ? 'rapat koordinasi tingkat menteri/eselon I' : 'rapat biasa'})` : `Di luar kantor, paket ${P.paket}`], ['Total perkiraan', fmt(grand)]],
+        sections,
+        notes: [`Satuan biaya mengikuti SBM TA ${Y.y} (${Y.src}): konsumsi rapat ${lampRef('L1-36')}, paket rapat ${lampRef('L1-29')}, sewa gedung ${lampRef('L2-17')}, honorarium ${lampRef('L1-9')}.`, 'Volume diisi pengguna; jumlah per baris dibulatkan ke rupiah terdekat.', ...(P.mode === 'luar' && P.paket === 'fullboard' ? ['Tarif paket fullboard untuk 1 kamar berdua; fullboard ditambah uang harian rapat fullboard.'] : [])],
+        file: `Perkiraan-Paket-Kegiatan-${S.prov[P.prov].nama.replace(/[^\w]+/g, '-')}-TA${Y.y}.pdf`,
+      });
+    }, (m) => ui.toast(m === 'PDF gagal dibuat' && !digits($('#pkTot').textContent).replace(/^0+/, '') ? 'Isi volume dulu untuk membuat PDF' : m));
     recalcAll();
   };
   return { html, after };

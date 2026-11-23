@@ -1193,11 +1193,6 @@ h2.sec .sec-more { margin-left: auto; font-size: 13.5px; font-weight: 600; }
 .kp-check { margin: 0; padding-left: 20px; line-height: 1.8; font-size: 14px; }
 #kpHost > .fold, #kpHost > details { margin-top: 14px; }
 @media (max-width: 639px) {
-  .kp-p { grid-template-columns: minmax(0, 1fr) auto; }
-  .kp-p .kp-kelas { grid-column: 1; grid-row: 2; justify-self: start; }
-  .kp-p .stp { grid-row: 1 / span 2; grid-column: 2; }
-  .kp-form.no-tiket .kp-kelas { display: none; }
-  .kp-form.no-tiket .kp-p .stp { grid-row: 1; }
   /* tabel jadi kartu per komponen agar tidak perlu geser ke samping */
   table.t.kp-t thead { display: none; }
   table.t.kp-t, .kp-t tbody, .kp-t tfoot { display: block; }
@@ -2019,3 +2014,71 @@ table.t.qt tr.miss td { color: var(--muted); }
 @media (pointer: coarse) { .tx-chk { min-height: 44px; } }
 .tx-minus .tx-v { color: var(--red); }
 [data-theme="dark"] .tx-minus .tx-v { color: #FF8A73; }
+
+/* ===== Tabel pelaksana: judul kolom dan garis pembatas ===== */
+.kp-ptab { border: 1px solid var(--border); border-radius: 12px; overflow: hidden; background: var(--surface); }
+.kp-ph, .kp-ptab .kp-p { display: grid; grid-template-columns: minmax(0, 1fr) 128px 132px; align-items: center; gap: 10px; padding: 7px 12px; }
+.kp-ptab.nk .kp-ph, .kp-ptab.nk .kp-p { grid-template-columns: minmax(0, 1fr) 132px; }
+.kp-ph { background: var(--surface-2); font-size: 11.5px; font-weight: 700; letter-spacing: .02em; text-transform: uppercase; color: var(--muted); padding-top: 8px; padding-bottom: 8px; }
+.kp-ptab .kp-p { border-top: 1px solid var(--border-2); }
+.kp-ptab .kp-p:hover { background: var(--surface-2); }
+.kp-ptab .r { justify-self: end; text-align: right; }
+.kp-kcell { display: flex; align-items: center; min-width: 0; }
+.kp-kcell .kp-kelas { width: 100%; }
+.kp-kc { display: inline-flex; align-items: center; height: 26px; padding: 0 10px; border-radius: 999px; font-size: 12.5px; font-weight: 700; background: var(--surface-2); border: 1px solid var(--border); color: var(--muted); white-space: nowrap; }
+.kp-kc.bis { background: #E6EBFA; color: var(--navy-700); border-color: transparent; }
+[data-theme="dark"] .kp-kc.bis { background: rgba(244,190,22,.16); color: var(--gold-2); }
+.kp-form.no-tiket .kp-kcell { opacity: .45; }
+.kp-form.no-tiket .kp-kcell .kp-kelas { visibility: visible; }
+@media (max-width: 639px) {
+  .kp-ph, .kp-ptab .kp-p { grid-template-columns: minmax(0, 1fr) 82px 112px; gap: 6px; padding-left: 10px; padding-right: 10px; }
+  .kp-ptab.nk .kp-ph, .kp-ptab.nk .kp-p { grid-template-columns: minmax(0, 1fr) 112px; }
+  .kp-ph { font-size: 10.5px; }
+  .kp-kc { font-size: 11.5px; padding: 0 8px; height: 24px; }
+  .kp-kcell .kp-kelas { font-size: 12px; padding: 0 4px; }
+}
+/* ===== Ketentuan tambahan dan rujukan pasal PMK ===== */
+.kp-step h2 small { font-weight: 600; font-size: 12px; margin-left: 6px; }
+.kp-opt { padding: 10px 0; border-top: 1px dashed var(--border-2); }
+.kp-opt:first-of-type { border-top: 0; padding-top: 2px; }
+.kp-opt .route-form, .kp-opt > .kp-seg { margin-top: 10px; }
+.kp-opt > .kp-seg { display: flex; width: 100%; }
+.kp-opt > .kp-seg button { flex: 1 1 auto; white-space: normal; line-height: 1.25; }
+.kp-pd { margin-top: 6px; display: flex; justify-content: flex-end; }
+.chip.pmk { height: auto; min-height: 22px; padding: 2px 9px; font-size: 11.5px; white-space: normal; text-align: left; background: #FFF8DB; color: #6B5300; border-color: #F1DE93; text-decoration: none; }
+.chip.pmk:hover { border-color: var(--gold); }
+[data-theme="dark"] .chip.pmk { background: rgba(244,190,22,.12); color: var(--gold-2); border-color: rgba(244,190,22,.35); }
+.chip.byr { background: #EEF6EE; color: #2D6A35; border-color: transparent; }
+.chip.byr.R { background: #F1EEFA; color: #4B3D8F; }
+[data-theme="dark"] .chip.byr { background: rgba(120,200,130,.14); color: #9FD9A6; }
+[data-theme="dark"] .chip.byr.R { background: rgba(170,150,255,.14); color: #C9BEFF; }
+.kp-meta { flex-wrap: wrap; }
+.kp-mini { margin-top: 4px; text-align: right; }
+.kp-fix { font-size: 14px; font-variant-numeric: tabular-nums; }
+.kp-q { margin-top: 8px; padding: 8px 12px 10px; border-radius: 10px; background: var(--surface-2); border: 1px solid var(--border-2); }
+.kp-q .callout { margin-top: 10px; }
+.kp-warn { margin-top: 6px; color: var(--dl-ink); display: flex; gap: 6px; align-items: center; }
+.kp-warn svg { width: 14px; height: 14px; }
+.kp-sah { margin: 0 18px 14px; padding: 12px 14px; border-radius: 12px; border: 1px solid var(--border); background: var(--surface-2); }
+.kp-sah-h { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 6px; }
+.kp-sah-h svg { width: 16px; height: 16px; color: var(--navy-700); }
+.kp-sah-h .chip { margin-left: auto; }
+.kp-sah-r { display: flex; justify-content: space-between; gap: 12px; padding: 6px 0; border-top: 1px solid var(--border-2); font-size: 14px; }
+.kp-sah-r b { font-variant-numeric: tabular-nums; white-space: nowrap; }
+.kp-sah-r.tot b { color: var(--navy-700); font-size: 15px; }
+[data-theme="dark"] .kp-sah-r.tot b, [data-theme="dark"] .kp-sah-h svg { color: var(--gold-2); }
+.kp-sah p { margin: 6px 0 0; line-height: 1.5; }
+.pd-list { display: flex; flex-direction: column; margin-top: 8px; }
+.pd-it { display: grid; grid-template-columns: 230px minmax(0, 1fr); gap: 12px; padding: 9px 0; border-top: 1px solid var(--border-2); font-size: 13.5px; line-height: 1.5; align-items: start; }
+.pd-it .chip { justify-self: start; }
+@media (max-width: 639px) { .pd-it { grid-template-columns: minmax(0, 1fr); gap: 4px; } }
+/* Honorarium: kunci Vol ke angka tertentu */
+.hn-lock { display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.hn-lockv { width: 64px; height: 34px; text-align: center; font-weight: 700; }
+.hn-lock small { font-size: 12px; }
+.hn-grid.locked .iv-in[data-f="v"] { background: var(--surface-2); color: var(--faint); border-style: dashed; cursor: not-allowed; }
+.pb-opts { display: flex; flex-wrap: wrap; gap: 10px 22px; align-items: center; }
+.tx-pick-a { display: inline-flex; gap: 8px; margin-left: auto; }
+
+.kp-form .kp-step > .kp-seg.kp-seg-w { flex-wrap: wrap; }
+.kp-form .kp-step > .kp-seg.kp-seg-w button { flex: 1 1 0; min-width: 0; white-space: normal; line-height: 1.25; padding-top: 7px; padding-bottom: 7px; }

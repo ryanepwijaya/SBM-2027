@@ -71,6 +71,7 @@ export const REF_LINKS = [
   { h: '#/lainnya/singkatan', n: 'Singkatan Satuan', icon: 'a-large-small' },
   { h: '#/lainnya/dokumen', n: 'Catatan atas Dokumen', icon: 'triangle-alert' },
   { h: '#/lainnya/tentang', n: 'Dasar Hukum & PDF', icon: 'info' },
+  { h: '#/lainnya/perjadin', n: 'PMK Perjalanan Dinas', icon: 'scale' },
   { h: '#/lainnya', n: 'Tampilan & Aplikasi', icon: 'settings' },
 ];
 

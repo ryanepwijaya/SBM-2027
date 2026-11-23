@@ -3,6 +3,9 @@
 // Isian tersimpan di localStorage perangkat ini.
 import { esc, fmt, store, tip } from './store.js';
 import { ic } from './icons.js';
+import { buildTablePdf, pdfButton } from './hitung.js';
+const today = () => new Date().toISOString().slice(0, 10);
+const pdfBtn = (id) => `<button type="button" class="btn primary" id="${id}">${ic('download')} Unduh PDF</button>`;
 
 /* ---------------- Angka ---------------- */
 const digits = (s) => String(s ?? '').replace(/\D/g, '');
@@ -60,7 +63,7 @@ export function viewInvoice(ui) {
     <div class="iv-add"><button type="button" class="btn sm" id="ivAdd">${ic('plus')} Tambah baris</button><span class="muted small">${ic('command')} Tab: kolom berikutnya · Enter: baris berikutnya · Shift+Tab: mundur</span></div>
     <div class="iv-tot">
       <div><div class="iv-tot-k">Total</div><div class="iv-tot-v" id="ivTot">Rp0</div><div class="muted small" id="ivMeta"></div></div>
-      <div class="iv-tot-a"><button type="button" class="btn" id="ivCopy">${ic('copy')} Salin total</button><button type="button" class="btn primary" id="ivPajak">${ic('percent')} Hitung pajak ${ic('arrow-right')}</button></div>
+      <div class="iv-tot-a"><button type="button" class="btn" id="ivCopy">${ic('copy')} Salin total</button><button type="button" class="btn" id="ivPdf">${ic('download')} Unduh PDF</button><button type="button" class="btn primary" id="ivPajak">${ic('percent')} Hitung pajak ${ic('arrow-right')}</button></div>
     </div>
   </div>`;
   const { $, $$, toast } = ui;
@@ -174,6 +177,21 @@ export function viewInvoice(ui) {
     };
     $('#ivCopy').onclick = () => ui.copy(String(invoiceTotal(I)), 'Total disalin');
     $('#ivPajak').onclick = () => { const t = invoiceTotal(I); if (t) location.hash = `#/alat/pajak?n=${t}&dari=invoice`; };
+    pdfButton($('#ivPdf'), () => {
+      const rows = I.rows.map((r, i) => ({ r, i })).filter(({ r }) => parseDec(r.v) && parseRp(r.h));
+      if (!rows.length) throw new Error('kosong');
+      const head = ['No', ...I.order.map((k) => COLS[k].s || COLS[k].t), 'Jumlah'];
+      const val = (r, k) => (k === 'v' ? fmtDec(parseDec(r.v)) : k === 'h' ? fmt(parseRp(r.h)) : fmtDec(I.lock ? 1 : parseDec(r.f || '1')));
+      const body = rows.map(({ r }, n) => [String(n + 1), ...I.order.map((k) => val(r, k)), fmt(rowJumlah(r, I.lock))]);
+      const right = [...I.order.map((k, j) => (k === 'v' || k === 'f' ? null : j + 1)).filter((x) => x != null), head.length - 1];
+      return buildTablePdf({
+        title: 'Rincian Invoice Barang/Jasa', sub: 'Hitung Invoice: volume × harga satuan × frekuensi',
+        info: [['Jumlah baris', `${rows.length} baris`], ['Frekuensi', I.lock ? 'Dikunci 1 untuk semua baris' : 'Per baris']],
+        sections: [{ head, body, foot: [[{ content: 'Total', colSpan: head.length - 1 }, fmt(invoiceTotal(I))]], right, cols: { 0: { cellWidth: 12 } } }],
+        notes: ['Jumlah per baris dibulatkan ke rupiah terdekat.', 'Harga satuan diisi pengguna sesuai invoice yang diterima; bukan angka SBM.'],
+        file: `Rincian-Invoice-${today()}.pdf`,
+      });
+    }, (m) => toast(m === 'PDF gagal dibuat' && !invoiceTotal(I) ? 'Isi minimal satu baris dulu' : m));
     if (I.rows.length === 1 && isEmpty(I.rows[0])) setTimeout(() => $(`.iv-in[data-f="${firstField()}"]`)?.focus(), 60);
   };
   return { html, after };
@@ -193,14 +211,16 @@ const newHon = (st = 'np') => ({ st, o: '1', v: '', t: '' });
 function loadHon() {
   const d = store.get(HON_KEY, null);
   const rows = Array.isArray(d?.rows) && d.rows.length ? d.rows.map((r) => ({ ...newHon(), ...r, st: STATUS[r.st] ? r.st : 'np' })) : [newHon()];
-  return { rows, netto: !!d?.netto };
+  const lockV = String(d?.lockV ?? '1').replace(/[^\d,.]/g, '') || '1';
+  return { rows, netto: !!d?.netto, lock: !!d?.lock, lockV };
 }
 const saveHon = (H) => store.set(HON_KEY, H);
-// Per orang dulu (dibulatkan), lalu dikali jumlah orang
-function honRow(r, netto) {
+const volOf = (r, H) => (H && H.lock ? parseDec(H.lockV) : parseDec(r.v));
+// Per orang dulu (dibulatkan), lalu dikali jumlah orang. H (opsional) membawa kunci Vol.
+function honRow(r, netto, H) {
   const st = STATUS[r.st] || STATUS.np;
   const o = Math.max(0, Math.round(parseDec(r.o || '1')));
-  const base = Math.round(parseDec(r.v) * parseRp(r.t));
+  const base = Math.round(volOf(r, H) * parseRp(r.t));
   let bruto1, pph1, net1;
   if (netto) { net1 = base; bruto1 = st.r ? Math.round(base / (1 - st.r)) : base; pph1 = bruto1 - net1; }
   else { bruto1 = base; pph1 = Math.round(base * st.r); net1 = bruto1 - pph1; }
@@ -208,7 +228,7 @@ function honRow(r, netto) {
 }
 export function honorTotals(H = loadHon()) {
   const by = Object.fromEntries(Object.keys(STATUS).map((k) => [k, { o: 0, bruto: 0, pph: 0, netto: 0 }]));
-  for (const r of H.rows) { const x = honRow(r, H.netto); const b = by[r.st] || by.np; if (!x.bruto && !x.o) continue; if (x.bruto) { b.o += x.o; b.bruto += x.bruto; b.pph += x.pph; b.netto += x.netto; } }
+  for (const r of H.rows) { const x = honRow(r, H.netto, H); const b = by[r.st] || by.np; if (!x.bruto && !x.o) continue; if (x.bruto) { b.o += x.o; b.bruto += x.bruto; b.pph += x.pph; b.netto += x.netto; } }
   const sum = (k) => Object.values(by).reduce((a, b) => a + b[k], 0);
   return { by, bruto: sum('bruto'), pph: sum('pph'), netto: sum('netto'), o: sum('o'), fin: by.g12.pph + by.g3.pph + by.g4.pph, nonfin: by.np.pph };
 }
@@ -218,7 +238,8 @@ export function viewHonor(ui) {
   const html = `<div class="page-head"><h1 class="title">Hitung Honorarium</h1><p class="subtitle">Honorarium narasumber, moderator, panitia, dan kegiatan lain. Satu baris bisa satu orang atau beberapa orang dengan status yang sama. PPh 21 dihitung otomatis dari status: PNS/PPPK final sesuai golongan (0%, 5%, 15%), Non-PNS 2,5%. Bisa diisi tanpa mouse dengan Tab. Isian tersimpan di perangkat ini.</p></div>
   <div class="card iv hn">
     <div class="iv-bar">
-      <div class="pb-opts"><label class="iv-lock"><input type="checkbox" id="hnNet"${H.netto ? ' checked' : ''}><span>Tarif yang diisi adalah netto <small>(dihitung balik ke bruto)</small></span></label></div>
+      <div class="pb-opts"><label class="iv-lock"><input type="checkbox" id="hnNet"${H.netto ? ' checked' : ''}><span>Tarif yang diisi adalah netto <small>(dihitung balik ke bruto)</small></span></label>
+        <span class="hn-lock"><label class="iv-lock"><input type="checkbox" id="hnLock"${H.lock ? ' checked' : ''}><span>Kunci semua Vol =</span></label><input class="iv-in hn-lockv" id="hnLockV" inputmode="decimal" autocomplete="off" value="${esc(H.lockV)}" aria-label="Angka Vol yang dikunci"><small class="muted">kolom Vol dilewati saat Tab</small></span></div>
       <button type="button" class="btn sm danger" id="hnReset">${ic('history')} Reset</button>
     </div>
     <div class="iv-grid hn-grid" id="hnGrid" role="table" aria-label="Daftar honorarium">
@@ -229,18 +250,18 @@ export function viewHonor(ui) {
     <div class="hn-rek" id="hnRek"></div>
     <div class="iv-tot hn-tot">
       <div class="hn-sum" id="hnSum"></div>
-      <div class="iv-tot-a"><button type="button" class="btn" id="hnCopy">${ic('copy')} Salin total bruto</button><button type="button" class="btn" id="hnCopyN">${ic('copy')} Salin total netto</button></div>
+      <div class="iv-tot-a"><button type="button" class="btn" id="hnCopy">${ic('copy')} Salin total bruto</button><button type="button" class="btn" id="hnCopyN">${ic('copy')} Salin total netto</button>${pdfBtn('hnPdf')}</div>
     </div>
   </div>`;
   const { $, $$, toast } = ui;
   const resCell = (x) => `<span class="hn-x"><b>${fmt(x.bruto)}</b><small>PPh ${fmt(x.pph)} <em>${pctS(x.st.r)}${x.st.fin ? ' final' : ''}</em></small><small>Netto ${fmt(x.netto)}</small></span>`;
   const rowHtml = (r, i) => {
-    const x = honRow(r, H.netto);
+    const x = honRow(r, H.netto, H);
     return `<div class="iv-r hn-r" role="row" data-i="${i}">
       <span class="iv-no c-no" role="cell">${i + 1}</span>
       <span class="c-st" role="cell" data-l="Status"><select class="sel iv-in hn-st" data-f="st" aria-label="Status baris ${i + 1}">${Object.entries(STATUS).map(([k, s]) => `<option value="${k}"${k === r.st ? ' selected' : ''}>${s.n} · ${pctS(s.r)}</option>`).join('')}</select></span>
       <span class="c-o" role="cell" data-l="Orang"><input class="iv-in" data-f="o" inputmode="numeric" autocomplete="off" value="${esc(r.o)}" aria-label="Jumlah orang baris ${i + 1}"></span>
-      <span class="c-v" role="cell" data-l="Vol"><input class="iv-in" data-f="v" inputmode="decimal" autocomplete="off" value="${esc(r.v)}" placeholder="0" aria-label="Volume baris ${i + 1}"></span>
+      <span class="c-v" role="cell" data-l="Vol"><input class="iv-in" data-f="v" inputmode="decimal" autocomplete="off" value="${esc(H.lock ? H.lockV : r.v)}" placeholder="0" aria-label="Volume baris ${i + 1}"${H.lock ? ' tabindex="-1" readonly' : ''}></span>
       <span class="c-t" role="cell" data-l="${H.netto ? 'Tarif netto' : 'Tarif'}"><span class="iv-rp"><b>Rp</b><input class="iv-in" data-f="t" inputmode="numeric" autocomplete="off" value="${esc(r.t)}" placeholder="0" aria-label="Tarif baris ${i + 1}"></span></span>
       <span class="c-j" role="cell" data-l="Hasil">${resCell(x)}</span>
       <span class="c-x" role="cell"><button type="button" class="icon-btn sm" data-del="${i}" tabindex="-1" aria-label="Hapus baris ${i + 1}">${ic('x')}</button></span>
@@ -253,16 +274,17 @@ export function viewHonor(ui) {
   }
   const refreshRow = (i) => {
     const el = $(`.hn-r[data-i="${i}"]`); if (!el) return;
-    const r = H.rows[i]; const x = honRow(r, H.netto);
+    const r = H.rows[i]; const x = honRow(r, H.netto, H);
     el.querySelector('.c-j').innerHTML = resCell(x);
   };
   function drawRows(focus) {
     $('#hnTh').textContent = H.netto ? 'Tarif netto (Rp)' : 'Tarif (Rp)';
     $('#hnRows').innerHTML = H.rows.map(rowHtml).join('');
+    $('#hnGrid').classList.toggle('locked', H.lock);
     totals();
     if (focus) { const el = $(`.hn-r[data-i="${focus.i}"] [data-f="${focus.f}"]`); if (el) { el.focus(); if (el.select) el.select(); } }
   }
-  const isEmpty = (r) => !digits(r.v) && !digits(r.t);
+  const isEmpty = (r) => !digits(H.lock ? H.lockV : r.v) && !digits(r.t);
   const addRow = () => { H.rows.push(newHon(H.rows[H.rows.length - 1]?.st || 'np')); saveHon(H); drawRows({ i: H.rows.length - 1, f: 'st' }); };
   const after = () => {
     drawRows();
@@ -278,7 +300,7 @@ export function viewHonor(ui) {
       const sel = e.target.closest('.hn-st'); if (!sel) return;
       const i = Number(sel.closest('.hn-r').dataset.i); H.rows[i].st = sel.value; saveHon(H); refreshRow(i); totals();
     });
-    grid.addEventListener('focusin', (e) => { const inp = e.target.closest('input.iv-in'); if (inp) inp.select(); });
+    grid.addEventListener('focusin', (e) => { const inp = e.target.closest('input.iv-in'); if (inp && !inp.readOnly) inp.select(); });
     grid.addEventListener('focusout', (e) => { const inp = e.target.closest('[data-f="o"]'); if (inp && !digits(inp.value)) { inp.value = '1'; const i = Number(inp.closest('.hn-r').dataset.i); H.rows[i].o = '1'; saveHon(H); refreshRow(i); totals(); } });
     grid.addEventListener('keydown', (e) => {
       const inp = e.target.closest('.iv-in'); if (!inp) return;
@@ -294,6 +316,28 @@ export function viewHonor(ui) {
       const i = Number(d.dataset.del); if (H.rows.length > 1) H.rows.splice(i, 1); else H.rows[0] = newHon(); saveHon(H); drawRows();
     });
     $('#hnNet').onchange = (e) => { H.netto = e.target.checked; saveHon(H); drawRows(); toast(H.netto ? 'Tarif dianggap netto; bruto dihitung balik' : 'Tarif dianggap bruto'); };
+    $('#hnLock').onchange = (e) => { H.lock = e.target.checked; if (!parseDec(H.lockV)) H.lockV = '1'; $('#hnLockV').value = H.lockV; saveHon(H); drawRows(); toast(H.lock ? `Vol dikunci ${H.lockV} untuk semua baris dan dilewati saat Tab` : 'Vol bisa diisi per baris'); };
+    const lv = $('#hnLockV');
+    lv.addEventListener('input', () => { cleanDec(lv); H.lockV = lv.value; saveHon(H); if (H.lock) { $$('.hn-r [data-f="v"]').forEach((x) => { x.value = H.lockV; }); H.rows.forEach((_, i) => refreshRow(i)); totals(); } });
+    lv.addEventListener('focus', () => lv.select());
+    lv.addEventListener('blur', () => { if (!parseDec(H.lockV)) { H.lockV = '1'; lv.value = '1'; saveHon(H); if (H.lock) drawRows(); } });
+    pdfButton($('#hnPdf'), () => {
+      const T = honorTotals(H);
+      if (!T.bruto) throw new Error('kosong');
+      const rows = H.rows.filter((r) => volOf(r, H) && parseRp(r.t));
+      const body = rows.map((r, n) => { const x = honRow(r, H.netto, H); return [String(n + 1), `${x.st.n} (${pctS(x.st.r)}${x.st.fin ? ' final' : ''})`, String(x.o), fmtDec(volOf(r, H)), fmt(parseRp(r.t)), fmt(x.bruto), fmt(x.pph), fmt(x.netto)]; });
+      const rek = Object.entries(STATUS).filter(([k]) => T.by[k].o).map(([k, st]) => { const b = T.by[k]; return [`${st.n} (${pctS(st.r)}${st.fin ? ' final' : ''})`, String(b.o), fmt(b.bruto), fmt(b.pph), fmt(b.netto)]; });
+      return buildTablePdf({
+        title: 'Rincian Honorarium', sub: 'Hitung Honorarium: bruto, PPh 21, dan netto per baris',
+        info: [['Tarif diisi', H.netto ? 'Netto (dihitung balik ke bruto)' : 'Bruto'], ['Vol', H.lock ? `Dikunci ${H.lockV} untuk semua baris` : 'Per baris'], ['Jumlah orang', `${T.o} orang`]],
+        sections: [
+          { head: ['No', 'Status', 'Orang', 'Vol', H.netto ? 'Tarif netto' : 'Tarif', 'Bruto', 'PPh 21', 'Netto'], body, foot: [[{ content: 'Total', colSpan: 5 }, fmt(T.bruto), fmt(T.pph), fmt(T.netto)]], right: [2, 3, 4, 5, 6, 7], cols: { 0: { cellWidth: 10 }, 1: { cellWidth: 46 } } },
+          { title: 'Rekap per status', head: ['Status', 'Orang', 'Bruto', 'PPh 21', 'Netto'], body: rek, right: [1, 2, 3, 4] },
+        ],
+        notes: [`PPh 21 final PNS/PPPK ${fmt(T.fin)}; PPh 21 tidak final Non-PNS ${fmt(T.nonfin)}.`, 'Tarif PPh 21: PNS/PPPK golongan I/II 0%, III 5%, IV/pejabat negara 15% (final); Non-PNS 2,5% (50% x tarif Pasal 17 lapisan pertama). Cek ketentuan perpajakan yang berlaku.', 'Tarif diisi pengguna; besaran honorarium tetap mengikuti batas SBM yang berlaku.'],
+        file: `Rincian-Honorarium-${today()}.pdf`,
+      });
+    }, (m) => toast(m === 'PDF gagal dibuat' && !honorTotals(H).bruto ? 'Isi minimal satu baris dulu' : m));
     $('#hnAdd').onclick = addRow;
     let armed = 0;
     $('#hnReset').onclick = () => {
@@ -382,7 +426,7 @@ export function viewPajak(ui, params) {
       <span class="muted small">Ambil dari:</span>
       <a class="btn sm" href="#/alat/invoice">${ic('receipt')} Hitung Invoice ${ic('arrow-right')}</a>
       <span class="muted small tx-hint">isi daftar barang di sana, lalu tekan Hitung pajak</span>
-      <button type="button" class="btn sm danger" id="txClear">${ic('x')} Kosongkan</button>
+      <span class="tx-pick-a"><button type="button" class="btn sm primary" id="txPdf">${ic('download')} Unduh PDF</button><button type="button" class="btn sm danger" id="txClear">${ic('x')} Kosongkan</button></span>
     </div>
   </div>
   <div class="tx-grid" id="txOut"></div>
@@ -435,6 +479,25 @@ export function viewPajak(ui, params) {
       if (e.target.id !== 'txP42') return; P.p42n = e.target.value; store.set('pajak', P); draw(); $('#txP42').focus();
     });
     $('#txIncl').addEventListener('change', (e) => { P.incl = e.target.checked; store.set('pajak', P); draw(); });
+    pdfButton($('#txPdf'), () => {
+      if (!P.n) throw new Error('kosong');
+      const R = computeTax(P.n, P);
+      const o = P42N[P.p42n];
+      const row = (r) => (r.sel ? [`${r.n}: ${o.n}`, `N x ${o.p}`, fmt(R[r.k])] : [r.n, r.f, fmt(R[r.k])]);
+      const sel = POT.filter((x) => P.pot[x.k]);
+      const net = R.total - sel.reduce((a, x) => a + (R[x.k] || 0), 0);
+      return buildTablePdf({
+        title: 'Perhitungan Pajak', sub: 'Kalkulator Pajak: PPN dan pajak pemotongan/pemungutan',
+        info: [['Nilai yang diisi', fmt(P.n)], ['Status nilai', P.incl ? 'Sudah termasuk PPN' : 'Belum termasuk PPN'], ['N (dasar rumus)', `${fmt(R.base)}${P.incl ? ` (PPN di dalamnya ${fmt(R.ppn)})` : ''}`]],
+        sections: [
+          { title: TAX[0].t, head: ['Komponen', 'Rumus', 'Jumlah'], body: TAX[0].rows.map(row), foot: [[TAX[0].total.n, TAX[0].total.f, fmt(R.total)]], right: [2], cols: { 1: { cellWidth: 48 }, 2: { cellWidth: 36 } } },
+          { title: TAX[1].t, head: ['Komponen', 'Rumus', 'Jumlah'], body: TAX[1].rows.map(row), right: [2], cols: { 1: { cellWidth: 48 }, 2: { cellWidth: 36 } } },
+          { title: 'Netto diterima penyedia', head: ['Komponen', 'Keterangan', 'Jumlah'], body: [['Total tagihan', 'Nilai sebelum PPN ditambah PPN', fmt(R.total)], ...sel.map((x) => [x.n, 'Dipotong/dipungut bendahara', `- ${fmt(R[x.k])}`])], foot: [['Netto diterima penyedia', ['Tagihan', ...sel.map((x) => x.n)].join(' - '), fmt(net)]], right: [2], cols: { 1: { cellWidth: 70 }, 2: { cellWidth: 36 } } },
+        ],
+        notes: ['Semua hasil dibulatkan ke rupiah terdekat.', 'Alat bantu hitung, bukan penetapan pajak: jenis pajak, tarif, dan DPP yang berlaku tetap mengikuti ketentuan perpajakan dan status penyedia (misalnya NPWP, UMKM, sertifikat konstruksi).'],
+        file: `Perhitungan-Pajak-${R.base}-${today()}.pdf`,
+      });
+    }, (m) => toast(m === 'PDF gagal dibuat' && !P.n ? 'Isi nilai (N) dulu' : m));
     $('#txClear').onclick = () => { P.n = 0; P.dari = null; /* pilihan dropdown dipertahankan */ store.set('pajak', P); history.replaceState(null, '', '#/alat/pajak'); ui.route(); };
     // Bersihkan ?n= dari alamat agar muat ulang tidak menimpa angka yang sudah diubah
     if (params.n != null) history.replaceState(null, '', '#/alat/pajak');

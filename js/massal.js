@@ -1,10 +1,10 @@
 // Perjadin (banyak asal): perkiraan biaya satu kegiatan dengan peserta dari banyak kota asal.
 // Memakai mesin hitung Hitung Perjalanan per kota asal, lalu menjumlahkan. Hanya menampilkan angka SBM × volume.
 // Isian tersimpan di localStorage perangkat ini saja (tanpa akun, tanpa server).
-import { S, Y, esc, fmt, store, tip, effPct, pctTxt, effMini, tableKey } from './store.js';
+import { S, Y, esc, fmt, store, tip, effPct, pctTxt, effMini, tableKey, pdRef } from './store.js';
 import { W, resolve, suggest, placeLabel } from './rute.js';
 import { ic } from './icons.js';
-import { TINGKAT, compute, plain, lib as pdfLib, loadScript, autoMalam } from './hitung.js';
+import { TINGKAT, compute, plain, lib as pdfLib, loadScript, autoMalam, pdfFooter, PDF_BOTTOM, KELAS_IV, kelasNm } from './hitung.js';
 
 const KEY = 'massal';
 const SHORT = { pn: 'PN/Wamen', e1: 'Eselon I', pnl: 'PN Lainnya', e2: 'Eselon II', e3: 'Es. III/Gol. IV', e4: 'Es. IV/Gol. III–I' };
@@ -79,7 +79,7 @@ export function computeAll() {
     if (!O) continue;
     const { h, m, p } = daysOf(a);
     const n = sumOrg(a.org);
-    const res = compute({ dari: a.id, ke: MS.ke, jenis: MS.jenis, mode: MS.mode, paket: p, hari: h, malam: m, org: a.org, kelas: MS.kelas });
+    const res = compute({ dari: a.id, ke: MS.ke, jenis: MS.jenis, mode: MS.mode, paket: p, hari: h, malam: m, org: a.org });
     const cats = {};
     let tr = 0, st = 0;
     for (const l of res.lines || []) {
@@ -141,8 +141,9 @@ function step1(ui) {
       ${MS.mode === 'fb' ? `<div class="ms-f"><span class="kp-lbl">Hari paket ${tip('Jumlah paket fullboard per orang (1 paket = 1 hari dan 1 malam). Bawaan sama dengan jumlah malam.')}</span>${stp('paket', MS.paket, 0, MS.hari, 'Jumlah hari paket')}</div>` : ''}
     </div>
     <div class="muted small">Lama ini berlaku untuk semua kota asal. Di langkah 3, tiap kota asal bisa ditambah atau dikurangi harinya (misalnya datang sehari lebih awal).</div>
-    <h3 class="ms-h3">Kelas tiket pesawat per tingkat ${tip('Hanya dipakai bila rute dari kota asal memakai tiket pesawat.')}</h3>
-    <div class="ms-kelas">${TINGKAT.map((t) => `<label class="ms-kl"><span title="${esc(t.n)}">${esc(t.s)}</span><select class="sel" data-kelas="${t.k}"><option value="eko"${MS.kelas[t.k] === 'eko' ? ' selected' : ''}>Ekonomi</option><option value="bis"${MS.kelas[t.k] === 'bis' ? ' selected' : ''}>Bisnis</option></select></label>`).join('')}</div>
+    <h3 class="ms-h3">Kelas tiket pesawat per tingkat ${tip('Mengikuti Lampiran IV PMK 113/PMK.05/2012. Hanya dipakai bila rute dari kota asal memakai tiket pesawat.')}</h3>
+    <div class="ms-kelas">${TINGKAT.map((t) => `<div class="ms-kl"><span title="${esc(t.n)}">${esc(t.s)}</span><span class="kp-kc ${KELAS_IV[t.k]}">${kelasNm(KELAS_IV[t.k])}</span></div>`).join('')}</div>
+    <div class="muted small">Tingkat A (Pejabat Negara setingkat menteri dan Eselon I) Bisnis, lainnya Ekonomi. ${pdRef('lamp4')}</div>
     ${navBtns(0, 2, 'Pilih kota asal')}
   </div>`;
 }
@@ -293,7 +294,7 @@ function step4(effNotice) {
 }
 function footNote(res) {
   const n = [`Satuan biaya mengikuti SBM TA ${Y.y} (${esc(Y.src)})${res.effOn ? ', dengan persentase dibayar yang sedang aktif' : ''}.`,
-    'Transport darat dan taksi dihitung 2 kali (berangkat dan pulang); tiket pesawat memakai rute pertama yang tercantum.'];
+    'Transport darat dan taksi dihitung 2 kali, berangkat dan pulang (Pasal 8 ayat (3) huruf a PMK 113/2012); tiket pesawat memakai rute pertama yang tercantum.'];
   if (MS.mode === 'fb') n.push('Paket fullboard memakai tarif per tingkat: Menteri/Wakil Menteri untuk Pejabat Negara/Wamen; Eselon I dan II/JF Utama untuk Eselon I, Pejabat Negara Lainnya, dan Eselon II; Eselon III ke bawah untuk lainnya. Tarif SBM dihitung untuk 1 kamar berdua; indeks 1 kamar sendiri tidak diterapkan.');
   n.push('Angka ini perkiraan, bukan batas pembayaran. Cek ulang ke ketentuan aslinya.');
   return n.join(' ');
@@ -401,7 +402,6 @@ export function viewMassal(ui) {
     $$('[data-clear]', body).forEach((b) => b.onclick = () => { const i = $('#' + b.dataset.clear); i.value = ''; i.focus(); i.dispatchEvent(new Event('input')); });
     $$('[data-mode]', body).forEach((b) => b.onclick = () => { MS.mode = b.dataset.mode; save(); render(); });
     $$('[data-jenis]', body).forEach((b) => b.onclick = () => { MS.jenis = b.dataset.jenis; save(); render(); });
-    $$('[data-kelas]', body).forEach((s) => s.onchange = () => { MS.kelas[s.dataset.kelas] = s.value; save(); });
     const el = (id) => $(`[data-stp="${id}"]`, body);
     wireStp(body, (id) => MS[id], (stpEl, v, keep) => {
       const id = stpEl.dataset.stp;
@@ -576,7 +576,7 @@ export function viewMassal(ui) {
 
 /* ---------------- PDF ---------------- */
 const fileBase = (res) => `Perkiraan-Perjadin-Banyak-Asal-${plain(labelOf(MS.ke)).replace(/[^\w]+/g, '-')}-${MS.hari}hari-TA${Y.y}`.replace(/-+/g, '-');
-const kelasTxt = (res) => TINGKAT.filter((t) => res.byT[t.k]).map((t) => `${SHORT[t.k]}: ${MS.kelas[t.k] === 'bis' ? 'Bisnis' : 'Ekonomi'}`).join('; ');
+const kelasTxt = (res) => TINGKAT.filter((t) => res.byT[t.k]).map((t) => `${SHORT[t.k]}: ${kelasNm(KELAS_IV[t.k])}`).join('; ');
 const unitTxt = (l) => { if (l.n == null) return 'Tidak tercantum'; const p = effPct(l.t); return p < 100 ? `${fmt(l.unit)}\n(${pctTxt(p)} dari ${fmt(l.n)})` : fmt(l.n); };
 
 async function buildPdfMassal(res) {
@@ -584,7 +584,7 @@ async function buildPdfMassal(res) {
   const doc = new jsPDF({ unit: 'mm', format: 'a4' });
   const W = doc.internal.pageSize.getWidth();
   const navy = [34, 45, 99];
-  const M = { left: 14, right: 14, top: 14, bottom: 16 };
+  const M = { left: 14, right: 14, top: 14, bottom: PDF_BOTTOM };
   const grid = { theme: 'grid', styles: { fontSize: 8.4, cellPadding: 1.6, lineColor: [215, 219, 232], lineWidth: 0.2, textColor: [30, 34, 52], valign: 'top' }, headStyles: { fillColor: navy, textColor: 255, fontStyle: 'bold' }, footStyles: { fillColor: [255, 246, 214], textColor: navy, fontStyle: 'bold' }, margin: M };
   const rightCols = (idx) => (d) => { if (idx.includes(d.column.index)) d.cell.styles.halign = 'right'; };
   const band = () => { doc.setFillColor(...navy); doc.rect(0, 0, W, 4, 'F'); doc.setFillColor(244, 190, 22); doc.rect(0, 4, W, 1.2, 'F'); };
@@ -633,7 +633,7 @@ async function buildPdfMassal(res) {
     foot: [[{ content: 'Total', colSpan: 2 }, res.people.toLocaleString('id-ID'), '', fmt(res.tr), fmt(res.st), fmt(res.grand)]],
     columnStyles: { 0: { cellWidth: 9 }, 2: { cellWidth: 14, halign: 'right' }, 3: { cellWidth: 26 }, 4: { cellWidth: 28, halign: 'right' }, 5: { cellWidth: 30, halign: 'right' }, 6: { cellWidth: 30, halign: 'right' } },
     didParseCell: (d) => { if ((d.section === 'head' || d.section === 'foot') && [2, 4, 5, 6].includes(d.column.index)) d.cell.styles.halign = 'right'; } });
-  const notes = ['Satuan biaya mengikuti SBM; transport darat dan taksi dihitung 2 kali (berangkat dan pulang); tiket pesawat memakai rute pertama yang tercantum.',
+  const notes = ['Satuan biaya mengikuti SBM; transport darat dan taksi dihitung 2 kali, berangkat dan pulang (Pasal 8 ayat (3) huruf a PMK 113/2012); tiket pesawat memakai rute pertama yang tercantum.',
     'Tiket dan taksi bersifat dapat dilampaui (acuan); uang harian, penginapan, paket rapat, dan representasi bersifat batas tertinggi.'];
   if (MS.mode === 'fb') notes.push('Paket fullboard: 1 paket per hari paket per orang, tarif per kelompok tingkat (Menteri/Wamen; Eselon I-II/JF Utama, termasuk Pejabat Negara Lainnya; Eselon III ke bawah). Tarif untuk 1 kamar berdua; indeks 1 kamar sendiri tidak diterapkan.');
   if (res.miss.length) notes.push('Tanda * : ada komponen yang tidak tercantum di tabel SBM (mengacu harga riil) dan tidak ikut dijumlahkan.');
@@ -641,7 +641,7 @@ async function buildPdfMassal(res) {
   if (res.effOn) notes.push('Sebagian satuan biaya memakai persentase dibayar (simulasi efisiensi).');
   y = doc.lastAutoTable.finalY + 5;
   doc.setFontSize(7.8); doc.setTextColor(90, 96, 120);
-  for (const n of notes) { const t = doc.splitTextToSize('- ' + n, W - 28); if (y + t.length * 3.5 > 280) { doc.addPage(); y = 16; } doc.text(t, 14, y); y += t.length * 3.5 + 0.6; }
+  for (const n of notes) { const t = doc.splitTextToSize('- ' + n, W - 28); if (y + t.length * 3.5 > 297 - PDF_BOTTOM) { doc.addPage(); y = 16; } doc.text(t, 14, y); y += t.length * 3.5 + 0.6; }
 
   // Rincian
   const linesTable = (r, startY) => {
@@ -689,13 +689,7 @@ async function buildPdfMassal(res) {
       if (per.length) doc.autoTable({ ...grid, startY: doc.lastAutoTable.finalY + 4, head: [['Per orang', 'Jumlah']], body: per, headStyles: { fillColor: [238, 241, 250], textColor: navy, fontStyle: 'bold' }, columnStyles: { 1: { halign: 'right', cellWidth: 34 } } });
     }
   }
-  const pages = doc.getNumberOfPages();
-  const stamp = new Date().toLocaleString('id-ID', { dateStyle: 'long', timeStyle: 'short' });
-  for (let i = 1; i <= pages; i++) {
-    doc.setPage(i); doc.setFontSize(7.2); doc.setTextColor(120, 126, 150);
-    doc.text(doc.splitTextToSize(`Perkiraan dari aplikasi bantu baca SBM (cek-sbm.vercel.app, oleh @ryanepwijaya), bukan dokumen resmi. Cek ulang ke ketentuan aslinya. Dibuat ${stamp}.`, W - 48), 14, 288.5);
-    doc.text(`${i}/${pages}`, W - 14, 288.5, { align: 'right' });
-  }
+  pdfFooter(doc);
   return { blob: doc.output('blob'), name: fileBase(res) + '.pdf' };
 }
 function groupProv(rows) {

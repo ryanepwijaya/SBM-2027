@@ -214,6 +214,30 @@ export function tip(html, label = 'Keterangan') {
   if (!html) return '';
   return `<span class="tip"><button type="button" class="tip-btn" aria-label="${label}">${ic('info')}</button><span class="tip-body" role="tooltip">${html}</span></span>`;
 }
+// PMK Perjalanan Dinas Dalam Negeri: PMK 113/PMK.05/2012 sebagaimana diubah PMK 119 Tahun 2023 (berlaku untuk semua TA).
+// Dipakai hanya sebagai rujukan rumus atas angka SBM yang tertulis di pasal/lampirannya.
+export const PMKPD = {
+  p113: { s: 'PMK 113/2012', n: 'PMK Nomor 113/PMK.05/2012', doc: 'docs/pmk-113-2012.pdf' },
+  p119: { s: 'PMK 119/2023', n: 'PMK Nomor 119 Tahun 2023', doc: 'docs/pmk-119-2023.pdf' },
+};
+// [dokumen, pasal, halaman PDF]
+export const REF_PD = {
+  transpor: ['p113', 'Pasal 8 ayat (3) huruf a', 8],
+  inap30: ['p113', 'Pasal 8 ayat (5)', 8],
+  lumpsum: ['p113', 'Pasal 10 ayat (5)', 10],
+  prt: ['p113', 'Pasal 17 ayat (4) dan (5)', 14],
+  pindahLs: ['p113', 'Pasal 18 ayat (2)', 14],
+  uhPindah: ['p113', 'Pasal 20 ayat (3)', 15],
+  barang50: ['p113', 'Pasal 23 ayat (2) dan (3)', 16],
+  lamp3: ['p113', 'Lampiran III', 27],
+  lamp4: ['p113', 'Lampiran IV', 33],
+  lamp6: ['p113', 'Lampiran VI', 36],
+  sah: ['p119', 'Pasal 8 ayat (3b)', 5],
+  layanan: ['p119', 'Pasal 8 ayat (3) huruf c dan ayat (3a)', 5],
+};
+export const pdTxt = (k) => { const [d, l] = REF_PD[k]; return `${l} ${PMKPD[d].s}`; };
+export const pdRef = (k) => { const [d, l, p] = REF_PD[k]; return `<a class="chip ref pmk" href="${PMKPD[d].doc}#page=${p}" target="_blank" rel="noopener" title="${esc(`${l} ${PMKPD[d].n}`)} (buka PDF)">${esc(`${l} ${PMKPD[d].s}`)}</a>`; };
+
 // Menu lipat untuk teks penjelasan
 export function fold(title, body, opt = {}) {
   return `<details class="fold"${opt.id ? ` id="${opt.id}"` : ''}${opt.open ? ' open' : ''}><summary><span>${title}</span>${opt.meta ? `<small>${opt.meta}</small>` : ''}</summary><div class="fold-body">${body}</div></details>`;

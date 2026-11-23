@@ -1,5 +1,5 @@
 import { ENTRIES, GROUPS, SHORTCUTS, SIFAT, KEL_ORDER, DOC_NOTES, TOL, applyYear } from './catalog.js';
-import { S, Y, YEARS, switchYear, initYear, loadData, entry, entriesOf, esc, norm, ref, lampShort, fmt, valueCols, unitCol, shortCol, UNIT, rowsOfProv, rapatTiers, pdfLink, store, tip, fold, money, effPct, setEffPct, clearEff, effAll, pctTxt, setEffKey } from './store.js';
+import { S, Y, YEARS, switchYear, initYear, loadData, entry, entriesOf, esc, norm, ref, lampShort, fmt, valueCols, unitCol, shortCol, UNIT, rowsOfProv, rapatTiers, pdfLink, store, tip, fold, money, effPct, setEffPct, clearEff, effAll, pctTxt, setEffKey, PMKPD, REF_PD, pdRef } from './store.js';
 import { search, buildIndex, SEARCH_HINTS } from './search.js';
 import { ic } from './icons.js';
 import { loadWilayah, suggest, resolve, routeHtml, placeLabel, routeHints, W } from './rute.js';
@@ -467,6 +467,7 @@ function renderPalette(q) {
     const r = search(q);
     const nq = norm(q);
     const tools = TOOLS.flatMap((t) => (t.sub ? t.sub : [t])).filter((t, i, a) => a.findIndex((x) => x.h === t.h) === i && nq.length >= 3 && norm(`${t.t} ${t.d}`).includes(nq));
+    if (nq.length >= 3 && norm('pmk 113 119 2012 2023 perjalanan dinas dalam negeri tempat sah lampiran iv vi lumpsum biaya riil pindah').includes(nq)) tools.unshift({ h: '#/lainnya/perjadin', t: 'PMK Perjalanan Dinas', d: 'PMK 113/PMK.05/2012 dan PMK 119/2023 (PDF dan pasal yang dipakai)', i: 'scale' });
     if (tools.length) secs.push({ t: 'Alat bantu', items: tools.slice(0, 4).map((t) => item({ href: t.h, t: t.t, d: t.d, i: t.i, k: 'Alat' })) });
     if (r.best.length) secs.push({ t: 'Langsung ke', items: r.best.slice(0, 6).map((x) => item({ ...x, i: x.kind === 'Rute' ? 'route' : x.kind === 'Daerah' ? 'map' : x.kind === 'Bab' ? 'plane' : 'corner-down-left', k: x.kind })) });
     if (r.menus.length) secs.push({ t: 'Jenis satuan biaya', items: r.menus.slice(0, 6).map((x) => item({ ...x, i: babIconOf(x.ref.id), k: lampShort(x.ref) })) });
@@ -1484,7 +1485,18 @@ function viewHitung() {
       const cur = id === 'hari' ? KP.hari : id === 'malam' ? KP.malam : KP.org[id.slice(4)];
       applyStp(id, cur + d);
     });
-    $$('[data-kelas]').forEach((sel) => sel.onchange = () => { KP.kelas[sel.dataset.kelas] = sel.value; draw(); });
+    // Ketentuan tambahan (luar kota): penginapan 30%, Tempat Sah, biaya layanan
+    $$('[data-inap],[data-sahArah],[data-saharah]').forEach((b) => b.onclick = () => {
+      const k = b.dataset.inap != null ? 'inap' : 'sahArah';
+      KP[k] = b.dataset.inap ?? b.dataset.saharah ?? b.dataset.sahArah;
+      $$(k === 'inap' ? '[data-inap]' : '[data-saharah]').forEach((x) => { x.classList.toggle('on', x === b); x.setAttribute('aria-checked', String(x === b)); });
+      draw();
+    });
+    const sahCb = $('#kpSah');
+    if (sahCb) sahCb.onchange = () => { KP.sah = sahCb.checked; route(); if (KP.sah && !KP.sahId) setTimeout(() => $('#rSah')?.focus(), 60); };
+    if ($('#rSah')) attachAC('rSah', (it) => { KP.sahId = it.id; draw(); });
+    const lay = $('#kpLay');
+    if (lay) lay.addEventListener('input', () => { const d = lay.value.replace(/\D/g, ''); KP.layanan = d; lay.value = d ? Number(d).toLocaleString('id-ID') : ''; draw(); });
     draw();
     const firstEmpty = KP.lingkup === 'ln' ? (!KP.lnKota && !KP.lnNeg && $('#lnQ')) : (!KP.ke && $('#rKe'));
     if (firstEmpty) setTimeout(() => firstEmpty.focus(), 50);
@@ -1564,6 +1576,41 @@ function viewMore(sub) {
       <div class="callout">${ic('info')}<div>Seluruh angka diambil langsung dari tabel PDF KMK 296/2026 dan dicek silang dengan ekstraksi teks kedua (3.168 baris bernomor cocok). Aplikasi ini alat bantu baca; untuk keperluan formal, rujuk dokumen aslinya.</div></div>
     </div>` };
   }
+  if (sub === 'perjadin') {
+    const used = [
+      ['lumpsum', 'Cara bayar komponen perjalanan dinas jabatan: uang harian dan representasi lumpsum; transpor dan penginapan biaya riil. Ditampilkan sebagai label Lumpsum/Biaya riil di hasil hitung.'],
+      ['transpor', 'Biaya transpor mencakup keberangkatan dan kepulangan, termasuk ke terminal/stasiun/bandara. Dasar taksi dan transport darat dihitung 2 kali di Hitung Perjalanan.'],
+      ['inap30', 'Tidak menginap di hotel: penginapan 30% dari tarif hotel kota tujuan, lumpsum. Pilihan di Hitung Perjalanan dan Perjadin (banyak tujuan).'],
+      ['sah', 'Berangkat/pulang dari/ke Tempat Sah: dibayar riil, paling banyak sebesar estimasi dari Tempat Kedudukan. Pilihan di Hitung Perjalanan.'],
+      ['layanan', 'Biaya layanan, bagasi, dan sejenisnya: dapat diberikan dengan pernyataan Pelaksana SPD setelah persetujuan PPK. Isian di Hitung Perjalanan (bukan angka SBM).'],
+      ['lamp3', 'Komponen perjalanan dinas dalam kota: transpor kegiatan dalam kota dibayar lumpsum. Dipakai di Hitung Perjalanan (dalam kota).'],
+      ['lamp4', 'Fasilitas transpor: Tingkat A (Pejabat Negara setingkat menteri, Eselon I) pesawat Bisnis; Tingkat B dan C Ekonomi. Dipakai di semua alat perjalanan dinas dalam negeri.'],
+      ['prt', 'Dinas pindah: pegawai golongan IV/eselon III ke atas boleh membawa 1 pembantu rumah tangga dengan tarif golongan I.'],
+      ['pindahLs', 'Dinas pindah: semua komponen lumpsum dan batas tertinggi.'],
+      ['uhPindah', 'Dinas pindah: uang harian 3 hari setelah tiba, paling lama 2 hari per transit, dan hari tertahan, untuk pegawai dan tiap anggota keluarga yang sah.'],
+      ['barang50', 'Dinas pindah: pengepakan dan angkutan barang darat 50% bila jarak kurang dari 100 km di Pulau Jawa/Madura atau kurang dari 50 km di luar Pulau Jawa/Madura.'],
+      ['lamp6', 'Dinas pindah: volume barang per golongan dan status keluarga (25 m³ untuk golongan IV berkeluarga dengan anak, dan seterusnya).'],
+    ];
+    return { html: `<div class="page-head">${back}<h1 class="title">PMK Perjalanan Dinas Dalam Negeri</h1><p class="subtitle">Ketentuan pelaksanaan perjalanan dinas dalam negeri. Berlaku untuk semua tahun anggaran, berdampingan dengan SBM tahun berjalan.</p></div>
+    <div class="grid">
+      <div class="card card-pad"><table class="plain"><tbody>
+        <tr><th colspan="2">${esc(PMKPD.p113.n)}</th></tr>
+        <tr><td>Tentang</td><td>Perjalanan Dinas Dalam Negeri bagi Pejabat Negara, Pegawai Negeri, dan Pegawai Tidak Tetap</td></tr>
+        <tr><td>Ditetapkan</td><td>3 Juli 2012 (Berita Negara 2012 Nomor 678)</td></tr>
+        <tr><td>Isi</td><td>Batang tubuh 43 pasal dan Lampiran I–IX (format SPD, rincian biaya, komponen biaya, fasilitas transpor, rapat, volume barang pindahan, pembatalan, daftar pengeluaran riil). 41 halaman.</td></tr>
+      </tbody></table><div class="actions"><a class="btn" href="${PMKPD.p113.doc}" target="_blank" rel="noopener">${ic('download')} PDF PMK 113/2012</a></div></div>
+      <div class="card card-pad"><table class="plain"><tbody>
+        <tr><th colspan="2">${esc(PMKPD.p119.n)}</th></tr>
+        <tr><td>Tentang</td><td>Perubahan atas PMK Nomor 113/PMK.05/2012</td></tr>
+        <tr><td>Ditetapkan</td><td>10 November 2023; diundangkan 15 November 2023 (Berita Negara 2023 Nomor 907)</td></tr>
+        <tr><td>Isi</td><td>Definisi baru (antara lain Tempat Sah dan Sistem Elektronik Perjalanan Dinas), biaya layanan pada biaya transpor, keberangkatan/kepulangan dari Tempat Sah, UP KKP, dan perjalanan dinas melalui sistem elektronik (Pasal 36A–36E). 12 halaman.</td></tr>
+      </tbody></table><div class="actions"><a class="btn" href="${PMKPD.p119.doc}" target="_blank" rel="noopener">${ic('download')} PDF PMK 119/2023</a></div></div>
+      <div class="card card-pad"><div class="reg"><h3>Ketentuan yang dipakai di Alat Bantu</h3><p class="muted small">Hanya ketentuan yang berupa rumus atas angka SBM. Ketentuan prosedur (surat tugas, SPD, pertanggungjawaban, geotagging) tidak diterapkan; rujuk dokumennya langsung.</p></div>
+        <div class="pd-list">${used.map(([k, d]) => `<div class="pd-it">${pdRef(k)}<span>${esc(d)}</span></div>`).join('')}</div>
+      </div>
+      <div class="callout">${ic('info')}<div>Salinan PDF diambil dari JDIH Kementerian Keuangan. Aplikasi ini alat bantu baca; untuk keputusan pembayaran dan pertanggungjawaban, rujuk dokumen aslinya.</div></div>
+    </div>` };
+  }
   if (sub === 'catatan') {
     const CU = S.data.catatan_umum;
     const tol = S.data.toleransi;
@@ -1602,6 +1649,7 @@ function viewMore(sub) {
     <a class="li" href="#/lainnya/singkatan">${ic('book', 'chev')}<div class="grow"><div class="t">Daftar singkatan</div></div>${ic('chev', 'chev')}</a>
     <a class="li" href="#/lainnya/dokumen">${ic('alert', 'chev')}<div class="grow"><div class="t">Catatan atas dokumen</div></div>${ic('chev', 'chev')}</a>
     <a class="li" href="#/lainnya/tentang">${ic('info', 'chev')}<div class="grow"><div class="t">Tentang ${Y.y === 2026 ? 'PMK 32/2025' : 'PMK 54/2026 & KMK 296/2026'}</div></div>${ic('chev', 'chev')}</a>
+    <a class="li" href="#/lainnya/perjadin">${ic('scale', 'chev')}<div class="grow"><div class="t">PMK Perjalanan Dinas (113/2012 dan 119/2023)</div></div>${ic('chev', 'chev')}</a>
   </div>
   <div class="group-title">Aplikasi</div>
   <div class="card card-pad">
