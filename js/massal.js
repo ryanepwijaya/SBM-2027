@@ -4,7 +4,7 @@
 import { S, Y, esc, fmt, store, tip, effPct, pctTxt, effMini, tableKey, pdRef, resetBtn } from './store.js';
 import { W, resolve, suggest, placeLabel } from './rute.js';
 import { ic } from './icons.js';
-import { TINGKAT, compute, plain, lib as pdfLib, loadScript, autoMalam, pdfFooter, PDF_BOTTOM, kelasOf, kelasNm, kelasCellIV } from './hitung.js';
+import { TINGKAT, compute, plain, lib as pdfLib, loadScript, autoMalam, pdfFooter, PDF_BOTTOM, kelasOf, kelasNm, kelasCellIV, tkName } from './hitung.js';
 
 const KEY = 'massal';
 const SHORT = { pn: 'PN/Wamen', e1: 'Eselon I', pnl: 'PN Lainnya', e2: 'Eselon II', e3: 'Es. III/Gol. IV', e4: 'Es. IV/Gol. III–I' };
@@ -142,7 +142,7 @@ function step1(ui) {
     </div>
     <div class="muted small">Lama ini berlaku untuk semua kota asal. Di langkah 3, tiap kota asal bisa ditambah atau dikurangi harinya (misalnya datang sehari lebih awal).</div>
     <h3 class="ms-h3">Kelas tiket pesawat per tingkat ${tip('Hanya dipakai bila rute dari kota asal memakai tiket pesawat.')}</h3>
-    <div class="ms-kelas">${TINGKAT.map((t) => `<div class="ms-kl"><span title="${esc(t.n)}">${esc(t.s)}</span>${kelasCellIV(t, MS.kelasA)}</div>`).join('')}</div>
+    <div class="ms-kelas">${TINGKAT.map((t) => `<div class="ms-kl"><span title="${esc(t.n)}">${tkName(t.s)}</span>${kelasCellIV(t, MS.kelasA)}</div>`).join('')}</div>
     <div class="muted small">Kelas pesawat sesuai ${pdRef('lamp4')}.</div>
     ${navBtns(0, 2, 'Pilih kota asal')}
   </div>`;

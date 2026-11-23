@@ -2221,3 +2221,21 @@ body.uj-noscroll { overflow: hidden; }
 .page-head:has(.page-reset) { flex-wrap: wrap; }
 .page-head .page-reset { flex: none; order: 2; }
 .page-head .page-reset svg { width: 16px; height: 16px; }
+/* ===== Paragraf penjelasan: rata kiri-kanan (seperti dokumen PMK), baris terakhir rata kiri =====
+   Hanya teks penjelasan/catatan beberapa baris. Label, tombol, judul, tabel, angka, dan deskripsi kartu pendek tetap rata kiri/kanan sesuai fungsinya. */
+:is(.reg p, .reg li, .reg > .muted, .def, .points li, .disc-list li, .callout > div, .kp-foot, .kp-note, .qt-note, .tx-foot, .pb-foot,
+  .pd-it > span, .uj-mb p, .uj-mb li, .tip-body, .eff-note > div, .foot-disc, .ms-card > .muted.small, .kp-sah p, .uj-k span) {
+  text-align: justify; text-align-last: left; text-justify: inter-word;
+  hyphens: auto; -webkit-hyphens: auto; overflow-wrap: break-word;
+}
+/* Nama tingkat pelaksana tidak dipotong "…": boleh dua baris */
+.kp-ptab .kp-pn, .ms-kl > span { white-space: normal; text-overflow: clip; overflow-wrap: break-word; }
+/* Layar sempit: indentasi butir bertingkat dikurangi supaya baris rata kiri-kanan tidak renggang */
+@media (max-width: 639px) {
+  .reg .blk.l1 { margin-left: 10px; } .reg .blk.l2 { margin-left: 20px; } .reg .blk.l3 { margin-left: 30px; } .reg .blk.l4 { margin-left: 40px; }
+}
+/* Kelas pesawat (Perjadin banyak asal): kolom kelas lebar tetap supaya chip dan pilihan sejajar */
+.ms-kl { display: grid; grid-template-columns: minmax(0, 1fr) 108px; }
+.ms-kl > .kp-kelas { width: 100%; }
+.ms-kl > .kp-kc { justify-self: start; }
+.ms-kelas + * { margin-top: 10px; }

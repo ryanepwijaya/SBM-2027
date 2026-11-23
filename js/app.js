@@ -14,6 +14,7 @@ import { viewUji } from './uji.js';
 import { viewPindah } from './pindah.js';
 import { BABS, REF_LINKS, babByKey, babByKel, babOfButir } from './bab.js';
 import { initGlide } from './glide.js';
+import { initHyph } from './hyph.js';
 
 const $ = (s, el = document) => el.querySelector(s);
 const $$ = (s, el = document) => [...el.querySelectorAll(s)];
@@ -35,7 +36,7 @@ const TOOLS = [
     sub: [
       { k: 'rute', h: '#/rute', t: 'SBM Perjalanan', i: 'signpost', d: 'Dari kota X ke kota Y, semua satuan biaya perjalanan dinas langsung muncul' },
       { k: 'hitung', h: '#/hitung', t: 'Hitung Perjalanan', i: 'calculator', d: 'Perkiraan biaya dari tujuan, lama, dan pelaksana surat tugas; bisa diunduh sebagai PDF' },
-      { k: 'uji', h: '#/uji', t: 'Uji Perjalanan', i: 'clipboard-check', d: 'Kertas kerja: sandingkan angka riil tagihan perjalanan dinas dengan SBM; selisih dan status langsung tampil, unduh lembar uji PDF' },
+      { k: 'uji', h: '#/uji', t: 'Uji Perjalanan', i: 'clipboard-check', d: 'Kertas kerja: sandingkan angka riil tagihan perjalanan dinas dengan SBM; selisih dan status langsung tampil; unduh draf kuitansi dan rincian (Word)' },
       { k: 'massal', h: '#/massal', t: 'Perjadin (banyak asal)', i: 'users', d: 'Satu kegiatan di satu kota, peserta dari banyak kota asal; unduh PDF dan Excel' },
       { k: 'tujuan', h: '#/tujuan', t: 'Perjadin (banyak tujuan)', i: 'map-pin', d: 'Satu surat tugas, rute berantai sampai 3 kota tujuan; unduh PDF' },
       { k: 'pindah', h: '#/pindah', t: 'Dinas Pindah', i: 'package', d: 'Perkiraan biaya perjalanan dinas pindah dalam dan luar negeri: tiket, uang harian, angkutan barang' },
@@ -1757,6 +1758,7 @@ async function start() {
   shell();
   initTips();
   initGlide();
+  initHyph();
   $('#main').innerHTML = `<div class="empty">Memuat data…</div>`;
   try {
     await loadData();

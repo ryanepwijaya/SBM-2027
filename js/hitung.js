@@ -20,6 +20,8 @@ export const TINGKAT = [
 // Kelas pesawat per tingkat sesuai Lampiran IV PMK 113/PMK.05/2012: Tingkat A (Pejabat Negara setingkat menteri, Eselon I) Bisnis;
 // Tingkat B (Pejabat Negara Lainnya, Eselon II) dan Tingkat C (Eselon III ke bawah) Ekonomi. Berlaku juga untuk keluarga (dinas pindah).
 export const KELAS_IV = { pn: 'bis', e1: 'bis', pnl: 'eko', e2: 'eko', e3: 'eko', e4: 'eko' };
+// Nama tingkat: kalau terpaksa dua baris, putus di garis miring (Eselon III/ Gol. IV), bukan di tengah golongan
+export const tkName = (s) => esc(s).split('/').map((x, i) => (i ? x.replace(/ /g, '\u00A0') : x)).join('/<wbr>');
 export const kelasNm = (k) => (k === 'bis' ? 'Bisnis' : 'Ekonomi');
 // Tingkat A berhak Bisnis tetapi boleh memakai Ekonomi; tingkat lain dikunci Ekonomi
 export const TIER_A = ['pn', 'e1'];
@@ -372,7 +374,7 @@ export function formHtml(ui) {
 export function peopleTable(list, kelasCell, countCell, nameExtra = null, kelasHead = 'Kelas pesawat') {
   return `<div class="kp-ptab${kelasCell ? '' : ' nk'}" role="table" aria-label="Pelaksana per tingkat">
     <div class="kp-ph" role="row"><span role="columnheader">Tingkat</span>${kelasCell ? `<span role="columnheader">${esc(kelasHead)}</span>` : ''}<span role="columnheader" class="r">Jumlah orang</span></div>
-    ${list.map((t) => `<div class="kp-p" role="row"><span class="kp-pn" role="cell" title="${esc(t.n)}">${esc(t.s)}${nameExtra ? nameExtra(t) : ''}</span>${kelasCell ? `<span role="cell" class="kp-kcell">${kelasCell(t)}</span>` : ''}<span role="cell" class="r">${countCell(t)}</span></div>`).join('')}
+    ${list.map((t) => `<div class="kp-p" role="row"><span class="kp-pn" role="cell" title="${esc(t.n)}">${tkName(t.s)}${nameExtra ? nameExtra(t) : ''}</span>${kelasCell ? `<span role="cell" class="kp-kcell">${kelasCell(t)}</span>` : ''}<span role="cell" class="r">${countCell(t)}</span></div>`).join('')}
   </div>`;
 }
 
