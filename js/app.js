@@ -3,7 +3,7 @@ import { S, Y, YEARS, switchYear, initYear, loadData, entry, entriesOf, esc, nor
 import { search, buildIndex, SEARCH_HINTS } from './search.js';
 import { ic } from './icons.js';
 import { loadWilayah, suggest, resolve, routeHtml, placeLabel, routeHints, W } from './rute.js';
-import { KP, compute, formHtml, resultHtml, buildPdf, resetKP, autoMalam, summaryTxt, wizHead, wizBar, wizUpdate, wizGo } from './hitung.js';
+import { KP, compute, formHtml, resultHtml, buildPdf, resetKP, autoMalam, summaryTxt, wizHead, wizBar, wizUpdate, wizGo, wizCols } from './hitung.js';
 import { viewMassal } from './massal.js';
 import { lnSuggest, negOfCity, cityOfNeg } from './ln.js';
 import { viewInvoice, viewPajak, viewHonor } from './pbj.js';
@@ -1389,6 +1389,7 @@ function viewHitung() {
   <div class="kp wz" id="kpRoot" data-wz="${KP.wz}">${wizHead(KP.wz, 'Tujuan, lama, pelaksana', 'Rincian dan PDF')}${formHtml({ routeForm, placeField, placeLabel })}${wizBar()}<div id="kpHost"></div></div>`;
   const after = () => {
     const root = $('#kpRoot');
+    wizCols($('.kp-form', root));
     const missingOf = (res) => {
       const m = [], L = KP.lingkup;
       if (L === 'ln') { if (!KP.lnKota && !KP.lnNeg) m.push('kota atau negara tujuan'); } else if (!KP.ke) m.push(L === 'dk' ? 'kabupaten/kota' : 'kota tujuan');

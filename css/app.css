@@ -2084,7 +2084,13 @@ table.t.qt tr.miss td { color: var(--muted); }
 .kp-form .kp-step > .kp-seg.kp-seg-w button { flex: 1 1 0; min-width: 0; white-space: normal; line-height: 1.25; padding-top: 7px; padding-bottom: 7px; }
 /* ===== Alur dua halaman: Isi data → Estimasi biaya ===== */
 .kp.wz { grid-template-columns: minmax(0, 1fr) !important; }
-.kp.wz > .wz-steps, .kp.wz > .kp-form, .kp.wz > .wz-bar { width: 100%; max-width: 860px; justify-self: center; }
+.kp.wz > .wz-steps, .kp.wz > .kp-form, .kp.wz > .wz-bar { width: 100%; }
+@media (min-width: 1100px) {
+  .kp-form.kp-2c { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0; align-items: stretch; }
+  .kp-form.kp-2c > .kp-col:first-child { padding-right: 32px; }
+  .kp-form.kp-2c > .kp-col + .kp-col { padding-left: 32px; border-left: 1px solid var(--border-2); }
+}
+@media (max-width: 1099px) { .kp-col + .kp-col > .kp-step:first-child { margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--border-2); } }
 .wz-steps { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; margin-bottom: 0; }
 .wz-steps .ms-st:disabled { opacity: .55; cursor: not-allowed; }
 .kp.wz[data-wz="1"] > #kpHost, .kp.wz[data-wz="1"] > #tjHost, .kp.wz[data-wz="1"] > #pdHost { display: none; }

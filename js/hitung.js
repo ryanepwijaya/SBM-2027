@@ -49,6 +49,18 @@ export function wizGo(root, step) {
   root.querySelectorAll('.wz-steps .ms-st').forEach((b) => { const on = b.dataset.wz === String(step); b.classList.toggle('on', on); if (on) b.setAttribute('aria-current', 'step'); else b.removeAttribute('aria-current'); });
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
+// Form selebar halaman: langkah dibagi ke dua kolom di layar lebar (paruh pertama kiri, sisanya kanan)
+export function wizCols(form) {
+  if (!form || form.querySelector(':scope > .kp-col')) return;
+  const steps = [...form.querySelectorAll(':scope > .kp-step')];
+  const n = Math.ceil(steps.length / 2);
+  const a = document.createElement('div'), b = document.createElement('div');
+  a.className = 'kp-col'; b.className = 'kp-col';
+  steps.slice(0, n).forEach((x) => a.appendChild(x));
+  steps.slice(n).forEach((x) => b.appendChild(x));
+  form.append(a); if (b.children.length) form.append(b);
+  form.classList.add('kp-2c');
+}
 export const editBtn = () => `<button type="button" class="btn" data-wz="1">${ic('pencil-line')} Ubah isian</button>`;
 // Cara bayar komponen menurut PMK Perjalanan Dinas: L = lumpsum, R = biaya riil
 export const BYR = { L: 'Lumpsum', R: 'Biaya riil' };

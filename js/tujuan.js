@@ -5,7 +5,7 @@
 import { S, Y, esc, fmt, store, tip, valueCols, pdRef, pdTxt } from './store.js';
 import { resolve, computeRoute, rowBy, placeLabel } from './rute.js';
 import { ic } from './icons.js';
-import { TINGKAT, plain, adder, finish, peopleOf, resTable, buildPdf, autoMalam, KELAS_IV, kelasOf, kelasCellIV, peopleTable, wizHead, wizBar, wizUpdate, wizGo, editBtn } from './hitung.js';
+import { TINGKAT, plain, adder, finish, peopleOf, resTable, buildPdf, autoMalam, KELAS_IV, kelasOf, kelasCellIV, peopleTable, wizHead, wizBar, wizUpdate, wizGo, editBtn, wizCols } from './hitung.js';
 
 let WZ = 1; // halaman alur: 1 isi data, 2 estimasi
 
@@ -188,6 +188,7 @@ export function viewTujuan(ui) {
     };
     const render = (focusId) => {
       root.innerHTML = wizHead(WZ, 'Rute, lama, pelaksana', 'Rincian dan PDF') + formHtml(T, ui) + wizBar() + '<div id="tjHost"></div>';
+      wizCols($('.kp-form', root));
       ui.attachAC('tjAsal', (it) => { T.asal = it.id; save(); draw(); });
       T.dest.forEach((d, i) => ui.attachAC('tjD' + i, (it) => { T.dest[i].id = it.id; save(); draw(); const nx = $('#tjD' + (i + 1)); if (nx && !T.dest[i + 1].id) setTimeout(() => nx.focus(), 50); }));
       $$('[data-clear]', root).forEach((b) => b.onclick = () => { const inp = $('#' + b.dataset.clear); inp.value = ''; inp.focus(); inp.dispatchEvent(new Event('input')); });

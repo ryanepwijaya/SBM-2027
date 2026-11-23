@@ -7,7 +7,7 @@
 import { S, Y, esc, fmt, store, tip, valueCols, pdRef, pdTxt } from './store.js';
 import { resolve, computeRoute, rowBy, placeLabel } from './rute.js';
 import { ic } from './icons.js';
-import { TINGKAT, plain, adder, finish, resTable, buildPdf, kursTxt, KELAS_IV, TIER_A, kelasNm, wizHead, wizBar, wizUpdate, wizGo, editBtn } from './hitung.js';
+import { TINGKAT, plain, adder, finish, resTable, buildPdf, kursTxt, KELAS_IV, TIER_A, kelasNm, wizHead, wizBar, wizUpdate, wizGo, editBtn, wizCols } from './hitung.js';
 
 let WZ = 1; // halaman alur: 1 isi data, 2 estimasi
 
@@ -261,6 +261,7 @@ export function viewPindah(ui) {
     };
     const render = () => {
       root.innerHTML = wizHead(WZ, 'Tujuan, keluarga, barang', 'Rincian dan PDF') + formHtml(T, ui, kurs) + wizBar() + '<div id="pdHost"></div>';
+      wizCols($('.kp-form', root));
       if ($('#pdAsal')) {
         ui.attachAC('pdAsal', (it) => { T.asal = it.id; save(); draw(); });
         ui.attachAC('pdKe', (it) => { T.ke = it.id; save(); draw(); });
