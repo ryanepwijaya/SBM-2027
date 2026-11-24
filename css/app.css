@@ -2318,3 +2318,11 @@ body.calc-picking .main, body.calc-picking .main * { cursor: crosshair !importan
 .prov-grp .prov { background: var(--surface-2); border-color: var(--border-2); }
 .prov-grp .prov:hover { background: var(--surface); }
 @media (min-width: 1280px) { .prov-grp .prov-grid { grid-template-columns: repeat(6, 1fr); } }
+/* Ilustrasi garis ikon provinsi (js/prov-art.js): samar di sisi kanan, terpotong setengah */
+.prov { position: relative; overflow: hidden; isolation: isolate; }
+.prov > b, .prov > small { position: relative; z-index: 1; }
+.prov-art { position: absolute; z-index: 0; top: -16px; right: -52px; width: 150px; height: 150px; color: var(--navy-700); opacity: .26; pointer-events: none; transition: opacity .2s ease, transform .3s ease; }
+.prov-art * { stroke-width: 1.3px; vector-effect: non-scaling-stroke; }
+.prov:hover .prov-art { opacity: .38; transform: translateX(-4px); }
+[data-theme="dark"] .prov-art { color: var(--gold-2); opacity: .16; }
+[data-theme="dark"] .prov:hover .prov-art { opacity: .3; }

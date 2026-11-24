@@ -16,6 +16,7 @@ import { BABS, REF_LINKS, babByKey, babByKel, babOfButir } from './bab.js';
 import { initGlide } from './glide.js';
 import { initHyph } from './hyph.js';
 import { initCalc } from './calc.js';
+import { provArt } from './prov-art.js';
 
 const $ = (s, el = document) => el.querySelector(s);
 const $$ = (s, el = document) => [...el.querySelectorAll(s)];
@@ -1246,7 +1247,7 @@ function viewDaerah(mode, params) {
     <div id="provHint"></div>
     <div class="prov-groups" id="provGrid">${PULAU.map((g) => {
       const list = S.provList.filter((p) => g.ids.includes(p.id));
-      return list.length ? `<section class="prov-grp card"><h2 class="prov-gh">${esc(g.n)} <span>${list.length} provinsi</span></h2><div class="prov-grid">${list.map((p) => `<a class="prov" href="#/daerah/p/${p.id}" data-s="${esc(norm([p.nama, ...p.alias, ...p.kota].join(' ')))}"><b>${esc(p.nama)}</b><small>${esc(p.kota[0])}</small></a>`).join('')}</div></section>` : '';
+      return list.length ? `<section class="prov-grp card"><h2 class="prov-gh">${esc(g.n)} <span>${list.length} provinsi</span></h2><div class="prov-grid">${list.map((p) => `<a class="prov" href="#/daerah/p/${p.id}" data-s="${esc(norm([p.nama, ...p.alias, ...p.kota].join(' ')))}">${provArt(p.id)}<b>${esc(p.nama)}</b><small>${esc(p.kota[0])}</small></a>`).join('')}</div></section>` : '';
     }).join('')}</div>`;
     const after = () => {
       const pq = $('#pq');
