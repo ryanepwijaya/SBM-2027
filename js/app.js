@@ -1227,6 +1227,16 @@ function viewRute(params) {
   return { html, after };
 }
 
+// Kelompok pulau besar untuk daftar provinsi (urutan provinsi di dalamnya mengikuti tabel SBM)
+const PULAU = [
+  { n: 'Sumatra', ids: ['aceh', 'sumut', 'riau', 'kepri', 'jambi', 'sumbar', 'sumsel', 'lampung', 'bengkulu', 'babel'] },
+  { n: 'Jawa', ids: ['banten', 'jabar', 'dki', 'jateng', 'diy', 'jatim'] },
+  { n: 'Bali dan Nusa Tenggara', ids: ['bali', 'ntb', 'ntt'] },
+  { n: 'Kalimantan', ids: ['kalbar', 'kalteng', 'kalsel', 'kaltim', 'kaltara'] },
+  { n: 'Sulawesi', ids: ['sulut', 'gorontalo', 'sulbar', 'sulsel', 'sulteng', 'sultra'] },
+  { n: 'Maluku', ids: ['maluku', 'malut'] },
+  { n: 'Papua', ids: ['papua', 'pabar', 'pbd', 'pateng', 'pasel', 'papeg'] },
+];
 function viewDaerah(mode, params) {
   const seg = daerahSeg(mode);
   if (mode === 'dn') {
@@ -1235,7 +1245,10 @@ function viewDaerah(mode, params) {
     ${seg}
     <div class="tbl-tools"><label class="field">${ic('search')}<input id="pq" type="search" placeholder="Cari provinsi atau kabupaten/kota, mis. jatim, surakarta…"></label></div>
     <div id="provHint"></div>
-    <div class="prov-grid" id="provGrid">${S.provList.map((p) => `<a class="prov" href="#/daerah/p/${p.id}" data-s="${esc(norm([p.nama, ...p.alias, ...p.kota].join(' ')))}"><b>${esc(p.nama)}</b><small>${esc(p.kota[0])}</small></a>`).join('')}</div>`;
+    <div class="prov-groups" id="provGrid">${PULAU.map((g) => {
+      const list = S.provList.filter((p) => g.ids.includes(p.id));
+      return list.length ? `<section class="prov-grp card"><h2 class="prov-gh">${esc(g.n)} <span>${list.length} provinsi</span></h2><div class="prov-grid">${list.map((p) => `<a class="prov" href="#/daerah/p/${p.id}" data-s="${esc(norm([p.nama, ...p.alias, ...p.kota].join(' ')))}"><b>${esc(p.nama)}</b><small>${esc(p.kota[0])}</small></a>`).join('')}</div></section>` : '';
+    }).join('')}</div>`;
     const after = () => {
       const pq = $('#pq');
       pq.oninput = () => {
@@ -1243,6 +1256,7 @@ function viewDaerah(mode, params) {
         const hits = cityToProv(toks);
         const viaCity = new Set(hits.map((x) => x.p));
         $$('#provGrid .prov').forEach((a) => { const id = a.getAttribute('href').split('/').pop(); a.style.display = !toks.length || viaCity.has(id) || toks.every((t) => a.dataset.s.split(' ').some((w) => w.startsWith(t))) ? '' : 'none'; });
+        $$('#provGrid .prov-grp').forEach((g) => { g.style.display = [...g.querySelectorAll('.prov')].some((a) => a.style.display !== 'none') ? '' : 'none'; });
         $('#provHint').innerHTML = hits.length ? `<div class="city-hint">${ic('map-pin')}<div>${hits.slice(0, 4).map((x) => `<b>${esc(x.n)}</b> ada di <b>${esc(S.prov[x.p].nama)}</b>`).join('; ')}${hits.length > 4 ? `; dan ${hits.length - 4} lainnya` : ''}.</div></div>` : '';
       };
     };
