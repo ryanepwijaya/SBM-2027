@@ -67,6 +67,14 @@ python3 build_data.py /tmp/tables26.json /tmp/text26.json map.json ../../data/sb
 
 Semua alat memakai `resetBtn(id)` (`js/store.js`) di kepala halaman, di luar langkah, posisi kanan atas yang sama. Reset perlu ditekan dua kali dalam 3 detik (`resetGuard` atau pola serupa), mengosongkan semua isian, dan alat berlangkah kembali ke langkah 1. Tombol "Kosongkan" daftar kota asal di Perjadin (banyak asal) tetap di langkahnya karena hanya menghapus daftar itu.
 
+## Biaya Per Wilayah: kelompok pulau dan ilustrasi provinsi
+
+Daftar provinsi `#/daerah` dikelompokkan per pulau besar (`PULAU` di `app.js`: Sumatra, Jawa, Bali dan Nusa Tenggara, Kalimantan, Sulawesi, Maluku dan Papua). Tiap kotak provinsi sama tinggi (2 baris nama + 1 baris ibu kota) dan diberi ilustrasi garis ikon provinsi yang digambar sendiri (`js/prov-art.js`, kotak 100×100, garis `vector-effect: non-scaling-stroke`), samar dan terpotong di sisi kanan. Hover mengikuti kartu Beranda (tepi navy, judul warna tautan).
+
+## Tema
+
+Bawaan tema terang (`store.get('theme', 'light')` dan skrip awal di `index.html`). Pilihan "Otomatis" mengikuti sistem. Mengubah skrip inline di `index.html` = hitung ulang hash sha256 di CSP `vercel.json`.
+
 ## Kalkulator melayang
 
 `js/calc.js` (`initCalc()` di `app.js`) memasang tombol bulat di pojok kanan bawah setiap halaman. Elemennya ditempel di `<body>`, di luar `#main`, jadi tetap ada saat pindah halaman dan tidak ikut di-scroll. Tiga keadaan (`data-mode`): `fab` (tertutup), `open` (panel), `min` (pil berisi hasil terakhir). Tombol, pil, dan panel (lewat kepalanya) bisa ditarik; saat dilepas menempel ke pojok terdekat (`data-corner`: `br` bawaan, `bl`, `tr`, `tl`; pojok kiri di PC menyesuaikan lebar sidebar). Ketuk tanpa menarik = buka. Tombol/pil di pojok bawah otomatis naik bila ada `.wz-bar` lengket di bawah layar. Perhitungan memakai parser sendiri (CSP tanpa `unsafe-eval`): × ÷ didahulukan, `a + b%` = a + a×b/100, selain itu `b%` = b/100; tampilan format Indonesia, maksimal 2 desimal. Keyboard aktif saat fokus di panel dan tidak diteruskan ke pintasan halaman ("/" tidak membuka pencarian) (angka, + - * / x, %, koma/titik = koma, Enter, Backspace, Delete = bersihkan, Esc = selesai ambil angka/minimalkan). "Ambil angka": klik angka mana pun di halaman (teks maupun isian) untuk dimasukkan; klik berikutnya otomatis ditambah "+"; selama mode ini klik tidak menjalankan tautan/tombol halaman. "Salin" menyalin hasil tanpa titik ribuan. Tidak ada yang disimpan.

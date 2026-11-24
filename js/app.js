@@ -83,7 +83,7 @@ const isMac = /Mac|iPhone|iPad/.test(navigator.platform || '');
 /* ---------------- Tema ---------------- */
 const mq = window.matchMedia('(prefers-color-scheme: dark)');
 function applyTheme() {
-  const pref = store.get('theme', 'system');
+  const pref = store.get('theme', 'light');
   const dark = pref === 'dark' || (pref === 'system' && mq.matches);
   document.documentElement.dataset.theme = dark ? 'dark' : 'light';
   const meta = $('meta[name="theme-color"]');
@@ -1690,7 +1690,7 @@ function viewMore(sub) {
   if (sub === 'dokumen') {
     return { html: `<div class="page-head">${backRef}<h1 class="title">Catatan atas Dokumen</h1><p class="subtitle">Hal-hal di dokumen ${Y.src} (TA ${Y.y}) yang perlu diketahui saat membaca aplikasi ini.</p></div><div class="card list">${DOC_NOTES.map((d) => `<div class="li"><div class="grow"><div class="t">${esc(d.t)}</div><div class="d">${esc(d.x)}</div></div></div>`).join('')}</div>` };
   }
-  const pref = store.get('theme', 'system');
+  const pref = store.get('theme', 'light');
   const isStandalone = window.matchMedia('(display-mode: standalone)').matches;
   const nFav = saved().length;
   const html = `
