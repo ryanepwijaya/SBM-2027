@@ -80,7 +80,7 @@ Semua alat memakai `resetBtn(id)` (`js/store.js`) di kepala halaman, di luar lan
 Satu tab, satu peran. Satu halaman memakai satu nama yang sama di menu, sidebar, judul, breadcrumb, dan pencarian.
 
 - **Jelajah**: bacaan. Bab satuan biaya + Referensi (`REF_LINKS` di `js/bab.js`): Dasar Hukum & PDF (`#/lainnya/tentang`, seksi SBM tahun berjalan dan seksi PMK Perjalanan Dinas `#pd`), Catatan Umum KMK/PMK, Singkatan Satuan, Catatan atas Dokumen. Breadcrumb: Referensi → `#/jelajah`.
-- **Alat Bantu**: semua yang dihitung, diisi, atau diunduh, termasuk grup Data SBM (Perubahan SBM `#/perubahan`, Unduh Tabel Biaya `#/unduh`).
+- **Alat Bantu**: semua yang dihitung, diisi, atau diunduh. Grup Pengadaan Barang/Jasa berisi Invoice, Kalkulator Pajak, Honorarium, Paket Kegiatan, Lembur, Pemeliharaan; termasuk juga grup Data SBM (Perubahan SBM `#/perubahan`, Unduh Tabel Biaya `#/unduh`).
 - **Lainnya**: Favorit, Pengaturan (tahun anggaran, tampilan, pasang aplikasi), dan Tentang aplikasi (`#/lainnya/aplikasi`: penafian, sumber data dan lisensi, versi yang dibaca dari `VERSION` di `sw.js`). Link "Selengkapnya" di footer menuju Tentang aplikasi.
 - Sidebar PC: Beranda, Favorit, Alat bantu, Bab satuan biaya, Referensi (tautan langsung), Aplikasi (Pengaturan, Tentang aplikasi).
 

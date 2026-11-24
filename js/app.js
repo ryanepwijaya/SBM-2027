@@ -52,16 +52,16 @@ const TOOLS = [
     sub: [{ k: 'ln', h: '#/daerah/ln', t: 'Luar Negeri', i: 'globe', d: 'Uang harian per negara dan tiket per kota' }], flat: true, w: -1,
   },
   {
-    k: 'pbj', h: '#/alat/honor', t: 'Pengadaan Barang/Jasa', i: 'shopping-cart', d: 'Hitung honorarium, invoice barang/jasa, lembur, serta pemeliharaan dan operasional',
+    k: 'pbj', h: '#/alat/invoice', t: 'Pengadaan Barang/Jasa', i: 'shopping-cart', d: 'Invoice dan pajaknya, honorarium, paket kegiatan rapat, lembur, serta pemeliharaan dan operasional',
     sub: [
-      { k: 'honor', h: '#/alat/honor', t: 'Hitung Honorarium', i: 'hand-coins', d: 'Honor narasumber, panitia, dan kegiatan: PPh 21 per status, rekap per golongan' },
       { k: 'invoice', h: '#/alat/invoice', t: 'Hitung Invoice Barang/Jasa', i: 'receipt', d: 'Daftar barang/jasa: volume × harga satuan × frekuensi, bisa diisi tanpa mouse' },
+      { k: 'pajak', h: '#/alat/pajak', t: 'Kalkulator Pajak', i: 'percent', d: 'PPN, PPh 22, PPh 23, dan PPh 4(2) dari satu nilai; bisa diambil dari Hitung Invoice' },
+      { k: 'honor', h: '#/alat/honor', t: 'Hitung Honorarium', i: 'hand-coins', d: 'Honor narasumber, panitia, dan kegiatan: PPh 21 per status, rekap per golongan' },
+      { k: 'kegiatan', h: '#/alat/kegiatan', t: 'Paket Kegiatan', i: 'presentation', d: 'Biaya rapat/pertemuan: konsumsi rapat atau paket halfday, fullday, fullboard, ditambah honor dan sewa gedung' },
       { k: 'lembur', h: '#/alat/lembur', t: 'Hitung Lembur', i: 'clock', d: 'Uang lembur dan uang makan lembur per golongan, ASN dan Non-ASN' },
       { k: 'pemeliharaan', h: '#/alat/pemeliharaan', t: 'Hitung Pemeliharaan dan Operasional', i: 'wrench', d: 'Pagu pemeliharaan gedung, kendaraan dinas, dan sarana kantor per tahun' },
     ],
   },
-  { k: 'pajak', h: '#/alat/pajak', t: 'Kalkulator Pajak', i: 'percent', d: 'PPN, PPh 22, PPh 23, dan PPh 4(2) dari satu nilai; bisa diambil dari Hitung Invoice', w: 1 },
-  { k: 'kegiatan', h: '#/alat/kegiatan', t: 'Paket Kegiatan', i: 'presentation', d: 'Biaya rapat/pertemuan: konsumsi rapat atau paket halfday, fullday, fullboard, ditambah honor dan sewa gedung', w: 3 },
   {
     k: 'data', h: '#/perubahan', t: 'Data SBM', i: 'database', d: 'Perubahan satuan biaya antartahun anggaran dan unduhan tabel biaya ke Excel', w: 4,
     sub: [
@@ -595,27 +595,18 @@ function route() {
       case 'alat':
         setNav('alat');
         cr.push({ t: 'Alat Bantu', h: '#/alat', i: 'calculator' });
-        if (['honor', 'invoice', 'lembur', 'pemeliharaan'].includes(parts[1])) {
+        if (['invoice', 'pajak', 'honor', 'kegiatan', 'lembur', 'pemeliharaan'].includes(parts[1])) {
           const pbj = TOOLS.find((x) => x.k === 'pbj');
           const t = pbj.sub.find((x) => x.k === parts[1]);
           side = [null, 'tool:' + t.k, 'pbj'];
-          cr.push({ t: 'Pengadaan Barang/Jasa', h: pbj.h, i: 'shopping-cart' }, { t: t.t });
+          cr.push({ t: pbj.t, h: pbj.h, i: 'shopping-cart' }, { t: t.t });
           const ui = { $, $$, toast, copy, route };
           if (t.k === 'invoice') ({ html, after } = viewInvoice(ui));
+          else if (t.k === 'pajak') ({ html, after } = viewPajak(ui, params));
           else if (t.k === 'honor') ({ html, after } = viewHonor(ui));
+          else if (t.k === 'kegiatan') ({ html, after } = viewPaket(ui));
           else if (t.k === 'lembur') ({ html, after } = viewLembur(ui));
           else ({ html, after } = viewPemeliharaan(ui));
-        }
-        else if (parts[1] === 'pajak') {
-          side = ['pajak'];
-          cr.push({ t: 'Kalkulator Pajak' });
-          ({ html, after } = viewPajak({ $, $$, toast, copy, route }, params));
-        }
-        else if (['kegiatan'].includes(parts[1])) {
-          const t = TOOLS.find((x) => x.k === parts[1]);
-          side = [t.k];
-          cr.push({ t: t.t });
-          ({ html, after } = viewPaket({ $, $$, toast, copy, route }));
         }
         else { cr[cr.length - 1] = { t: 'Alat Bantu', i: 'calculator' }; html = viewAlat(); }
         break;
