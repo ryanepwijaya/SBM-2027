@@ -15,6 +15,7 @@ import { viewPindah } from './pindah.js';
 import { BABS, REF_LINKS, babByKey, babByKel, babOfButir } from './bab.js';
 import { initGlide } from './glide.js';
 import { initHyph } from './hyph.js';
+import { initCalc } from './calc.js';
 
 const $ = (s, el = document) => el.querySelector(s);
 const $$ = (s, el = document) => [...el.querySelectorAll(s)];
@@ -1784,6 +1785,7 @@ async function start() {
   initTips();
   initGlide();
   initHyph();
+  initCalc();
   $('#main').innerHTML = `<div class="empty">Memuat data…</div>`;
   try {
     await loadData();

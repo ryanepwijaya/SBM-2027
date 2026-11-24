@@ -67,6 +67,10 @@ python3 build_data.py /tmp/tables26.json /tmp/text26.json map.json ../../data/sb
 
 Semua alat memakai `resetBtn(id)` (`js/store.js`) di kepala halaman, di luar langkah, posisi kanan atas yang sama. Reset perlu ditekan dua kali dalam 3 detik (`resetGuard` atau pola serupa), mengosongkan semua isian, dan alat berlangkah kembali ke langkah 1. Tombol "Kosongkan" daftar kota asal di Perjadin (banyak asal) tetap di langkahnya karena hanya menghapus daftar itu.
 
+## Kalkulator melayang
+
+`js/calc.js` (`initCalc()` di `app.js`) memasang tombol bulat di pojok kanan bawah setiap halaman. Elemennya ditempel di `<body>`, di luar `#main`, jadi tetap ada saat pindah halaman dan tidak ikut di-scroll. Tiga keadaan (`data-mode`): `fab` (tertutup), `open` (panel; di PC/HP bisa digeser lewat kepalanya, klik dua kali kepala = kembali ke pojok), `min` (pil berisi hasil terakhir). Tombol/pil otomatis naik bila ada `.wz-bar` lengket di bawah layar. Perhitungan memakai parser sendiri (CSP tanpa `unsafe-eval`): × ÷ didahulukan, `a + b%` = a + a×b/100, selain itu `b%` = b/100; tampilan format Indonesia, maksimal 2 desimal. Keyboard aktif saat fokus di panel (angka, + - * / x, %, koma/titik = koma, Enter, Backspace, Delete = bersihkan, Esc = selesai ambil angka/minimalkan). "Ambil angka": klik angka mana pun di halaman (teks maupun isian) untuk dimasukkan; klik berikutnya otomatis ditambah "+"; selama mode ini klik tidak menjalankan tautan/tombol halaman. "Salin" menyalin hasil tanpa titik ribuan. Tidak ada yang disimpan.
+
 ## Penyimpanan
 
 `store` di `js/store.js` hanya menulis ke localStorage untuk pilihan pengguna: `year`, `theme`, `rail`, `saved` (favorit), `recent`, `qhist` (daftar `KEEP`). Semua kunci lain (draf alat bantu, kurs, simulasi persentase dibayar `eff:*`, filter Perubahan SBM) disimpan di `Map` memori: tetap ada saat pindah halaman di dalam aplikasi, kosong lagi saat halaman dimuat ulang atau ditutup. Saat modul dimuat, sisa kunci `sbm27:*` di luar `KEEP` dari versi lama dihapus. Menambah kunci yang memang perlu bertahan = tambahkan ke `KEEP`.

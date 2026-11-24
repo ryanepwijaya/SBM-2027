@@ -1,6 +1,11 @@
 // Ikon: Lucide (lucide-static v1.75.0) — https://lucide.dev — Lisensi ISC
 // Copyright (c) Lucide Contributors. Disematkan agar berfungsi offline.
 const P = {
+"minus": "<path d=\"M5 12h14\" />",
+"mouse-pointer-click": "<path d=\"M14 4.1 12 6\" /><path d=\"m5.1 8-2.9-.8\" /><path d=\"m6 12-1.9 2\" /><path d=\"M7.2 2.2 8 5.1\" /><path d=\"M9.037 9.69a.498.498 0 0 1 .653-.653l11 4.5a.5.5 0 0 1-.074.949l-4.349 1.041a1 1 0 0 0-.74.739l-1.04 4.35a.5.5 0 0 1-.95.074z\" />",
+"grip-horizontal": "<circle cx=\"12\" cy=\"9\" r=\"1\" /><circle cx=\"19\" cy=\"9\" r=\"1\" /><circle cx=\"5\" cy=\"9\" r=\"1\" /><circle cx=\"12\" cy=\"15\" r=\"1\" /><circle cx=\"19\" cy=\"15\" r=\"1\" /><circle cx=\"5\" cy=\"15\" r=\"1\" />",
+"chevron-up": "<path d=\"m18 15-6-6-6 6\" />",
+"delete": "<path d=\"M10 5a2 2 0 0 0-1.344.519l-6.328 5.74a1 1 0 0 0 0 1.481l6.328 5.741A2 2 0 0 0 10 19h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2z\" /><path d=\"m12 9 6 6\" /><path d=\"m18 9-6 6\" />",
 "database": "<ellipse cx=\"12\" cy=\"5\" rx=\"9\" ry=\"3\" /><path d=\"M3 5V19A9 3 0 0 0 21 19V5\" /><path d=\"M3 12A9 3 0 0 0 21 12\" />",
 "calendar": "<path d=\"M8 2v4\"/><path d=\"M16 2v4\"/><rect width=\"18\" height=\"18\" x=\"3\" y=\"4\" rx=\"2\"/><path d=\"M3 10h18\"/>",
 "check": "<path d=\"M20 6 9 17l-5-5\"/>",
