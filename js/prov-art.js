@@ -8,6 +8,9 @@ const arches = (from, to, step, y, w = 5, h = 8, skip = []) => {
   return d;
 };
 
+// Stupa kecil berbentuk lonceng dengan puncak
+const stupa = (x, y, r) => `M${x - r} ${y}C${x - r} ${y - r * 1.7} ${x + r} ${y - r * 1.7} ${x + r} ${y}ZM${x} ${y - r * 1.28}V${y - r * 2}`;
+
 export const PROV_ART = {
   // DKI Jakarta: Monas
   dki: `<path d="M8 90H92M18 90L26 80H74L82 90M26 80L31 73H69L74 80M44.5 73L47.4 26M55.5 73L52.6 26M45.5 26H54.5M46.5 22.5H53.5V26H46.5Z"/>
@@ -17,9 +20,10 @@ export const PROV_ART = {
   jabar: `<path d="M4 90V64H96V90M2 64L8 57H92L98 64M37 57V47H63V57M33 47L39 41H61L67 47M37 41L42 35H58L63 41M41 35L45.5 30H54.5L59 35M50 30V7"/>
     <circle cx="50" cy="26.5" r="1.7"/><circle cx="50" cy="22" r="1.7"/><circle cx="50" cy="17.5" r="1.7"/><circle cx="50" cy="13" r="1.7"/><circle cx="50" cy="8.8" r="1.4"/>
     <path d="M45.5 90V80a4.5 4.5 0 0 1 9 0V90${arches(9, 87, 8, 69, 4, 9, [[40, 56]])}"/>`,
-  // Jawa Tengah: Lawang Sewu
-  jateng: `<path d="M4 90V58H96V90M2 58L9 51H91L98 58M22 58V33H35V58M65 58V33H78V58M20.5 33Q28.5 15 36.5 33M63.5 33Q71.5 15 79.5 33M28.5 23V16M71.5 23V16M22 42H35M65 42H78"/>
-    <path d="${arches(7, 90, 7, 66, 4, 11, [[19, 36], [62, 79]])}${arches(26, 31, 5, 46, 3, 7)}${arches(69, 74, 5, 46, 3, 7)}"/>`,
+  // Jawa Tengah: Borobudur
+  jateng: `<path d="M4 90H96M8 90V84H92V90M13 84V78H87V84M18 78V72H82V72V78M23 72V67H77V72"/>
+    <path d="${[22, 34, 46, 58, 70].map((x) => stupa(x + 4, 67, 4.2)).join('')}${[30, 42, 58, 70].map((x) => stupa(x, 60, 3.6)).join('')}M28 60H72"/>
+    <path d="M37 60C37 46 42 41 50 40C58 41 63 46 63 60M44.5 40.5V36H55.5V40.5M46.5 36L48 30H52L53.5 36M50 30V12M47.5 24H52.5M48.3 18H51.7"/>`,
   // DI Yogyakarta: Tugu Jogja
   diy: `<path d="M28 90H72M32 90V82H68V90M36 82V75H64V82M42 75L44.2 42M58 75L55.8 42M42.6 64H57.4M43.4 53H56.6M43.6 42H56.4M44.6 42Q50 34.5 55.4 42"/>
     <path d="M50 37.5C47.2 31 48.6 21 50 8.5C51.4 21 52.8 31 50 37.5ZM48.6 30L51.4 27M48.4 24L51.6 21M48.8 18L51.2 15.6"/>`,
