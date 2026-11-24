@@ -6,7 +6,7 @@ import { ic } from './icons.js';
 
 const OPS = ['+', '−', '×', '÷'];
 const KEYS = ['C', '⌫', '%', '÷', '7', '8', '9', '×', '4', '5', '6', '−', '1', '2', '3', '+', '00', '0', ',', '='];
-const S = { mode: 'fab', tok: [], fresh: false, last: null, pos: null, pick: false };
+const S = { mode: 'fab', tok: [], fresh: false, last: null, corner: 'br', pick: false };
 let el = {};
 
 /* ---------- angka ---------- */
@@ -104,6 +104,7 @@ function resultText() {
 function draw() {
   if (!el.root) return;
   el.root.dataset.mode = S.mode;
+  el.root.dataset.corner = S.corner;
   el.ex.textContent = S.fresh ? '' : exprText();
   const r = resultText();
   el.rs.textContent = r;
@@ -132,19 +133,11 @@ function lift() {
 }
 function place() {
   if (!el.root) return;
-  const base = getComputedStyle(el.root).getPropertyValue('--calc-base');
   const up = lift();
-  el.root.style.setProperty('--calc-lift', up ? up + 'px' : base || '0px');
-  if (S.mode === 'open' && S.pos) {
-    const w = el.panel.offsetWidth, h = el.panel.offsetHeight;
-    S.pos.x = clamp(S.pos.x, 8, window.innerWidth - w - 8);
-    S.pos.y = clamp(S.pos.y, 8, window.innerHeight - h - 8);
-    el.panel.style.left = S.pos.x + 'px'; el.panel.style.top = S.pos.y + 'px';
-    el.panel.style.right = 'auto'; el.panel.style.bottom = 'auto';
-  } else { el.panel.style.left = el.panel.style.top = el.panel.style.right = el.panel.style.bottom = ''; }
+  el.root.style.setProperty('--calc-lift', up ? up + 'px' : 'var(--calc-base)');
 }
 let raf = 0;
-const schedule = () => { if (!raf) raf = requestAnimationFrame(() => { raf = 0; if (S.mode !== 'open' || !S.pos) place(); }); };
+const schedule = () => { if (!raf) raf = requestAnimationFrame(() => { raf = 0; place(); }); };
 
 function setMode(m) {
   S.mode = m;
@@ -217,31 +210,61 @@ function flash(msg) {
 }
 const HINT = 'Klik angka di halaman. Klik lagi untuk menjumlahkan. Esc untuk selesai.';
 
-/* ---------- geser panel ---------- */
-function initDrag() {
+/* ---------- geser: bebas saat ditarik, lalu menempel ke pojok terdekat ---------- */
+// Pojok: br (kanan bawah, bawaan), bl, tr, tl. Berlaku untuk tombol, pil, dan panel.
+function snapTo(node, corner) {
+  const before = node.getBoundingClientRect();
+  node.style.left = node.style.top = node.style.right = node.style.bottom = '';
+  S.corner = corner; el.root.dataset.corner = corner;
+  const after = node.getBoundingClientRect();
+  node.style.transition = 'none';
+  node.style.transform = `translate(${before.left - after.left}px, ${before.top - after.top}px)`;
+  node.getBoundingClientRect();
+  node.style.transition = 'transform .22s cubic-bezier(.22, 1, .36, 1)';
+  node.style.transform = '';
+  setTimeout(() => { node.style.transition = ''; }, 260);
+}
+// handle = bagian yang ditarik; node = elemen yang berpindah; onTap = aksi bila hanya diketuk
+function draggable(handle, node, onTap) {
   let st = null;
-  el.head.addEventListener('pointerdown', (e) => {
-    if (e.target.closest('button') || e.button > 0) return;
-    const r = el.panel.getBoundingClientRect();
-    st = { dx: e.clientX - r.left, dy: e.clientY - r.top, id: e.pointerId };
-    el.head.setPointerCapture(e.pointerId);
-    el.panel.classList.add('drag');
+  handle.addEventListener('pointerdown', (e) => {
+    if (e.button > 0 || (handle === el.head && e.target.closest('button'))) return;
+    if (handle !== el.head) e.preventDefault(); // cegah seret teks/gambar bawaan browser yang membatalkan geseran
+    const r = node.getBoundingClientRect();
+    st = { id: e.pointerId, sx: e.clientX, sy: e.clientY, dx: e.clientX - r.left, dy: e.clientY - r.top, w: r.width, h: r.height, moved: false };
+    handle.setPointerCapture(e.pointerId);
   });
-  el.head.addEventListener('pointermove', (e) => {
+  handle.addEventListener('pointermove', (e) => {
     if (!st || e.pointerId !== st.id) return;
-    S.pos = { x: e.clientX - st.dx, y: e.clientY - st.dy };
-    place();
+    if (!st.moved && Math.hypot(e.clientX - st.sx, e.clientY - st.sy) < 6) return;
+    if (!st.moved) { st.moved = true; node.classList.add('drag'); el.root.classList.add('dragging'); }
+    const x = clamp(e.clientX - st.dx, 4, window.innerWidth - st.w - 4);
+    const y = clamp(e.clientY - st.dy, 4, window.innerHeight - st.h - 4);
+    Object.assign(node.style, { left: x + 'px', top: y + 'px', right: 'auto', bottom: 'auto' });
   });
-  const end = (e) => { if (st && e.pointerId === st.id) { st = null; el.panel.classList.remove('drag'); } };
-  el.head.addEventListener('pointerup', end);
-  el.head.addEventListener('pointercancel', end);
-  el.head.addEventListener('dblclick', (e) => { if (!e.target.closest('button')) { S.pos = null; place(); } });
+  const end = (e) => {
+    if (!st || e.pointerId !== st.id) return;
+    const moved = st.moved; st = null;
+    node.classList.remove('drag'); el.root.classList.remove('dragging');
+    if (!moved) { if (e.type === 'pointerup' && onTap) onTap(); return; }
+    const r = node.getBoundingClientRect();
+    const cx = r.left + r.width / 2, cy = r.top + r.height / 2;
+    snapTo(node, (cy < window.innerHeight / 2 ? 't' : 'b') + (cx < window.innerWidth / 2 ? 'l' : 'r'));
+  };
+  handle.addEventListener('pointerup', end);
+  handle.addEventListener('pointercancel', end);
+}
+function initDrag() {
+  draggable(el.head, el.panel, null);
+  draggable(el.fab, el.fab, () => setMode('open'));
+  draggable(el.pill, el.pill, () => setMode('open'));
 }
 
 /* ---------- keyboard (hanya saat fokus di panel) ---------- */
 const KEYMAP = { '*': '×', x: '×', X: '×', '/': '÷', '-': '−', '+': '+', '%': '%', ',': ',', '.': ',', Enter: '=', '=': '=', Backspace: '⌫', Delete: 'C' };
 function onKey(e) {
   if (e.ctrlKey || e.metaKey || e.altKey) return;
+  e.stopPropagation(); // jangan sampai "/" membuka pencarian atau pintasan lain milik halaman
   if (e.key === 'Escape') { e.preventDefault(); if (S.pick) { S.pick = false; draw(); } else setMode('min'); return; }
   const k = /^\d$/.test(e.key) ? e.key : KEYMAP[e.key];
   if (!k) return;
@@ -269,10 +292,10 @@ export function initCalc() {
   root.className = 'calc-root';
   root.dataset.mode = 'fab';
   root.innerHTML = `
-    <button type="button" class="calc-fab" aria-label="Buka kalkulator" title="Kalkulator">${ic('calculator')}</button>
+    <button type="button" class="calc-fab" aria-label="Buka kalkulator" title="Kalkulator · tarik untuk pindah pojok">${ic('calculator')}</button>
     <button type="button" class="calc-pill" aria-label="Buka kalkulator">${ic('calculator')}<span>=</span><b class="calc-pv">0</b>${ic('chevron-up')}</button>
     <div class="calc-panel" role="dialog" aria-label="Kalkulator" tabindex="-1">
-      <div class="calc-head" title="Geser untuk memindahkan · klik dua kali untuk kembali ke pojok">${ic('grip-horizontal')}<span>Kalkulator</span>
+      <div class="calc-head" title="Tarik ke salah satu pojok layar">${ic('grip-horizontal')}<span>Kalkulator</span>
         <button type="button" class="calc-hb" data-a="min" aria-label="Minimalkan" title="Minimalkan">${ic('minus')}</button>
         <button type="button" class="calc-hb" data-a="close" aria-label="Tutup" title="Tutup">${ic('x')}</button>
       </div>
@@ -288,8 +311,8 @@ export function initCalc() {
   document.body.appendChild(root);
   const q = (s) => root.querySelector(s);
   el = { root, fab: q('.calc-fab'), pill: q('.calc-pill'), pv: q('.calc-pv'), panel: q('.calc-panel'), head: q('.calc-head'), ex: q('.calc-ex'), rs: q('.calc-rs'), pick: q('.calc-pick'), copy: q('.calc-copy'), hint: q('.calc-hint'), keys: q('.calc-keys'), mark: q('.calc-mark') };
-  el.fab.onclick = () => setMode('open');
-  el.pill.onclick = () => setMode('open');
+  // tombol & pil: ketuk = buka, tarik = pindah pojok (lihat draggable); Enter/Spasi lewat keyboard tetap membuka
+  [el.fab, el.pill].forEach((b) => b.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setMode('open'); } }));
   root.querySelectorAll('.calc-hb').forEach((b) => { b.onclick = () => setMode(b.dataset.a === 'min' ? 'min' : 'fab'); });
   el.keys.addEventListener('click', (e) => { const b = e.target.closest('button[data-k]'); if (b) { press(b.dataset.k); el.panel.focus({ preventScroll: true }); } });
   el.pick.onclick = () => { S.pick = !S.pick; draw(); el.panel.focus({ preventScroll: true }); };

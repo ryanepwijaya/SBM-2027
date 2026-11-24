@@ -262,7 +262,7 @@ function shell() {
   bindYearSwitch(document);
   $('#topSearch').onclick = () => openPalette('');
   document.addEventListener('keydown', (e) => {
-    const typing = /INPUT|TEXTAREA|SELECT/.test(document.activeElement?.tagName);
+    const typing = /INPUT|TEXTAREA|SELECT/.test(document.activeElement?.tagName) || !!document.activeElement?.closest?.('.calc-root');
     const isK = e.key && e.key.toLowerCase() === 'k' && (e.ctrlKey || e.metaKey);
     if ((e.key === '/' && !typing) || isK) {
       e.preventDefault();
