@@ -1,6 +1,6 @@
 // Perjadin (banyak asal): perkiraan biaya satu kegiatan dengan peserta dari banyak kota asal.
 // Memakai mesin hitung Hitung Perjalanan per kota asal, lalu menjumlahkan. Hanya menampilkan angka SBM × volume.
-// Isian tersimpan di localStorage perangkat ini saja (tanpa akun, tanpa server).
+// Isian hanya bertahan selama halaman terbuka (lihat store di store.js); tanpa akun, tanpa server.
 import { S, Y, esc, fmt, store, tip, effPct, pctTxt, effMini, tableKey, pdRef, resetBtn } from './store.js';
 import { W, resolve, suggest, placeLabel } from './rute.js';
 import { ic } from './icons.js';
@@ -277,7 +277,7 @@ function step4(effNotice) {
         <button type="button" class="btn primary" id="msXls">${ic('file-spreadsheet')} Unduh Excel</button>
       </div>
     </div>
-    <div class="card ms-cat"><table class="t ms-ct"><thead><tr><th>Komponen</th><th>Dibayar ${tip('Simulasi efisiensi per komponen. Bawaan 100%. Berlaku untuk tabel SBM komponen itu di seluruh aplikasi dan tersimpan di perangkat ini.')}</th><th class="n">Jumlah</th><th class="n">Porsi</th></tr></thead><tbody>${catRows(res)}</tbody>
+    <div class="card ms-cat"><table class="t ms-ct"><thead><tr><th>Komponen</th><th>Dibayar ${tip('Simulasi efisiensi per komponen. Bawaan 100%. Berlaku untuk tabel SBM komponen itu di seluruh aplikasi selama halaman terbuka.')}</th><th class="n">Jumlah</th><th class="n">Porsi</th></tr></thead><tbody>${catRows(res)}</tbody>
       <tfoot><tr><td>Total</td><td></td><td class="n">${fmt(res.grand)}</td><td></td></tr></tfoot></table></div>
   </div>
   ${warn.length ? `<div class="callout warn ms-warn">${ic('triangle-alert')}<div>${warn.map((w) => `<p>${w}</p>`).join('')}</div></div>` : ''}
@@ -335,8 +335,7 @@ function applyPaste(p) {
 
 /* ---------------- View ---------------- */
 export function viewMassal(ui) {
-  const html = `<div class="page-head"><h1 class="title">Perjadin (banyak asal)</h1><p class="subtitle">Perkiraan biaya satu kegiatan di kota tertentu dengan peserta dari banyak kota asal. Hasilnya bisa diunduh sebagai PDF (ringkasan di halaman pertama, lalu rincian) dan Excel. Isian tersimpan otomatis di perangkat ini saja, tanpa akun dan tidak dikirim ke mana pun.</p>${resetBtn('msReset')}</div>
-  <div class="ms-bar"><span class="muted small">${ic('check')} Draf tersimpan otomatis di perangkat ini</span></div>
+  const html = `<div class="page-head"><h1 class="title">Perjadin (banyak asal)</h1><p class="subtitle">Perkiraan biaya satu kegiatan di kota tertentu dengan peserta dari banyak kota asal. Hasilnya bisa diunduh sebagai PDF (ringkasan di halaman pertama, lalu rincian) dan Excel. Isian tidak disimpan dan tidak dikirim ke mana pun: muat ulang atau tutup halaman untuk mulai dari kosong.</p>${resetBtn('msReset')}</div>
   <div id="msNav"></div><div id="msBody"></div>`;
   const { $, $$, toast, effNotice } = ui;
   const go = (s) => { MS.step = s; save(); render(); window.scrollTo({ top: 0 }); };

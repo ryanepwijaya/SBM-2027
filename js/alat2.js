@@ -1,6 +1,6 @@
 // Alat hitung berbasis tabel SBM: Hitung Lembur, Hitung Pemeliharaan dan Operasional, Paket Kegiatan.
 // Hanya satuan biaya SBM × volume yang diisi pengguna; aturan pemberian tidak diterapkan kecuali yang tertulis di penjelasan SBM.
-// Isian tersimpan di localStorage perangkat ini.
+// Isian hanya bertahan selama halaman terbuka (lihat store di store.js).
 import { S, Y, esc, fmt, store, tip, valueCols, shortCol, unitCol, UNIT, effVal, money, effMini, tableKey, resetBtn } from './store.js';
 import { ic } from './icons.js';
 import { buildTablePdf, pdfButton } from './hitung.js';

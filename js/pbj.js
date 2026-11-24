@@ -1,6 +1,6 @@
 // Pengadaan Barang/Jasa: Hitung Invoice (daftar barang) dan Kalkulator Pajak.
 // Rumus pajak: semua hasil dibulatkan ke rupiah terdekat.
-// Isian tersimpan di localStorage perangkat ini.
+// Isian hanya bertahan selama halaman terbuka (lihat store di store.js).
 import { esc, fmt, store, tip, resetBtn } from './store.js';
 import { ic } from './icons.js';
 import { buildTablePdf, pdfButton } from './hitung.js';
@@ -49,7 +49,7 @@ export function invoiceTotal(I = loadInv()) { return I.rows.reduce((a, r) => a +
 
 export function viewInvoice(ui) {
   const I = loadInv();
-  const html = `<div class="page-head"><h1 class="title">Hitung Invoice Barang/Jasa</h1><p class="subtitle">Isi daftar barang/jasa: volume, harga satuan, dan frekuensi. Urutan kolom bisa digeser mengikuti format invoice yang diterima. Semua bisa diisi tanpa mouse: tekan Tab untuk pindah kolom, dan Tab di kolom terakhir baris terakhir membuat baris baru. Totalnya bisa langsung dihitung pajaknya. Isian tersimpan di perangkat ini.</p>${resetBtn('ivReset')}</div>
+  const html = `<div class="page-head"><h1 class="title">Hitung Invoice Barang/Jasa</h1><p class="subtitle">Isi daftar barang/jasa: volume, harga satuan, dan frekuensi. Urutan kolom bisa digeser mengikuti format invoice yang diterima. Semua bisa diisi tanpa mouse: tekan Tab untuk pindah kolom, dan Tab di kolom terakhir baris terakhir membuat baris baru. Totalnya bisa langsung dihitung pajaknya. Isian tidak disimpan: muat ulang atau tutup halaman untuk mulai dari kosong.</p>${resetBtn('ivReset')}</div>
   <div class="card iv">
     <div class="iv-bar">
       <label class="iv-lock"><input type="checkbox" id="ivLock"${I.lock ? ' checked' : ''}><span>Kunci semua frekuensi = 1 <small>(kolom Frek dilewati saat Tab)</small></span></label>
@@ -234,7 +234,7 @@ export function honorTotals(H = loadHon()) {
 
 export function viewHonor(ui) {
   const H = loadHon();
-  const html = `<div class="page-head"><h1 class="title">Hitung Honorarium</h1><p class="subtitle">Honorarium narasumber, moderator, panitia, dan kegiatan lain. Satu baris bisa satu orang atau beberapa orang dengan status yang sama. PPh 21 dihitung otomatis dari status: PNS/PPPK final sesuai golongan (0%, 5%, 15%), Non-PNS 2,5%. Bisa diisi tanpa mouse dengan Tab. Isian tersimpan di perangkat ini.</p>${resetBtn('hnReset')}</div>
+  const html = `<div class="page-head"><h1 class="title">Hitung Honorarium</h1><p class="subtitle">Honorarium narasumber, moderator, panitia, dan kegiatan lain. Satu baris bisa satu orang atau beberapa orang dengan status yang sama. PPh 21 dihitung otomatis dari status: PNS/PPPK final sesuai golongan (0%, 5%, 15%), Non-PNS 2,5%. Bisa diisi tanpa mouse dengan Tab. Isian tidak disimpan: muat ulang atau tutup halaman untuk mulai dari kosong.</p>${resetBtn('hnReset')}</div>
   <div class="card iv hn">
     <div class="iv-bar">
       <div class="pb-opts"><label class="iv-lock"><input type="checkbox" id="hnNet"${H.netto ? ' checked' : ''}><span>Tarif yang diisi adalah netto <small>(dihitung balik ke bruto)</small></span></label>

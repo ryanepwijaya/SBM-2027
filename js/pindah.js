@@ -140,7 +140,7 @@ function formHtml(T, ui, kurs) {
         <div class="kp-row"><span class="kp-lbl">Arah</span>${seg('arah', [['out', 'Jakarta → perwakilan'], ['in', 'Perwakilan → Jakarta']], T.arah)}</div>
         <label class="kp-fld"><span>Perwakilan</span><select class="sel" id="pdPer"><option value="">Pilih perwakilan…</option>${rows.map((r) => `<option${r.v[1] === T.per ? ' selected' : ''}>${esc(r.v[1])}</option>`).join('')}</select></label>
         <div class="kp-row"><span class="kp-lbl">Kelas tiket</span>${seg('kln', KLN, T.kln)}</div>
-        <label class="kp-fld"><span>Kurs (Rp per US$) ${tip('Opsional. Tiket pindah luar negeri dalam dolar AS. Isi kurs yang dipakai satker untuk melihat perkiraan dalam Rupiah. Tersimpan di perangkat ini dan dipakai bersama Hitung Perjalanan.')}</span><span class="kp-kurs"><b>Rp</b><input id="pdKurs" type="text" inputmode="decimal" autocomplete="off" placeholder="Kosongkan bila cukup US$" value="${esc(kursTxt(kurs))}"></span></label>
+        <label class="kp-fld"><span>Kurs (Rp per US$) ${tip('Opsional. Tiket pindah luar negeri dalam dolar AS. Isi kurs yang dipakai satker untuk melihat perkiraan dalam Rupiah. Dipakai bersama Hitung Perjalanan selama halaman terbuka.')}</span><span class="kp-kurs"><b>Rp</b><input id="pdKurs" type="text" inputmode="decimal" autocomplete="off" placeholder="Kosongkan bila cukup US$" value="${esc(kursTxt(kurs))}"></span></label>
       </div>
       <div class="kp-step"><h2 class="kp-h"><span class="step">2</span>Pegawai dan keluarga</h2>${tkSel}</div>
     </div>`;

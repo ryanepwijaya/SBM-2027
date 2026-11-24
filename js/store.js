@@ -204,9 +204,28 @@ export function pdfLink(b, page) {
 }
 
 // Penyimpanan lokal (aman bila diblokir)
+// Yang disimpan di perangkat hanya pilihan pengguna: tahun anggaran, tampilan, sidebar, favorit, terakhir dilihat,
+// dan riwayat pencarian. Semua isian alat bantu (draf, kurs, simulasi persentase dibayar, filter) hanya hidup
+// selama halaman terbuka: dimuat ulang atau ditutup = kosong lagi. Pindah halaman di dalam aplikasi tetap aman.
+const KEEP = new Set(['year', 'theme', 'rail', 'saved', 'recent', 'qhist']);
+const MEM = new Map();
+const copy = (v) => (v === undefined ? v : JSON.parse(JSON.stringify(v)));
+// Bersihkan sisa isian yang tersimpan oleh versi lama
+try {
+  for (let i = localStorage.length - 1; i >= 0; i--) {
+    const k = localStorage.key(i);
+    if (k && k.startsWith('sbm27:') && !KEEP.has(k.slice(6))) localStorage.removeItem(k);
+  }
+} catch { /* abaikan */ }
 export const store = {
-  get(k, d) { try { const v = localStorage.getItem('sbm27:' + k); return v ? JSON.parse(v) : d; } catch { return d; } },
-  set(k, v) { try { localStorage.setItem('sbm27:' + k, JSON.stringify(v)); } catch { /* abaikan */ } },
+  get(k, d) {
+    if (!KEEP.has(k)) return MEM.has(k) ? copy(MEM.get(k)) : d;
+    try { const v = localStorage.getItem('sbm27:' + k); return v ? JSON.parse(v) : d; } catch { return d; }
+  },
+  set(k, v) {
+    if (!KEEP.has(k)) { MEM.set(k, copy(v)); return; }
+    try { localStorage.setItem('sbm27:' + k, JSON.stringify(v)); } catch { /* abaikan */ }
+  },
 };
 
 // Keterangan kecil: ikon (i), muncul saat hover (PC) atau diketuk (HP)

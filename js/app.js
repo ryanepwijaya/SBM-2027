@@ -974,7 +974,7 @@ function viewButir(id, params, anchor) {
 
   const big = b.tables[ti].rows.length > 12;
   const provTable = b.tables[ti].rows.some((r) => r.p) && !['L2-2', 'L2-3', 'L2-6'].includes(id);
-  const effCtl = `<div class="eff-ctl"><label for="effIn">Dibayar</label><span class="eff-box"><input id="effIn" type="text" inputmode="decimal" autocomplete="off" maxlength="6" value="100" aria-describedby="effHelp"><span>%</span></span>${tip('Untuk simulasi efisiensi, misalnya kebijakan pemotongan perjalanan dinas. Isi persentase yang dibayar (1–100); semua angka di tabel ini dihitung ulang dan besaran SBM aslinya tetap tampil dicoret di bawahnya. Tersimpan di perangkat ini per tabel dan per tahun anggaran, dan ikut dipakai di halaman Rute, Daerah, dan Bandingkan. Besaran resmi SBM tidak berubah.')}</div>`;
+  const effCtl = `<div class="eff-ctl"><label for="effIn">Dibayar</label><span class="eff-box"><input id="effIn" type="text" inputmode="decimal" autocomplete="off" maxlength="6" value="100" aria-describedby="effHelp"><span>%</span></span>${tip('Untuk simulasi efisiensi, misalnya kebijakan pemotongan perjalanan dinas. Isi persentase yang dibayar (1–100); semua angka di tabel ini dihitung ulang dan besaran SBM aslinya tetap tampil dicoret di bawahnya. Berlaku per tabel dan per tahun anggaran selama halaman terbuka, dan ikut dipakai di halaman Rute, Daerah, dan Bandingkan; kembali 100% saat halaman dimuat ulang. Besaran resmi SBM tidak berubah.')}</div>`;
   if (id === 'L2-2') {
     tools = `<div class="tbl-tools"><select class="sel" id="provSel"><option value="">Semua provinsi (31)</option>${[...new Set(b.tables[0].rows.filter((r) => r.p).map((r) => r.p))].map((p) => `<option value="${p}"${p === state.prov ? ' selected' : ''}>${esc(S.prov[p].nama)}</option>`).join('')}</select><label class="field">${ic('search')}<input id="tblq" type="search" placeholder="Cari kabupaten/kota…" value="${esc(state.filter)}"></label>${effCtl}</div>`;
   } else if (id === 'L2-6') {
@@ -1653,6 +1653,7 @@ function viewMore(sub) {
       <div class="card card-pad"><table class="plain"><tbody>
         <tr><td>Versi aplikasi</td><td id="appVer">–</td></tr>
         <tr><td>Data aktif</td><td>TA ${Y.y} · ${esc(Y.sources)}</td></tr>
+        <tr><td>Penyimpanan</td><td>Isian alat bantu tidak disimpan: muat ulang atau tutup halaman, semuanya kosong lagi. Yang disimpan di perangkat ini hanya tahun anggaran, tampilan, favorit, terakhir dilihat, dan riwayat pencarian. Tidak ada yang dikirim ke server.</td></tr>
         <tr><td>Pembaruan</td><td>Otomatis saat online; tetap bisa dipakai tanpa internet setelah pernah dibuka.</td></tr>
       </tbody></table></div>
     </div>`;
