@@ -2369,3 +2369,4 @@ body.calc-picking .main, body.calc-picking .main * { cursor: crosshair !importan
   .uj-ftot { order: -1; flex-basis: 100%; justify-content: space-between; margin: 0; padding-bottom: 8px; border-bottom: 1px solid var(--border-2); }
   .uj-ftot span { align-items: flex-start; }
 }
+.uj-ftot span[hidden] { display: none; }

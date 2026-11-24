@@ -146,7 +146,6 @@ function workHtml(T, ev) {
     <div class="tbl-wrap kp-tbl"><table class="t kp-t uj-t uj-w">
       <thead><tr><th>Komponen</th><th class="n">SBM</th><th class="c">Sesuai SBM</th><th class="n">Riil</th><th class="n">Selisih</th><th>Status</th></tr></thead>
       <tbody>${rows}</tbody>
-      <tfoot><tr class="sub"><td>Total</td><td class="n" id="ujTs">${fmt(ev.totSbm)}</td><td></td><td class="n" id="ujTr">${fmt(ev.totRiil)}</td><td class="n" id="ujTl" colspan="2"></td></tr></tfoot>
     </table></div>
     ${ev.res.noTiket ? `<div class="muted small uj-nt">${ic('info')} Tarif tiket pesawat untuk rute ini tidak tercantum di SBM. Bila ada tiket di tagihan, klik <b>Tiket pesawat</b> di Komponen lain di bawah.</div>` : ''}
     <div class="uj-xwrap">
@@ -160,7 +159,7 @@ function workHtml(T, ev) {
     </div>
   </div>`;
 }
-const bar = (n, label) => `<div class="card card-pad wz-bar uj-bar uj-bar${n}"><div class="wz-miss small" aria-live="polite"></div>${n === 2 ? '<div class="uj-ftot" aria-live="polite"><span><small>Total SBM</small><b id="ujFs">–</b></span><span><small>Total riil</small><b id="ujFr">–</b></span><span><small>Selisih</small><b id="ujFd">–</b></span></div>' : ''}<button type="button" class="btn primary" data-wz="${n + 1}">${esc(label)} ${ic('chevron-right')}</button></div>`;
+const bar = (n, label) => `<div class="card card-pad wz-bar uj-bar uj-bar${n}"><div class="wz-miss small" aria-live="polite"></div>${n === 2 ? '<div class="uj-ftot" aria-live="polite"><span><small>Total SBM</small><b id="ujFs">–</b></span><span><small>Total riil</small><b id="ujFr">–</b></span><span><small>Selisih</small><b id="ujFd">–</b></span><span class="uj-flb" hidden><small>Melebihi batas tertinggi</small><b id="ujFl" class="up">–</b></span></div>' : ''}<button type="button" class="btn primary" data-wz="${n + 1}">${esc(label)} ${ic('chevron-right')}</button></div>`;
 
 const BADGE = { ok: 'ok', under: 'ok', nol: 'mute', over: 'bad', dl: 'warn', na: 'mute', kosong: 'mute' };
 // Komponen yang masuk dokumen: dibayar > 0; komponen lain ikut sebagai transportasi/biaya lain sesuai isian
@@ -364,12 +363,11 @@ export function viewUji(ui) {
         $('.uj-d', tr).textContent = diffTxt(x);
         $('.uj-s', tr).innerHTML = statusCell(x);
       });
-      const ts = $('#ujTr', root); if (ts) ts.textContent = fmt(ev.totRiil);
       ev.items.forEach((x) => { if (!x.ok) return; const inp = $(`[data-rk="${CSS.escape(x.k)}"]`, root); if (inp) inp.value = rpTxt(x.riil); });
       // Total melayang di bilah bawah (selisih = riil komponen SBM − SBM; komponen lain tidak ikut selisih)
       const riilSbm = ev.items.reduce((a, x) => a + (x.riil || 0), 0), dif = riilSbm - ev.totSbm;
       const fs = $('#ujFs', root); if (fs) { fs.textContent = fmt(ev.totSbm); $('#ujFr', root).textContent = fmt(ev.totRiil); const fd = $('#ujFd', root); fd.textContent = dif ? `${dif > 0 ? '+' : '−'}${fmt(Math.abs(dif))}` : '–'; fd.className = dif > 0 ? 'up' : dif < 0 ? 'down' : ''; }
-      const tl = $('#ujTl', root); if (tl) tl.innerHTML = ev.lebih ? `<span class="uj-b bad">Melebihi batas tertinggi ${fmt(ev.lebih)}</span>` : '';
+      const fl = $('#ujFl', root); if (fl) { fl.textContent = fmt(ev.lebih); fl.parentElement.hidden = !ev.lebih; }
       const all = $('#ujAll', root); const can = ev.items.filter((x) => x.sbm != null); if (all) all.checked = can.length && can.every((x) => x.ok);
       gate();
       drawResult();

@@ -61,7 +61,7 @@ python3 build_data.py /tmp/tables26.json /tmp/text26.json map.json ../../data/sb
 
 ## Uji Perjalanan
 
-Persentase SBM: komponen yang dicentang Sesuai SBM dihitung riil = SBM × persen (bawaan 100%, 1–100). Input "Dibayar …% dari SBM" di atas tabel (`T.pctDef`) berlaku untuk semua yang dicentang; tiap baris bisa diubah sendiri (`T.pct[k]`). Total SBM, total riil, dan selisih (riil komponen SBM − SBM) ikut melayang di bilah "Lanjut ke dokumen".
+Persentase SBM: komponen yang dicentang Sesuai SBM dihitung riil = SBM × persen (bawaan 100%, 1–100). Input "Dibayar …% dari SBM" di atas tabel (`T.pctDef`) berlaku untuk semua yang dicentang; tiap baris bisa diubah sendiri (`T.pct[k]`). Total SBM, total riil, selisih (riil komponen SBM − SBM), dan kelebihan batas tertinggi (bila ada) hanya ditampilkan di bilah melayang "Lanjut ke dokumen"; baris Total di tabel dihapus.
 
 Komponen lain di tagihan ditambah lewat pil pilihan cepat (`XOPT` di `js/uji.js`: Tiket pesawat (hanya bila SBM tidak memuat tiket rute itu), Tiket kereta api, Tiket kapal laut, Tiket bus/travel, BBM, Tol, Parkir, Sewa kendaraan, Bagasi, Lainnya). Uraian terisi otomatis dan terkunci; hanya Lainnya yang uraiannya bisa diubah (bawaan "Lainnya"). Setelah pil diklik, kursor langsung ke kolom jumlah.
 
