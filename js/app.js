@@ -1234,8 +1234,7 @@ const PULAU = [
   { n: 'Bali dan Nusa Tenggara', ids: ['bali', 'ntb', 'ntt'] },
   { n: 'Kalimantan', ids: ['kalbar', 'kalteng', 'kalsel', 'kaltim', 'kaltara'] },
   { n: 'Sulawesi', ids: ['sulut', 'gorontalo', 'sulbar', 'sulsel', 'sulteng', 'sultra'] },
-  { n: 'Maluku', ids: ['maluku', 'malut'] },
-  { n: 'Papua', ids: ['papua', 'pabar', 'pbd', 'pateng', 'pasel', 'papeg'] },
+  { n: 'Maluku dan Papua', ids: ['maluku', 'malut', 'papua', 'pabar', 'pbd', 'pateng', 'pasel', 'papeg'] },
 ];
 function viewDaerah(mode, params) {
   const seg = daerahSeg(mode);
