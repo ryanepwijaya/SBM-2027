@@ -6,7 +6,7 @@ import { ic } from './icons.js';
 
 const OPS = ['+', '−', '×', '÷'];
 const KEYS = ['C', '⌫', '%', '÷', '7', '8', '9', '×', '4', '5', '6', '−', '1', '2', '3', '+', '00', '0', ',', '='];
-const S = { mode: 'fab', tok: [], fresh: false, last: null, corner: 'br', pick: false };
+const S = { mode: 'fab', tok: [], fresh: false, last: null, corner: 'br', pick: false, paste: false };
 let el = {};
 
 /* ---------- angka ---------- */
@@ -111,9 +111,12 @@ function draw() {
   el.pv.textContent = r;
   el.pick.classList.toggle('on', S.pick);
   el.pick.setAttribute('aria-pressed', S.pick ? 'true' : 'false');
-  el.hint.hidden = !S.pick;
+  el.paste.classList.toggle('on', S.paste);
+  el.paste.setAttribute('aria-pressed', S.paste ? 'true' : 'false');
+  if (!flashT) { el.hint.textContent = hintText(); el.hint.hidden = !(S.pick || S.paste); }
   document.body.classList.toggle('calc-picking', S.pick);
-  if (!S.pick) el.mark.style.display = 'none';
+  document.body.classList.toggle('calc-pasting', S.paste);
+  if (!S.pick && !S.paste) el.mark.style.display = 'none';
   place();
 }
 
@@ -141,7 +144,7 @@ const schedule = () => { if (!raf) raf = requestAnimationFrame(() => { raf = 0; 
 
 function setMode(m) {
   S.mode = m;
-  if (m !== 'open') S.pick = false;
+  if (m !== 'open') { S.pick = false; S.paste = false; }
   draw();
   if (m === 'open') el.panel.focus({ preventScroll: true });
   if (m === 'fab') el.fab.focus({ preventScroll: true });
@@ -187,16 +190,43 @@ function numberAt(x, y, target) {
   return null;
 }
 const inCalc = (t) => t && t.closest && t.closest('.calc-root');
+// Kotak isian yang bisa ditempeli hasil
+const pasteTarget = (t) => {
+  const inp = t && t.closest && t.closest('input, textarea');
+  if (!inp || inCalc(inp)) return null;
+  if (inp.tagName === 'INPUT' && !/^(text|number|search|tel|)$/.test(inp.type)) return null;
+  return inp;
+};
+const markBox = (r) => Object.assign(el.mark.style, { display: 'block', left: r.left - 3 + 'px', top: r.top - 2 + 'px', width: r.width + 6 + 'px', height: r.height + 4 + 'px' });
 function onPickMove(e) {
-  if (!S.pick || inCalc(e.target)) { el.mark.style.display = 'none'; return; }
+  if ((!S.pick && !S.paste) || inCalc(e.target)) { el.mark.style.display = 'none'; return; }
+  if (S.paste) {
+    const inp = pasteTarget(e.target);
+    if (!inp || inp.readOnly || inp.disabled) { el.mark.style.display = 'none'; return; }
+    markBox(inp.getBoundingClientRect()); return;
+  }
   const hit = numberAt(e.clientX, e.clientY, e.target);
   if (!hit) { el.mark.style.display = 'none'; return; }
-  const r = hit.range ? hit.range.getBoundingClientRect() : hit.el.getBoundingClientRect();
-  Object.assign(el.mark.style, { display: 'block', left: r.left - 3 + 'px', top: r.top - 2 + 'px', width: r.width + 6 + 'px', height: r.height + 4 + 'px' });
+  markBox(hit.range ? hit.range.getBoundingClientRect() : hit.el.getBoundingClientRect());
 }
+function current() { const v = S.tok.length ? evaluate(S.tok) : S.last; return v === null || !Number.isFinite(v) ? null : Math.round(v * 100) / 100; }
 function onPickClick(e) {
-  if (!S.pick || inCalc(e.target)) return;
+  if ((!S.pick && !S.paste) || inCalc(e.target)) return;
   e.preventDefault(); e.stopPropagation();
+  if (S.paste) {
+    const inp = pasteTarget(e.target);
+    if (!inp) { flash('Klik kotak isian untuk menempel.'); return; }
+    if (inp.readOnly || inp.disabled) { flash('Kotak ini terkunci, tidak bisa diisi.'); return; }
+    const v = current();
+    if (v === null) { flash('Belum ada hasil untuk ditempel.'); return; }
+    inp.value = inp.type === 'number' ? String(v) : String(v).replace('.', ',');
+    inp.dispatchEvent(new Event('input', { bubbles: true }));
+    inp.dispatchEvent(new Event('change', { bubbles: true }));
+    inp.focus({ preventScroll: true });
+    S.paste = false; draw();
+    flash(`Ditempel: ${fmtNum(v)}`);
+    return;
+  }
   const hit = numberAt(e.clientX, e.clientY, e.target);
   if (!hit || !Number.isFinite(hit.v)) { flash('Bukan angka. Klik tepat di angkanya.'); return; }
   insert(hit.v);
@@ -206,9 +236,11 @@ let flashT = 0;
 function flash(msg) {
   el.hint.textContent = msg; el.hint.hidden = false;
   clearTimeout(flashT);
-  flashT = setTimeout(() => { el.hint.textContent = HINT; el.hint.hidden = !S.pick; }, 1100);
+  flashT = setTimeout(() => { flashT = 0; el.hint.textContent = hintText(); el.hint.hidden = !(S.pick || S.paste); }, 1300);
 }
 const HINT = 'Klik angka di halaman. Klik lagi untuk menjumlahkan. Esc untuk selesai.';
+const HINT_PASTE = 'Klik kotak isian di halaman untuk menempelkan hasil. Esc untuk batal.';
+const hintText = () => (S.paste ? HINT_PASTE : HINT);
 
 /* ---------- geser: bebas saat ditarik, lalu menempel ke pojok terdekat ---------- */
 // Pojok: br (kanan bawah, bawaan), bl, tr, tl. Berlaku untuk tombol, pil, dan panel.
@@ -265,7 +297,7 @@ const KEYMAP = { '*': '×', x: '×', X: '×', '/': '÷', '-': '−', '+': '+', '
 function onKey(e) {
   if (e.ctrlKey || e.metaKey || e.altKey) return;
   e.stopPropagation(); // jangan sampai "/" membuka pencarian atau pintasan lain milik halaman
-  if (e.key === 'Escape') { e.preventDefault(); if (S.pick) { S.pick = false; draw(); } else setMode('min'); return; }
+  if (e.key === 'Escape') { e.preventDefault(); if (S.pick || S.paste) { S.pick = false; S.paste = false; draw(); } else setMode('min'); return; }
   const k = /^\d$/.test(e.key) ? e.key : KEYMAP[e.key];
   if (!k) return;
   e.preventDefault();
@@ -301,7 +333,8 @@ export function initCalc() {
       </div>
       <div class="calc-screen"><div class="calc-ex" aria-hidden="true"></div><div class="calc-rs" aria-live="polite">0</div></div>
       <div class="calc-tools">
-        <button type="button" class="calc-pick" aria-pressed="false" title="Klik angka di halaman untuk dimasukkan">${ic('mouse-pointer-click')}<span>Ambil angka</span></button>
+        <button type="button" class="calc-pick" aria-pressed="false" title="Ambil angka: klik angka di halaman untuk dimasukkan">${ic('mouse-pointer-click')}<span>Ambil</span></button>
+        <button type="button" class="calc-paste" aria-pressed="false" title="Tempel: klik kotak isian di halaman untuk mengisi dengan hasil">${ic('clipboard-paste')}<span>Tempel</span></button>
         <button type="button" class="calc-copy" title="Salin hasil tanpa titik ribuan">${ic('copy')}<span>Salin</span></button>
       </div>
       <div class="calc-hint" hidden>${HINT}</div>
@@ -310,18 +343,23 @@ export function initCalc() {
     <div class="calc-mark" aria-hidden="true"></div>`;
   document.body.appendChild(root);
   const q = (s) => root.querySelector(s);
-  el = { root, fab: q('.calc-fab'), pill: q('.calc-pill'), pv: q('.calc-pv'), panel: q('.calc-panel'), head: q('.calc-head'), ex: q('.calc-ex'), rs: q('.calc-rs'), pick: q('.calc-pick'), copy: q('.calc-copy'), hint: q('.calc-hint'), keys: q('.calc-keys'), mark: q('.calc-mark') };
+  el = { root, fab: q('.calc-fab'), pill: q('.calc-pill'), pv: q('.calc-pv'), panel: q('.calc-panel'), head: q('.calc-head'), ex: q('.calc-ex'), rs: q('.calc-rs'), pick: q('.calc-pick'), paste: q('.calc-paste'), copy: q('.calc-copy'), hint: q('.calc-hint'), keys: q('.calc-keys'), mark: q('.calc-mark') };
   // tombol & pil: ketuk = buka, tarik = pindah pojok (lihat draggable); Enter/Spasi lewat keyboard tetap membuka
   [el.fab, el.pill].forEach((b) => b.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setMode('open'); } }));
   root.querySelectorAll('.calc-hb').forEach((b) => { b.onclick = () => setMode(b.dataset.a === 'min' ? 'min' : 'fab'); });
   el.keys.addEventListener('click', (e) => { const b = e.target.closest('button[data-k]'); if (b) { press(b.dataset.k); el.panel.focus({ preventScroll: true }); } });
-  el.pick.onclick = () => { S.pick = !S.pick; draw(); el.panel.focus({ preventScroll: true }); };
+  const clearFlash = () => { clearTimeout(flashT); flashT = 0; };
+  el.pick.onclick = () => { clearFlash(); S.pick = !S.pick; S.paste = false; draw(); el.panel.focus({ preventScroll: true }); };
+  el.paste.onclick = () => {
+    if (!S.paste && current() === null) { flash('Belum ada hasil untuk ditempel.'); return; }
+    clearFlash(); S.paste = !S.paste; S.pick = false; draw(); el.panel.focus({ preventScroll: true });
+  };
   el.copy.onclick = copy;
   el.panel.addEventListener('keydown', onKey);
   initDrag();
   document.addEventListener('click', onPickClick, true);
   document.addEventListener('pointermove', onPickMove, { passive: true });
-  document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && S.pick && !el.panel.contains(document.activeElement)) { S.pick = false; draw(); } });
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && (S.pick || S.paste) && !el.panel.contains(document.activeElement)) { S.pick = false; S.paste = false; draw(); } });
   window.addEventListener('scroll', () => { el.mark.style.display = 'none'; schedule(); }, { passive: true });
   window.addEventListener('resize', () => place());
   window.addEventListener('hashchange', () => setTimeout(place, 60));

@@ -2295,7 +2295,7 @@ body.uj-noscroll { overflow: hidden; }
 .calc-tools button { flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 6px; height: 32px; border: 1px solid var(--border); border-radius: 9px; background: var(--surface-2); color: var(--text); font: inherit; font-size: 12.5px; font-weight: 600; cursor: pointer; }
 .calc-tools button svg { width: 15px; height: 15px; }
 .calc-tools button:hover { border-color: var(--navy-700); }
-.calc-pick.on { background: var(--gold); border-color: var(--gold); color: var(--navy-900); }
+.calc-pick.on, .calc-paste.on { background: var(--gold); border-color: var(--gold); color: var(--navy-900); }
 .calc-hint { margin: 0 10px 8px; padding: 7px 10px; border-radius: 8px; background: color-mix(in srgb, var(--gold) 16%, var(--surface)); color: var(--text); font-size: 12px; line-height: 1.4; }
 .calc-keys { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; padding: 0 10px 10px; }
 .calc-keys { touch-action: manipulation; }
@@ -2309,6 +2309,7 @@ body.uj-noscroll { overflow: hidden; }
 .calc-keys .eq:hover { background: var(--gold-2); }
 .calc-mark { position: fixed; z-index: 81; display: none; pointer-events: none; border: 2px solid var(--gold); border-radius: 6px; background: color-mix(in srgb, var(--gold) 18%, transparent); }
 body.calc-picking .main, body.calc-picking .main * { cursor: crosshair !important; }
+body.calc-pasting .main input, body.calc-pasting .main textarea { cursor: copy !important; }
 @media print { .calc-root { display: none !important; } }
 /* Daftar provinsi per pulau besar */
 .prov-groups { display: grid; gap: 14px; }
