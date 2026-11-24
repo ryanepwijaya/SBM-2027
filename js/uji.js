@@ -9,6 +9,20 @@ import { P, T as Tbl, docx, terbilang } from './docx-mini.js';
 
 const KEY = 'uji';
 let WZ = 1;
+// Pilihan cepat komponen lain di tagihan perjalanan dinas. Uraian terisi otomatis; hanya "Lainnya" yang uraiannya bisa diubah.
+const XOPT = [
+  { k: 'pesawat', l: 'Tiket pesawat', i: 'plane', only: 'noTiket' },
+  { k: 'kereta', l: 'Tiket kereta api', i: 'train-front' },
+  { k: 'kapal', l: 'Tiket kapal laut', i: 'ship' },
+  { k: 'bus', l: 'Tiket bus/travel', i: 'bus' },
+  { k: 'bbm', l: 'BBM', i: 'fuel' },
+  { k: 'tol', l: 'Tol', i: 'milestone' },
+  { k: 'parkir', l: 'Parkir', i: 'square-parking' },
+  { k: 'sewa', l: 'Sewa kendaraan', i: 'car' },
+  { k: 'bagasi', l: 'Bagasi', i: 'luggage' },
+  { k: 'lain', l: 'Lainnya', i: 'circle-ellipsis' },
+];
+const XK = Object.fromEntries(XOPT.map((o) => [o.k, o]));
 const DEF = () => ({ dari: 'jakarta', ke: '', jenis: 'lk', hari: 2, malam: 1, mm: false, tk: 'e4', kelasA: {}, inap: 'hotel', riil: {}, ok: {}, nob: {}, extra: [] });
 const digits = (s) => String(s ?? '').replace(/\D/g, '');
 const rp = (s) => { const d = digits(s); return d ? Number(d) : null; };
@@ -25,7 +39,7 @@ function load() {
     if (d.riil && typeof d.riil === 'object') for (const [k, v] of Object.entries(d.riil)) if (typeof v === 'string') T.riil[String(k).slice(0, 200)] = digits(v).slice(0, 13);
     if (d.ok && typeof d.ok === 'object') for (const [k, v] of Object.entries(d.ok)) if (v === true) T.ok[String(k).slice(0, 200)] = true;
     if (d.nob && typeof d.nob === 'object') for (const [k, v] of Object.entries(d.nob)) if (v === true) T.nob[String(k).slice(0, 200)] = true;
-    if (Array.isArray(d.extra)) T.extra = d.extra.slice(0, 10).map((x) => ({ l: String(x?.l ?? '').slice(0, 120), a: digits(x?.a).slice(0, 13) }));
+    if (Array.isArray(d.extra)) T.extra = d.extra.slice(0, 10).map((x) => ({ k: XK[x?.k] ? x.k : 'lain', l: String(x?.l ?? '').slice(0, 120), a: digits(x?.a).slice(0, 13) }));
   }
   if (!TINGKAT.some((t) => t.k === T.tk)) T.tk = 'e4';
   if (!['lk', 'diklat'].includes(T.jenis)) T.jenis = 'lk';
@@ -128,15 +142,15 @@ function workHtml(T, ev) {
       <tbody>${rows}</tbody>
       <tfoot><tr class="sub"><td>Total</td><td class="n" id="ujTs">${fmt(ev.totSbm)}</td><td></td><td class="n" id="ujTr">${fmt(ev.totRiil)}</td><td class="n" id="ujTl" colspan="2"></td></tr></tfoot>
     </table></div>
-    ${ev.res.noTiket ? `<div class="muted small uj-nt">${ic('info')} Tarif tiket pesawat untuk rute ini tidak tercantum di SBM. Bila ada tiket di tagihan, tambahkan sebagai komponen lain.</div>` : ''}
+    ${ev.res.noTiket ? `<div class="muted small uj-nt">${ic('info')} Tarif tiket pesawat untuk rute ini tidak tercantum di SBM. Bila ada tiket di tagihan, klik <b>Tiket pesawat</b> di Komponen lain di bawah.</div>` : ''}
     <div class="uj-xwrap">
-      <div class="uj-x-h">Komponen lain di tagihan ${tip('Komponen yang tidak ada di satuan biaya SBM untuk rute ini, misalnya kereta api atau biaya lain. Dicatat di hasil, tetapi tidak diuji.')}</div>
+      <div class="uj-x-h">Komponen lain di tagihan ${tip('Komponen yang tidak ada di satuan biaya SBM untuk rute ini. Klik salah satu pilihan di bawah, lalu isi jumlahnya. Pilih Lainnya untuk komponen yang tidak ada di daftar; uraiannya bisa diubah. Dicatat di hasil, tetapi tidak diuji terhadap SBM.')}</div>
       <div class="uj-list">${T.extra.map((x, i) => `<div class="uj-r uj-x">
-        <input class="iv-in uj-xl" data-xl="${i}" type="text" autocomplete="off" maxlength="120" placeholder="Uraian, mis. Kereta api Jakarta–Bandung PP" value="${esc(x.l)}" aria-label="Uraian komponen lain ${i + 1}">
+        ${x.k === 'lain' ? `<input class="iv-in uj-xl" data-xl="${i}" type="text" autocomplete="off" maxlength="120" placeholder="Uraian komponen" value="${esc(x.l)}" aria-label="Uraian komponen lain ${i + 1}">` : `<span class="uj-xl uj-xfix">${ic(XK[x.k].i)}<span>${esc(x.l)}</span></span>`}
         <span class="kp-kurs uj-in"><b>Rp</b><input data-xa="${i}" type="text" inputmode="numeric" autocomplete="off" placeholder="Jumlah" value="${esc(rpTxt(rp(x.a)))}" aria-label="Jumlah komponen lain ${i + 1}"></span>
         <button type="button" class="btn sm ghost uj-del" data-xdel="${i}" aria-label="Hapus komponen lain ${i + 1}">${ic('x')}</button>
       </div>`).join('')}</div>
-      ${T.extra.length < 10 ? `<button type="button" class="btn sm" id="ujAdd">${ic('plus')} Tambah komponen lain</button>` : ''}
+      ${T.extra.length < 10 ? `<div class="uj-xpills" role="group" aria-label="Tambah komponen lain">${XOPT.filter((o) => !o.only || ev.res[o.only]).map((o) => `<button type="button" class="uj-xp" data-xadd="${o.k}">${ic(o.i)}<span>${esc(o.l)}</span>${ic('plus')}</button>`).join('')}</div>` : '<div class="muted small">Maksimal 10 komponen lain.</div>'}
     </div>
   </div>`;
 }
@@ -380,7 +394,13 @@ export function viewUji(ui) {
       if (b) { const el = b.closest('.stp'); apply(el, Number(el.querySelector('input').value) + Number(b.dataset.d)); return; }
       const sg = e.target.closest('[data-jenis],[data-inap]');
       if (sg) { const k = sg.dataset.jenis != null ? 'jenis' : 'inap'; if (T[k] !== sg.dataset[k]) { T[k] = sg.dataset[k]; save(); render(); } return; }
-      if (e.target.closest('#ujAdd')) { T.extra.push({ l: '', a: '' }); save(); redrawWork(); setTimeout(() => $(`[data-xl="${T.extra.length - 1}"]`, root)?.focus(), 30); return; }
+      const xp = e.target.closest('[data-xadd]');
+      if (xp) {
+        const o = XK[xp.dataset.xadd];
+        T.extra.push({ k: o.k, l: o.l, a: '' }); save(); redrawWork();
+        setTimeout(() => $(`[data-xa="${T.extra.length - 1}"]`, root)?.focus(), 30);
+        return;
+      }
       const del = e.target.closest('[data-xdel]');
       if (del) { T.extra.splice(Number(del.dataset.xdel), 1); save(); redrawWork(); return; }
     });

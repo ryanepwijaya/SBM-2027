@@ -1,6 +1,13 @@
 // Ikon: Lucide (lucide-static v1.75.0) — https://lucide.dev — Lisensi ISC
 // Copyright (c) Lucide Contributors. Disematkan agar berfungsi offline.
 const P = {
+"train-front": "<path d=\"M8 3.1V7a4 4 0 0 0 8 0V3.1\" /><path d=\"m9 15-1-1\" /><path d=\"m15 15 1-1\" /><path d=\"M9 19c-2.8 0-5-2.2-5-5v-4a8 8 0 0 1 16 0v4c0 2.8-2.2 5-5 5Z\" /><path d=\"m8 19-2 3\" /><path d=\"m16 19 2 3\" />",
+"ship": "<path d=\"M12 2v2\" /><path d=\"M12 9.189V13\" /><path d=\"M19 12V6a2 2 0 00-2-2H7a2 2 0 00-2 2v6\" /><path d=\"M19.38 19A11.6 11.6 0 0021 13l-8.188-3.639a2 2 0 00-1.624 0L3 13.001a11.6 11.6 0 002.81 7.76\" /><path d=\"M2 20c.6.5 1.2 1 2.5 1 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1s1.2 1 2.5 1c2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1\" />",
+"bus": "<path d=\"M8 6v6\" /><path d=\"M15 6v6\" /><path d=\"M2 12h19.6\" /><path d=\"M18 18h3s.5-1.7.8-2.8c.1-.4.2-.8.2-1.2 0-.4-.1-.8-.2-1.2l-1.4-5C20.1 6.8 19.1 6 18 6H4a2 2 0 0 0-2 2v10h3\" /><circle cx=\"7\" cy=\"18\" r=\"2\" /><path d=\"M9 18h5\" /><circle cx=\"16\" cy=\"18\" r=\"2\" />",
+"fuel": "<path d=\"M14 13h2a2 2 0 0 1 2 2v2a2 2 0 0 0 4 0v-6.998a2 2 0 0 0-.59-1.42L18 5\" /><path d=\"M14 21V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v16\" /><path d=\"M2 21h13\" /><path d=\"M3 9h11\" />",
+"milestone": "<path d=\"M12 13v8\" /><path d=\"M12 3v3\" /><path d=\"M18.172 6a2 2 0 0 1 1.414.586l2.06 2.06a1.207 1.207 0 0 1 0 1.708l-2.06 2.06a2 2 0 0 1-1.414.586H4a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1z\" />",
+"square-parking": "<path d=\"M9 12h4a2 2 0 0 0 0-4H9.5a.5.5 0 0 0-.5.5V16\" /><rect width=\"18\" height=\"18\" x=\"3\" y=\"3\" rx=\"2\" />",
+"circle-ellipsis": "<circle cx=\"12\" cy=\"12\" r=\"10\" /><path d=\"M17 12h.01\" /><path d=\"M12 12h.01\" /><path d=\"M7 12h.01\" />",
 "minus": "<path d=\"M5 12h14\" />",
 "mouse-pointer-click": "<path d=\"M14 4.1 12 6\" /><path d=\"m5.1 8-2.9-.8\" /><path d=\"m6 12-1.9 2\" /><path d=\"M7.2 2.2 8 5.1\" /><path d=\"M9.037 9.69a.498.498 0 0 1 .653-.653l11 4.5a.5.5 0 0 1-.074.949l-4.349 1.041a1 1 0 0 0-.74.739l-1.04 4.35a.5.5 0 0 1-.95.074z\" />",
 "grip-horizontal": "<circle cx=\"12\" cy=\"9\" r=\"1\" /><circle cx=\"19\" cy=\"9\" r=\"1\" /><circle cx=\"5\" cy=\"9\" r=\"1\" /><circle cx=\"12\" cy=\"15\" r=\"1\" /><circle cx=\"19\" cy=\"15\" r=\"1\" /><circle cx=\"5\" cy=\"15\" r=\"1\" />",

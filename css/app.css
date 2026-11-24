@@ -2333,3 +2333,15 @@ body.calc-picking .main, body.calc-picking .main * { cursor: crosshair !importan
 [data-theme="dark"] .prov-art { color: var(--gold-2); opacity: .14; }
 [data-theme="dark"] .prov-grp .prov:hover { border-color: var(--gold-2); background: var(--surface-2); box-shadow: none; }
 [data-theme="dark"] .prov-grp .prov:hover .prov-art { opacity: .28; }
+/* Uji Perjalanan: pilihan cepat komponen lain */
+.uj-xpills { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px; }
+.uj-xp { display: inline-flex; align-items: center; gap: 6px; height: 34px; padding: 0 10px 0 11px; border: 1px dashed var(--border); border-radius: 999px; background: var(--surface); color: var(--text); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; transition: border-color .15s, background-color .15s; }
+.uj-xp svg { width: 15px; height: 15px; color: var(--navy-700); flex: none; }
+.uj-xp svg:last-child { width: 13px; height: 13px; color: var(--muted); }
+.uj-xp:hover { border-style: solid; border-color: var(--navy-700); background: var(--surface-2); }
+[data-theme="dark"] .uj-xp svg { color: var(--gold-2); }
+[data-theme="dark"] .uj-xp:hover { border-color: var(--gold-2); }
+.uj-xfix { display: inline-flex; align-items: center; gap: 8px; height: 40px; padding: 0 12px; border: 1px solid var(--border-2); border-radius: 10px; background: var(--surface-2); font-weight: 600; font-size: 14px; min-width: 0; }
+.uj-xfix svg { width: 16px; height: 16px; color: var(--navy-700); flex: none; }
+.uj-xfix span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+[data-theme="dark"] .uj-xfix svg { color: var(--gold-2); }
