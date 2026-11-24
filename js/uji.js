@@ -23,9 +23,11 @@ const XOPT = [
   { k: 'lain', l: 'Lainnya', i: 'circle-ellipsis' },
 ];
 const XK = Object.fromEntries(XOPT.map((o) => [o.k, o]));
-const DEF = () => ({ dari: 'jakarta', ke: '', jenis: 'lk', hari: 2, malam: 1, mm: false, tk: 'e4', kelasA: {}, inap: 'hotel', riil: {}, ok: {}, nob: {}, extra: [] });
+const DEF = () => ({ dari: 'jakarta', ke: '', jenis: 'lk', hari: 2, malam: 1, mm: false, tk: 'e4', kelasA: {}, inap: 'hotel', riil: {}, ok: {}, pct: {}, pctDef: 100, nob: {}, extra: [] });
 const digits = (s) => String(s ?? '').replace(/\D/g, '');
 const rp = (s) => { const d = digits(s); return d ? Number(d) : null; };
+// Persentase SBM yang dibayar satker (1–100%), dipakai saat komponen dicentang
+const clampPct = (v) => Math.max(1, Math.min(100, Math.round(Number(v) || 100)));
 const rpTxt = (n) => (n == null ? '' : Number(n).toLocaleString('id-ID'));
 
 function load() {
@@ -38,6 +40,8 @@ function load() {
     if (d.kelasA && typeof d.kelasA === 'object') for (const k of TIER_A) if (d.kelasA[k] === 'eko') T.kelasA[k] = 'eko';
     if (d.riil && typeof d.riil === 'object') for (const [k, v] of Object.entries(d.riil)) if (typeof v === 'string') T.riil[String(k).slice(0, 200)] = digits(v).slice(0, 13);
     if (d.ok && typeof d.ok === 'object') for (const [k, v] of Object.entries(d.ok)) if (v === true) T.ok[String(k).slice(0, 200)] = true;
+    if (d.pct && typeof d.pct === 'object') for (const [k, v] of Object.entries(d.pct)) if (Number.isFinite(v)) T.pct[String(k).slice(0, 200)] = clampPct(v);
+    if (Number.isFinite(d.pctDef)) T.pctDef = clampPct(d.pctDef);
     if (d.nob && typeof d.nob === 'object') for (const [k, v] of Object.entries(d.nob)) if (v === true) T.nob[String(k).slice(0, 200)] = true;
     if (Array.isArray(d.extra)) T.extra = d.extra.slice(0, 10).map((x) => ({ k: XK[x?.k] ? x.k : 'lain', l: String(x?.l ?? '').slice(0, 120), a: digits(x?.a).slice(0, 13) }));
   }
@@ -85,8 +89,9 @@ function evaluate(T) {
   const { res, rows } = components(T);
   const items = rows.map((r) => {
     const ok = !!T.ok[r.k] && r.sbm != null;
-    const riil = ok ? r.sbm : T.riil[r.k] != null && T.riil[r.k] !== '' ? Number(T.riil[r.k]) : null;
-    return { ...r, ok, riil, j: judge(r, riil) };
+    const pct = ok ? (T.pct[r.k] ?? T.pctDef) : 100;
+    const riil = ok ? Math.round((r.sbm * pct) / 100) : T.riil[r.k] != null && T.riil[r.k] !== '' ? Number(T.riil[r.k]) : null;
+    return { ...r, ok, pct, riil, j: judge(r, riil) };
   });
   const extra = T.extra.map((x) => ({ label: x.l || 'Komponen lain', riil: rp(x.a) }));
   const totRiil = items.reduce((a, x) => a + (x.riil || 0), 0) + extra.reduce((a, x) => a + (x.riil || 0), 0);
@@ -129,14 +134,15 @@ function workHtml(T, ev) {
   const rows = groups.map((g) => `<tr class="grp"><td colspan="6">${esc(g)}</td></tr>` + ev.items.map((x, i) => (x.g !== g ? '' : `<tr data-i="${i}" class="${x.ok ? 'is-ok' : ''}">
       <td><div class="kp-k">${esc(x.label)}</div><div class="kp-sub">${esc(x.vol)}</div><div class="kp-meta">${x.l.sifat ? sifatChip(x.l.sifat) : ''}${x.l.byr ? byrChip(x.l) : ''}</div></td>
       <td class="n" data-l="SBM">${x.sbm == null ? '<span class="na">Tidak tercantum</span>' : fmt(x.sbm)}</td>
-      <td class="c" data-l="Sesuai SBM"><label class="uj-cb"><input type="checkbox" data-ok="${esc(x.k)}"${x.ok ? ' checked' : ''}${x.sbm == null ? ' disabled' : ''} aria-label="${esc(x.label)} sesuai SBM"></label></td>
+      <td class="c" data-l="Sesuai SBM"><div class="uj-okc"><label class="uj-cb"><input type="checkbox" data-ok="${esc(x.k)}"${x.ok ? ' checked' : ''}${x.sbm == null ? ' disabled' : ''} aria-label="${esc(x.label)} sesuai SBM"></label>${x.ok ? `<span class="uj-pct"><input data-pct="${esc(x.k)}" type="text" inputmode="numeric" maxlength="3" autocomplete="off" value="${x.pct}" aria-label="Persentase SBM ${esc(x.label)}"><b>%</b></span>` : ''}</div></td>
       <td class="n" data-l="Riil"><span class="kp-kurs uj-in"><b>Rp</b><input data-rk="${esc(x.k)}" type="text" inputmode="numeric" autocomplete="off" placeholder="${x.sbm == null ? 'Isi, atau 0' : 'Jumlah riil'}" value="${esc(x.riil == null ? '' : rpTxt(x.riil))}"${x.ok ? ' readonly tabindex="-1"' : ''} aria-label="Riil ${esc(x.label)}"></span></td>
       <td class="n uj-d" data-l="Selisih">${diffTxt(x)}</td>
       <td class="uj-s" data-l="Status">${statusCell(x)}</td>
     </tr>`)).join('')).join('');
   return `<div class="card kp-res uj-work">
-    <div class="kp-res-h"><div><div class="kp-title">Kertas kerja uji</div><div class="muted small">Centang <b>Sesuai SBM</b> bila angka tagihan sama dengan SBM, atau isi angka riilnya. Isi 0 bila tidak ditagihkan. Selisih dan status langsung muncul.</div></div>
-      <label class="iv-lock uj-all"><input type="checkbox" id="ujAll"${all ? ' checked' : ''}${can.length ? '' : ' disabled'}><span>Centang semua sesuai SBM</span></label></div>
+    <div class="kp-res-h"><div><div class="kp-title">Kertas kerja uji</div><div class="muted small">Centang <b>Sesuai SBM</b> bila angka tagihan mengikuti SBM (bawaan 100%, persentasenya bisa diubah), atau isi angka riilnya. Isi 0 bila tidak ditagihkan. Selisih dan status langsung muncul.</div></div>
+      <div class="uj-allw"><label class="iv-lock uj-all"><input type="checkbox" id="ujAll"${all ? ' checked' : ''}${can.length ? '' : ' disabled'}><span>Centang semua sesuai SBM</span></label>
+      <label class="uj-pctall"><span>Dibayar ${tip('Bila satker membayar sebagian dari SBM, isi persentasenya. Berlaku untuk semua komponen yang dicentang Sesuai SBM; tiap baris tetap bisa diubah sendiri. Bawaan 100%.')}</span><span class="uj-pct"><input id="ujPctAll" type="text" inputmode="numeric" maxlength="3" autocomplete="off" value="${T.pctDef}" aria-label="Persentase SBM untuk semua yang dicentang"><b>%</b></span><span class="muted">dari SBM</span></label></div></div>
     <div class="tbl-wrap kp-tbl"><table class="t kp-t uj-t uj-w">
       <thead><tr><th>Komponen</th><th class="n">SBM</th><th class="c">Sesuai SBM</th><th class="n">Riil</th><th class="n">Selisih</th><th>Status</th></tr></thead>
       <tbody>${rows}</tbody>
@@ -154,7 +160,7 @@ function workHtml(T, ev) {
     </div>
   </div>`;
 }
-const bar = (n, label) => `<div class="card card-pad wz-bar uj-bar uj-bar${n}"><div class="wz-miss small" aria-live="polite"></div><button type="button" class="btn primary" data-wz="${n + 1}">${esc(label)} ${ic('chevron-right')}</button></div>`;
+const bar = (n, label) => `<div class="card card-pad wz-bar uj-bar uj-bar${n}"><div class="wz-miss small" aria-live="polite"></div>${n === 2 ? '<div class="uj-ftot" aria-live="polite"><span><small>Total SBM</small><b id="ujFs">–</b></span><span><small>Total riil</small><b id="ujFr">–</b></span><span><small>Selisih</small><b id="ujFd">–</b></span></div>' : ''}<button type="button" class="btn primary" data-wz="${n + 1}">${esc(label)} ${ic('chevron-right')}</button></div>`;
 
 const BADGE = { ok: 'ok', under: 'ok', nol: 'mute', over: 'bad', dl: 'warn', na: 'mute', kosong: 'mute' };
 // Komponen yang masuk dokumen: dibayar > 0; komponen lain ikut sebagai transportasi/biaya lain sesuai isian
@@ -359,6 +365,10 @@ export function viewUji(ui) {
         $('.uj-s', tr).innerHTML = statusCell(x);
       });
       const ts = $('#ujTr', root); if (ts) ts.textContent = fmt(ev.totRiil);
+      ev.items.forEach((x) => { if (!x.ok) return; const inp = $(`[data-rk="${CSS.escape(x.k)}"]`, root); if (inp) inp.value = rpTxt(x.riil); });
+      // Total melayang di bilah bawah (selisih = riil komponen SBM − SBM; komponen lain tidak ikut selisih)
+      const riilSbm = ev.items.reduce((a, x) => a + (x.riil || 0), 0), dif = riilSbm - ev.totSbm;
+      const fs = $('#ujFs', root); if (fs) { fs.textContent = fmt(ev.totSbm); $('#ujFr', root).textContent = fmt(ev.totRiil); const fd = $('#ujFd', root); fd.textContent = dif ? `${dif > 0 ? '+' : '−'}${fmt(Math.abs(dif))}` : '–'; fd.className = dif > 0 ? 'up' : dif < 0 ? 'down' : ''; }
       const tl = $('#ujTl', root); if (tl) tl.innerHTML = ev.lebih ? `<span class="uj-b bad">Melebihi batas tertinggi ${fmt(ev.lebih)}</span>` : '';
       const all = $('#ujAll', root); const can = ev.items.filter((x) => x.sbm != null); if (all) all.checked = can.length && can.every((x) => x.ok);
       gate();
@@ -411,19 +421,28 @@ export function viewUji(ui) {
         if (el.dataset.rk != null) T.riil[el.dataset.rk] = d; else T.extra[Number(el.dataset.xa)].a = d;
         save(); refresh(); return;
       }
+      if (el.dataset.pct != null || el.id === 'ujPctAll') {
+        const d = digits(el.value).slice(0, 3); el.value = d;
+        if (!d) return;
+        const v = clampPct(d); if (String(v) !== d) el.value = String(v);
+        if (el.id === 'ujPctAll') { T.pctDef = v; for (const x of ev.items) if (x.ok) delete T.pct[x.k]; $$('[data-pct]', root).forEach((i) => { i.value = String(v); }); }
+        else T.pct[el.dataset.pct] = v;
+        save(); refresh(); return;
+      }
       if (el.dataset.xl != null) { T.extra[Number(el.dataset.xl)].l = el.value.slice(0, 120); save(); refresh(); return; }
       if (el.classList.contains('stp-in')) { const v = parseInt(digits(el.value), 10); if (Number.isFinite(v)) { const st = el.closest('.stp'); if (st.dataset.stp === 'hari') { T.hari = Math.max(1, Math.min(365, v)); T.malam = T.mm ? Math.min(T.malam, T.hari) : Math.min(T.hari, autoMalam(T.hari)); } else { T.malam = Math.max(0, Math.min(T.hari, v)); T.mm = true; } save(); } }
     });
     const guard = resetGuard(toast);
     $('#ujReset').onclick = () => guard(() => { Object.assign(T, DEF()); WZ = 1; root.dataset.wz = '1'; save(); render(); window.scrollTo({ top: 0, behavior: 'smooth' }); toast('Isian dikembalikan ke awal'); });
     root.addEventListener('focusout', (e) => { if (e.target.classList.contains('stp-in')) render(); });
-    root.addEventListener('focusin', (e) => { const inp = e.target.closest('.stp-in, [data-rk], [data-xa]'); if (inp) inp.select(); });
+    root.addEventListener('focusin', (e) => { const inp = e.target.closest('.stp-in, [data-rk], [data-xa], [data-pct], #ujPctAll'); if (inp) inp.select(); });
     const redrawWork = () => { ev = evaluate(T); $('#ujWork', root).innerHTML = workHtml(T, ev); refresh(); };
     root.addEventListener('change', (e) => {
       const nb = e.target.closest('[data-nob]');
       if (nb) { if (nb.checked) T.nob[nb.dataset.nob] = true; else delete T.nob[nb.dataset.nob]; save(); drawResult(); return; }
       const ok = e.target.closest('[data-ok]');
-      if (ok) { if (ok.checked) T.ok[ok.dataset.ok] = true; else delete T.ok[ok.dataset.ok]; save(); redrawWork(); return; }
+      if (ok) { if (ok.checked) T.ok[ok.dataset.ok] = true; else { delete T.ok[ok.dataset.ok]; delete T.pct[ok.dataset.ok]; } save(); redrawWork(); return; }
+      if (e.target.dataset.pct != null || e.target.id === 'ujPctAll') { e.target.value = String(e.target.id === 'ujPctAll' ? T.pctDef : (T.pct[e.target.dataset.pct] ?? T.pctDef)); return; }
       if (e.target.id === 'ujAll') { const on = e.target.checked; for (const x of ev.items) if (x.sbm != null) { if (on) T.ok[x.k] = true; else delete T.ok[x.k]; } save(); redrawWork(); return; }
       if (e.target.id === 'ujTk') { T.tk = e.target.value; save(); render(); }
       const s = e.target.closest('[data-kelasa]'); if (s) { T.kelasA[s.dataset.kelasa] = s.value; save(); render(); }
