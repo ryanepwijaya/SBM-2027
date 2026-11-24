@@ -52,7 +52,7 @@ const TOOLS = [
     sub: [{ k: 'ln', h: '#/daerah/ln', t: 'Luar Negeri', i: 'globe', d: 'Uang harian per negara dan tiket per kota' }], flat: true, w: -1,
   },
   {
-    k: 'pbj', h: '#/alat/invoice', t: 'Pengadaan Barang/Jasa', i: 'shopping-cart', d: 'Invoice dan pajaknya, honorarium, paket kegiatan rapat, lembur, serta pemeliharaan dan operasional',
+    k: 'pbj', h: '#/alat/invoice', t: 'Belanja Kegiatan', i: 'shopping-cart', d: 'Invoice dan pajaknya, honorarium, paket kegiatan rapat, lembur, serta pemeliharaan dan operasional',
     sub: [
       { k: 'invoice', h: '#/alat/invoice', t: 'Hitung Invoice Barang/Jasa', i: 'receipt', d: 'Daftar barang/jasa: volume × harga satuan × frekuensi, bisa diisi tanpa mouse' },
       { k: 'pajak', h: '#/alat/pajak', t: 'Kalkulator Pajak', i: 'percent', d: 'PPN, PPh 22, PPh 23, dan PPh 4(2) dari satu nilai; bisa diambil dari Hitung Invoice' },

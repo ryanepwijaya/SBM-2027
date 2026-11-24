@@ -1,4 +1,4 @@
-// Pengadaan Barang/Jasa: Hitung Invoice (daftar barang) dan Kalkulator Pajak.
+// Grup Belanja Kegiatan: Hitung Invoice (daftar barang), Kalkulator Pajak, dan Hitung Honorarium.
 // Rumus pajak: semua hasil dibulatkan ke rupiah terdekat.
 // Isian hanya bertahan selama halaman terbuka (lihat store di store.js).
 import { esc, fmt, store, tip, resetBtn } from './store.js';
